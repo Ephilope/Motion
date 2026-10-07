@@ -1,0 +1,14 @@
+# Voix-off de electrique.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+On te vend la voiture électrique comme la voiture propre.
+Et si c'était une arnaque_?
+D'abord, le prix. À l'achat, elle coûte souvent bien plus cher qu'une essence.
+Ensuite, la batterie. Plus de 400_kilos,[quatre cents kilos,] bourrés de lithium, de nickel et de cobalt.
+Plus de 70_%[soixante-dix pourcent] du cobalt mondial vient du Congo, parfois extrait à la main, par des enfants.
+Résultat_: elle sort de l'usine avec une dette carbone plus lourde qu'une thermique.
+Et sur l'autoroute_? Un plein, c'est 5_minutes.[cinq minutes.] Une recharge rapide, 30_minutes,[trente minutes,] si la borne marche.
+Et à la revente, elle perd souvent sa valeur plus vite.
+Mais pour ses fans, c'est tout l'inverse.
+Rechargée à la maison, elle coûte jusqu'à trois fois moins cher à rouler.
+Et en France, sur toute sa vie, elle émet deux à trois fois moins de CO2[C O deux] qu'une thermique.
+Alors_? Progrès écolo ou arnaque_?
+Dis-le en commentaire.

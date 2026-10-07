@@ -88,3 +88,23 @@ ffmpeg -i assets/voix_pourboire.mp3 -i sfx.wav -filter_complex \
 ffmpeg -framerate 30 -i frames/f_%05d.jpg -i mix.wav -c:v libx264 -crf 20 -pix_fmt yuv420p \
   -c:a aac -b:a 192k -shortest pourboire_tiktok.mp4
 ```
+
+---
+
+# Voiture électrique : arnaque ou progrès ? (TikTok, 9:16)
+
+Une vidéo verticale de 60 s (1080×1920, 30 i/s, H.264) avec la charte habituelle (`docs/MODELE.md`). Six reproches à la voiture électrique (prix, batterie de 400 kg, cobalt du Congo, dette carbone à l'usine, recharge sur l'autoroute, revente), puis la parole à ses défenseurs (3 fois moins cher à rouler à la maison, 2 à 3 fois moins de CO2 sur sa vie en France), et un appel au débat « arnaque ou progrès ? ».
+
+- **Vidéo :** `electrique_tiktok.mp4` (voix + bruitages)
+- **Source :** `electrique.html`, voix-off `scripts/electrique.txt` → `assets/voix_electrique.mp3`, bruitages `tools/sfx_electrique.py`
+
+```bash
+node tools/voix.mjs electrique
+PAGE=electrique.html node tools/render.mjs frames 30
+python3 tools/sfx_electrique.py sfx.wav
+ffmpeg -i assets/voix_electrique.mp3 -i sfx.wav -filter_complex \
+  "[0:a]aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur=60.5[v];[1:a]volume=0.32[s];[v][s]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5[a]" \
+  -map "[a]" -t 60.5 mix.wav
+ffmpeg -framerate 30 -i frames/f_%05d.jpg -i mix.wav -c:v libx264 -crf 20 -pix_fmt yuv420p \
+  -c:a aac -b:a 192k -shortest electrique_tiktok.mp4
+```

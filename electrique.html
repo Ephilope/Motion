@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voiture électrique : arnaque ou progrès ?</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Voiture électrique : arnaque ou progrès ? » (charte : docs/MODELE.md).
+     Voix-off : scripts/electrique.txt → node tools/voix.mjs electrique -->
+<script src="lib/motion.js"></script>
+<script src="assets/electrique_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, mix, el, set, show, tf, txt, title, card, chip, bubble, emoji, burst, sparkles, bg } = Motion;
+await setup({
+  duration: 60.5,
+  words: window.WORDS,
+  audio: 'assets/voix_electrique.mp3',
+  emojis: '⚡⛽🔌👍👎💬👇⛏️📉🏠🌿',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const GREY = '#9A9A9A', YELLOW = '#FFD23F';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+// Voiture vue de profil, centrée sur (0,0), environ 570 px de large.
+function car(parent, fill) {
+  const g = el('g', {}, parent);
+  const body = 'M-280,40 L-280,-5 Q-272,-38 -232,-48 L-150,-60 L-92,-128 Q-78,-144 -52,-144 L112,-144 Q140,-144 160,-124 L222,-60 L262,-50 Q288,-40 288,0 L288,40 Q288,56 272,56 L-264,56 Q-280,56 -280,40 Z';
+  el('path', { d: body, fill: INK, transform: 'translate(12,12)' }, g);
+  const b = el('path', { d: body, fill, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M-72,-124 L-124,-62 L20,-62 L20,-124 Z', fill: '#BFE9FF', stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M42,-124 L42,-62 L192,-62 L142,-118 Q134,-124 120,-124 Z', fill: '#BFE9FF', stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  el('rect', { x: 240, y: -28, width: 34, height: 20, rx: 6, fill: '#FFE08A', stroke: INK, 'stroke-width': 5 }, g);
+  const bolt = el('path', { d: 'M12,-40 L-22,10 L2,10 L-10,44 L30,-8 L6,-8 Z', fill: '#FFD23F', stroke: INK, 'stroke-width': 5, 'stroke-linejoin': 'round' }, g);
+  const wheels = [-160, 170].map(x => {
+    const w = el('g', {}, g);
+    el('circle', { r: 62, fill: INK }, w); el('circle', { r: 30, fill: '#D0D0D0', stroke: INK, 'stroke-width': 5 }, w);
+    el('path', { d: 'M-30,0 H30 M0,-30 V30', stroke: INK, 'stroke-width': 6 }, w);
+    return { w, x };
+  });
+  return {
+    g, body: b, bolt,
+    update(x, y, s = 1, spin = 0, r = 0) { tf(g, x, y, s, r); wheels.forEach(o => tf(o.w, o.x, 56, 1, spin)); },
+  };
+}
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 110) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Barre verticale qui pousse vers le haut depuis la ligne de base y0.
+function bar(parent, x, w, fill) {
+  const sh = el('rect', { x: x + 12, width: w, rx: 18, fill: INK }, parent);
+  const r = el('rect', { x, width: w, rx: 18, fill, stroke: INK, 'stroke-width': 8 }, parent);
+  return h => { set(sh, { y: fmt(-h + 12), height: fmt(Math.max(h - 12, 1)) }); set(r, { y: fmt(-h), height: fmt(Math.max(h, 1)) }); show(r, h > 2); show(sh, h > 2); };
+}
+const label = (parent, str, size, fill = INK, o = {}) => txt(parent, str, { size, fill, ...o }).g;
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  prix: Wt("D'abord,") - .25, batt: Wt('Ensuite,') - .25, cobalt: Wt('Plus', 1, 18) - .25, usine: Wt('Résultat') - .25,
+  route: Wt('Et', 1, 30) - .2, revente: Wt('Et', 1, 38) - .2, fans: Wt('Mais') - .2, maison: Wt('Rechargée') - .25,
+  co2: Wt('Et', 1, 48) - .2, cta: Wt('Alors') - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : la voiture « propre »… ou une arnaque ? ======================
+S(0, T.prix, (cam) => {
+  const tElec = Wt('électrique'), tPropre = Wt('propre.'), tArn = Wt('arnaque');
+  bg(cam);
+  const head = title(cam, ['LA VOITURE', ['ÉLECTRIQUE', GREEN]], { size: 112 });
+  const leaves = el('g', {}, cam); emoji(leaves, '🌿', 120);
+  const c = car(cam, GREEN);
+  const sp = sparkles(cam, 9, 4, 330);
+  const clean = chip(cam, '100 % PROPRE', GREEN, INK, 60);
+  const st = stamp(cam, 'ARNAQUE ?', RED, 130);
+  const bst = burst(cam, 16, RED);
+  return t => {
+    tf(head, CX, 330, lerp(.2, 1, E.out5(p(t, tElec - .35, tElec + .1))), -2);
+    head.setAttribute('opacity', fmt(p(t, tElec - .35, tElec - .2)));
+    const gone = p(t, tArn - .05, tArn + .25);
+    const kc = p(t, 0, .45, E.out5);
+    c.update(lerp(-500, CX, kc), 780 + Math.sin(t * 14) * 3 * (1 - gone), 1, -t * 400 * (1 - gone), lerp(0, -4, gone));
+    c.body.setAttribute('fill', mix(GREEN, GREY, gone));
+    sp.update(CX, 740, pop(t, tPropre - .1) * (1 - gone), t);
+    tf(leaves, CX + 210, 620, pop(t, tPropre) * (1 - gone), Math.sin(t * 5) * 10);
+    clean.update(CX, 1010, pop(t, tPropre - .05) * (1 - gone), -3);
+    st.update(CX, 1000, t, tArn - .05, -9);
+    bst.update(CX, 1000, clamp((t - tArn + .05) / .5));
+    addShake(Math.max(0, 1 - Math.abs(t - tArn - .05) / .3) * .8);
+  };
+});
+
+// ====== 2. LE PRIX ================================================================
+S(T.prix, T.batt, (cam, a) => {
+  const tAch = Wt("l'achat,"), tCher = Wt('cher'), tEss = Wt('essence.');
+  bg(cam);
+  const tag = chip(cam, '1. LE PRIX', INK, CREAM);
+  const base = el('g', {}, cam);
+  el('line', { x1: 130, x2: 890, y1: 0, y2: 0, stroke: INK, 'stroke-width': 10, 'stroke-linecap': 'round' }, base);
+  const bars = el('g', {}, cam);
+  const bE = bar(bars, 190, 240, CREAM), bV = bar(bars, 590, 240, RED);
+  const lE = el('g', {}, cam); label(lE, 'ESSENCE', 52); const pump = el('g', {}, cam); emoji(pump, '⛽', 120);
+  const lV = el('g', {}, cam); label(lV, 'ÉLECTRIQUE', 52); const plug = el('g', {}, cam); emoji(plug, '⚡', 120);
+  const euros = [0, 1, 2].map(i => { const g = el('g', {}, cam); label(g, '€', 110, GREEN, { sw: 12, shadow: 8 }); return g; });
+  const st = stamp(cam, '+ CHER', RED, 100);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .1));
+    const Y = 1060;
+    tf(base, 0, Y, 1, 0); tf(bars, 0, Y, 1, 0);
+    bE(240 * p(t, tAch - .2, tAch + .3, E.back));
+    bV(lerp(240, 560, p(t, tCher - .25, tCher + .2, E.back)) * p(t, tAch, tAch + .5, E.back));
+    at(lE, 310, Y + 70, pop(t, tAch - .1)); at(lV, 710, Y + 70, pop(t, tAch + .1));
+    at(pump, 310, Y - 320, pop(t, tEss - .1), Math.sin(t * 5) * 6);
+    const top = Y - lerp(240, 560, p(t, tCher - .25, tCher + .2, E.back));
+    at(plug, 710, top - 90, pop(t, tAch + .2), Math.sin(t * 5) * 6);
+    euros.forEach((g, i) => { const k = pop(t, tCher + .05 + i * .12); at(g, 540 + i * 110 - 110 + 120, top - 210 - i * 40 + Math.sin(t * 6 + i) * 10, k, -10 + i * 10); });
+    st.update(310, 520, t, tCher, -8);
+    addShake(Math.max(0, 1 - Math.abs(t - tCher) / .25) * .45);
+  };
+}, { swipe: RED });
+
+// ====== 3. LA BATTERIE : 400 kg de métaux ==========================================
+S(T.batt, T.cobalt, (cam, a) => {
+  const tBat = Wt('batterie.'), t400 = Wt('400 kilos,'), tLi = Wt('lithium,'), tNi = Wt('nickel'), tCo = Wt('cobalt.');
+  bg(cam);
+  const tag = chip(cam, '2. LA BATTERIE', INK, CREAM);
+  const bat = el('g', {}, cam);
+  card(bat, -300, -170, 600, 340, CREAM, 36, 14, 9);
+  card(bat, 300, -60, 50, 120, INK, 12, 0, 0);
+  const lvl = el('rect', { x: -270, y: -140, height: 280, rx: 20, fill: GREEN, stroke: INK, 'stroke-width': 6 }, bat);
+  const kg = el('text', { 'text-anchor': 'middle', 'font-size': 130, y: 48, fill: CREAM, stroke: INK, 'stroke-width': 14, 'paint-order': 'stroke' }, bat);
+  const bst = burst(cam, 14, INK);
+  const ELEM = [['Li', 'LITHIUM', tLi], ['Ni', 'NICKEL', tNi], ['Co', 'COBALT', tCo]].map(([sym, name, t0], i) => {
+    const g = el('g', {}, cam);
+    card(g, -130, -130, 260, 260, i === 2 ? RED : CREAM, 22);
+    label(g, sym, 130, i === 2 ? CREAM : INK, i === 2 ? { sw: 12 } : {}).setAttribute('transform', 'translate(0,30)');
+    label(g, name, 34, i === 2 ? CREAM : INK).setAttribute('transform', 'translate(0,100)');
+    return { g, t0, x: 200 + i * 310 };
+  });
+  return t => {
+    tag.update(CX, 250, pop(t, a + .1));
+    const drop = p(t, tBat - .25, tBat + .15, E.in);
+    const land = t > tBat + .15 ? pop(t, tBat + .15, .3) : 1;
+    at(bat, CX, lerp(-300, 560, drop), lerp(1.12, 1, land), -3 + 3 * drop);
+    set(lvl, { width: fmt(540 * p(t, tBat + .1, t400 + .4, E.out)) });
+    const v = p(t, tBat + .2, t400 + .3, E.out);
+    kg.textContent = Math.round(400 * v) + ' KG';
+    bst.update(CX, 560, clamp((t - t400 - .2) / .5));
+    addShake(Math.max(0, 1 - Math.abs(t - tBat - .15) / .3) * .7 + Math.max(0, 1 - Math.abs(t - t400 - .2) / .25) * .4);
+    ELEM.forEach(o => at(o.g, o.x, 960, pop(t, o.t0 - .05), Math.sin(t * 3 + o.x) * 3));
+  };
+});
+
+// ====== 4. LE COBALT : 70 % du Congo, parfois par des enfants ======================
+S(T.cobalt, T.usine, (cam, a) => {
+  const t70 = Wt('70 %'), tCongo = Wt('Congo,'), tMain = Wt('main,'), tEnf = Wt('enfants.');
+  bg(cam);
+  const tag = chip(cam, '3. LE COBALT', INK, CREAM);
+  const R = 200, C = 2 * Math.PI * R;
+  const dn = el('g', {}, cam);
+  el('circle', { r: R + 6, fill: INK, cx: 12, cy: 12 }, dn);
+  el('circle', { r: R, fill: CREAM, stroke: INK, 'stroke-width': 8 }, dn);
+  const arc = el('circle', { r: R - 45, fill: 'none', stroke: RED, 'stroke-width': 90, transform: 'rotate(-90)', 'stroke-dasharray': `0 ${C}` }, dn);
+  el('circle', { r: R - 90, fill: CREAM, stroke: INK, 'stroke-width': 8 }, dn);
+  const num = el('text', { 'text-anchor': 'middle', 'font-size': 110, y: 40, fill: INK }, dn);
+  const congo = chip(cam, 'RD CONGO', RED, CREAM, 58);
+  const pick = el('g', {}, cam); emoji(pick, '⛏️', 150);
+  const alert = bubble(cam, 'TRAVAIL DES ENFANTS', INK, CREAM, 56);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .1));
+    at(dn, CX, 600, pop(t, a + .1, .4), 0);
+    const k = p(t, t70 - .1, t70 + .6, E.out);
+    const Cin = 2 * Math.PI * (R - 45);
+    arc.setAttribute('stroke-dasharray', `${fmt(Cin * .7 * k)} ${fmt(Cin)}`);
+    num.textContent = Math.round(70 * k) + ' %';
+    congo.update(CX, 880, pop(t, tCongo - .05), -3);
+    at(pick, 800, 470, pop(t, tMain - .1), Math.sin(t * 9) * 25 * (t > tMain ? 1 : 0));
+    alert.update(CX, 1040, pop(t, tEnf - .1), 2);
+    addShake(Math.max(0, 1 - Math.abs(t - tEnf) / .3) * .5);
+  };
+}, { swipe: RED });
+
+// ====== 5. L'USINE : la dette carbone =============================================
+S(T.usine, T.route, (cam, a) => {
+  const tSort = Wt('sort'), tDette = Wt('dette'), tTh = Wt('thermique.');
+  bg(cam);
+  const tag = chip(cam, "4. À LA SORTIE DE L'USINE", INK, CREAM, 42);
+  const fac = el('g', {}, cam);
+  card(fac, -260, -40, 520, 230, '#C9C2B4', 10);
+  el('path', { d: 'M-260,-40 L-260,-130 L-150,-40 L-150,-130 L-40,-40 L-40,-130 L70,-40 Z', fill: '#C9C2B4', stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, fac);
+  card(fac, 120, -230, 70, 190, '#C9C2B4', 6, 0, 7);
+  [-200, -90, 20].forEach(x => card(fac, x, 30, 80, 70, '#BFE9FF', 8, 0, 6));
+  const puffs = [0, 1, 2].map(() => el('circle', { fill: '#8A8A8A', stroke: INK, 'stroke-width': 6 }, cam));
+  const cloud = el('g', {}, cam);
+  [[-150, 30, 95], [-40, -30, 125], [90, 10, 105], [180, 50, 75], [-230, 70, 60], [0, 70, 100]].forEach(([x, y, r]) => el('circle', { cx: x + 10, cy: y + 10, r, fill: INK }, cloud));
+  [[-150, 30, 95], [-40, -30, 125], [90, 10, 105], [180, 50, 75], [-230, 70, 60], [0, 70, 100]].forEach(([x, y, r]) => el('circle', { cx: x, cy: y, r, fill: '#5A5A5A', stroke: INK, 'stroke-width': 7 }, cloud));
+  label(cloud, 'CO2', 120, CREAM, { sw: 12 }).setAttribute('transform', 'translate(-10,60)');
+  const c = car(cam, GREEN);
+  const debt = stamp(cam, 'DETTE CARBONE', RED, 74);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .1));
+    at(fac, CX - 120, 600, pop(t, a + .05, .4));
+    const lift = p(t, tDette - .2, tDette + .5, E.out);
+    puffs.forEach((e, i) => { const u = ((t * .7 + i / 3) % 1); set(e, { cx: fmt(CX + 35 + u * 40), cy: fmt(370 - u * 130), r: fmt(20 + u * 40), opacity: fmt((1 - u) * (1 - lift)) }); });
+    const kc = p(t, tSort - .2, tSort + .6, E.out5);
+    c.update(lerp(CX - 160, CX, kc), lerp(700, 980, kc), lerp(.3, .85, kc), -kc * 300, 0);
+    show(c.g, kc > 0);
+    at(cloud, CX, 680, pop(t, tDette - .15, .45) * (1 + .03 * Math.sin(t * 5)), 0);
+    show(fac, lift < 1); fac.setAttribute('opacity', fmt(1 - lift));
+    debt.update(CX, 440, t, tTh - .1, -6);
+    addShake(Math.max(0, 1 - Math.abs(t - tTh + .1) / .3) * .5);
+  };
+});
+
+// ====== 6. L'AUTOROUTE : 5 minutes contre 30 =====================================
+S(T.route, T.revente, (cam, a) => {
+  const tPlein = Wt('plein,'), t5 = Wt('5 minutes.'), tRech = Wt('recharge'), t30 = Wt('30 minutes,'), tBorne = Wt('borne'), tMarche = Wt('marche.');
+  bg(cam);
+  const tag = chip(cam, "5. L'AUTOROUTE", INK, CREAM);
+  const colL = el('g', {}, cam), colR = el('g', {}, cam);
+  card(colL, -200, -260, 400, 560, CREAM, 30);
+  card(colR, -200, -260, 400, 560, CREAM, 30);
+  const pump = el('g', {}, colL); emoji(pump, '⛽', 170); tf(pump, 0, -120);
+  const plug = el('g', {}, colR); emoji(plug, '🔌', 170); tf(plug, 0, -120);
+  label(colL, 'PLEIN', 56).setAttribute('transform', 'translate(0,60)');
+  label(colR, 'RECHARGE', 56).setAttribute('transform', 'translate(0,60)');
+  const nL = el('text', { 'text-anchor': 'middle', 'font-size': 100, y: 200, fill: GREEN, stroke: INK, 'stroke-width': 12, 'paint-order': 'stroke' }, colL);
+  const nR = el('text', { 'text-anchor': 'middle', 'font-size': 100, y: 200, fill: RED, stroke: INK, 'stroke-width': 12, 'paint-order': 'stroke' }, colR);
+  const hs = stamp(cam, 'EN PANNE', RED, 92);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .1));
+    at(colL, 280, 680, pop(t, tPlein - .2), -2);
+    at(colR, 750, 680, pop(t, tRech - .2), 2);
+    nL.textContent = Math.round(5 * p(t, t5 - .2, t5 + .2, E.out)) + ' MIN';
+    nR.textContent = Math.round(30 * p(t, tRech, t30 + .3, E.out)) + ' MIN';
+    show(nL, t > t5 - .2); show(nR, t > tRech);
+    hs.update(750, 560, t, tMarche - .1, -12);
+    plug.setAttribute('opacity', t > tBorne ? fmt(.35 + .65 * (Math.floor(t * 8) % 2)) : 1);
+    addShake(Math.max(0, 1 - Math.abs(t - tMarche + .1) / .3) * .6);
+  };
+}, { swipe: RED });
+
+// ====== 7. LA REVENTE : la valeur chute plus vite ================================
+S(T.revente, T.fans, (cam, a) => {
+  const tRev = Wt('revente,'), tPerd = Wt('perd'), tVite = Wt('vite.');
+  bg(cam);
+  const tag = chip(cam, '6. LA REVENTE', INK, CREAM);
+  const ch = el('g', {}, cam);
+  card(ch, -400, -300, 800, 600, CREAM, 30);
+  label(ch, 'VALEUR', 50).setAttribute('transform', 'translate(-250,-210)');
+  el('path', { d: 'M-330,-170 V230 H340', stroke: INK, 'stroke-width': 8, fill: 'none', 'stroke-linecap': 'round' }, ch);
+  const lT = el('path', { d: 'M-320,-130 L-160,-60 L0,-10 L160,30 L320,60', stroke: INK, 'stroke-width': 14, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1, 'stroke-dasharray': '1 1' }, ch);
+  const lE = el('path', { d: 'M-320,-130 L-160,10 L0,100 L160,160 L320,190', stroke: RED, 'stroke-width': 18, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1, 'stroke-dasharray': '1 1' }, ch);
+  const gT = el('g', {}, ch); label(gT, 'THERMIQUE', 34); tf(gT, 220, 10);
+  const gE = el('g', {}, ch); label(gE, 'ÉLECTRIQUE', 34, RED); tf(gE, 250, 135);
+  const dn = el('g', {}, cam); emoji(dn, '📉', 160);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .1));
+    at(ch, CX, 700, pop(t, tRev - .25, .4), -1);
+    lT.setAttribute('stroke-dashoffset', fmt(1 - p(t, tRev, tPerd + .4)));
+    lE.setAttribute('stroke-dashoffset', fmt(1 - p(t, tPerd - .1, tVite + .2, E.in)));
+    gT.setAttribute('opacity', fmt(p(t, tPerd + .2, tPerd + .4))); gE.setAttribute('opacity', fmt(p(t, tVite + .1, tVite + .3)));
+    at(dn, 830, 390, pop(t, tVite - .05), Math.sin(t * 6) * 6);
+    addShake(Math.max(0, 1 - Math.abs(t - tVite - .1) / .25) * .4);
+  };
+});
+
+// ====== 8. MAIS POUR SES FANS… ==================================================
+S(T.fans, T.maison, (cam, a) => {
+  const tFans = Wt('fans,'), tInv = Wt("l'inverse.");
+  bg(cam, GREEN, false);
+  const thumb = el('g', {}, cam); emoji(thumb, '👍', 260);
+  const q = title(cam, [['MAIS POUR', CREAM], ['SES FANS…', CREAM]], { size: 120 });
+  const inv = chip(cam, "C'EST L'INVERSE", INK, CREAM, 64);
+  const sp = sparkles(cam, 8, 9, 220);
+  return t => {
+    at(q, CX, 380, pop(t, a + .1, .4), -3);
+    at(thumb, CX, 760, pop(t, tFans - .1, .4) * (1 + .05 * Math.sin(t * 8)), Math.sin(t * 5) * 8);
+    sp.update(CX, 720, pop(t, tFans), t);
+    inv.update(CX, 1040, pop(t, tInv - .05), -3);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. À LA MAISON : 3 fois moins cher à rouler ===============================
+S(T.maison, T.co2, (cam, a) => {
+  const tMais = Wt('maison,'), tTrois = Wt('trois'), tRoul = Wt('rouler.');
+  bg(cam, GREEN, false);
+  const house = el('g', {}, cam);
+  el('path', { d: 'M-230,-60 L0,-250 L230,-60 Z', fill: INK, transform: 'translate(12,12)' }, house);
+  card(house, -190, -80, 380, 300, CREAM, 10);
+  el('path', { d: 'M-230,-60 L0,-250 L230,-60 Z', fill: RED, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, house);
+  card(house, -50, 90, 100, 130, '#8A5A3A', 8, 0, 6);
+  card(house, -150, 0, 80, 70, '#BFE9FF', 6, 0, 6);
+  const cable = el('path', { stroke: INK, 'stroke-width': 14, fill: 'none', 'stroke-linecap': 'round' }, cam);
+  const c = car(cam, CREAM);
+  const big = el('g', {}, cam);
+  label(big, '÷ 3', 220, CREAM, { sw: 18, shadow: 14 });
+  const lab = chip(cam, 'MOINS CHER À ROULER', INK, CREAM, 52);
+  return t => {
+    at(house, 290, 620, pop(t, a + .1, .4) * .8);
+    const kc = p(t, a + .1, tMais, E.out5);
+    c.update(lerp(1400, 720, kc), 780, .62, -kc * 300);
+    const kw = p(t, tMais - .1, tMais + .3);
+    cable.setAttribute('d', `M${fmt(290 + 152 * .8)},${fmt(620 + 120 * .8)} Q560,${fmt(lerp(720, 860, kw))} ${fmt(lerp(380, 600, kw))},${fmt(lerp(716, 770, kw))}`);
+    show(cable, kw > 0);
+    c.bolt.setAttribute('fill', t > tMais && Math.floor(t * 4) % 2 ? CREAM : '#FFD23F');
+    at(big, CX, 330, pop(t, tTrois - .05, .4), -4);
+    lab.update(CX, 1040, pop(t, tRoul - .4), -2);
+    addShake(Math.max(0, 1 - Math.abs(t - tTrois) / .25) * .4);
+  };
+});
+
+// ====== 10. EN FRANCE : 2 à 3 fois moins de CO2 sur sa vie ========================
+S(T.co2, T.cta, (cam, a) => {
+  const tFr = Wt('France,'), tVie = Wt('vie,'), tDeux = Wt('deux'), tCO2 = Wt('CO2'), tTh = Wt('thermique.', 2);
+  bg(cam, GREEN, false);
+  const fr = el('g', {}, cam);
+  [[-150, '#2B4FA8'], [-50, CREAM], [50, RED]].forEach(([x, f], i) => el('rect', { x, y: -60, width: 100, height: 120, fill: f }, fr));
+  el('rect', { x: -150, y: -60, width: 300, height: 120, rx: 8, fill: 'none', stroke: INK, 'stroke-width': 8 }, fr);
+  const sub = chip(cam, 'SUR TOUTE SA VIE', INK, CREAM, 50);
+  const bars = el('g', {}, cam);
+  el('line', { x1: 140, x2: 880, y1: 0, y2: 0, stroke: INK, 'stroke-width': 10, 'stroke-linecap': 'round' }, bars);
+  const bT = bar(bars, 200, 240, GREY), bE = bar(bars, 590, 240, CREAM);
+  const lT = el('g', {}, cam); label(lT, 'THERMIQUE', 46, INK);
+  const lE = el('g', {}, cam); label(lE, 'ÉLECTRIQUE', 46, INK);
+  const co = el('g', {}, cam); label(co, 'CO2', 90, CREAM, { sw: 12, shadow: 8 });
+  const div = el('g', {}, cam); label(div, '÷ 2 À 3', 100, CREAM, { sw: 14, shadow: 10 });
+  return t => {
+    at(fr, CX, 260, pop(t, tFr - .1), -3);
+    sub.update(CX, 420, pop(t, tVie - .2), 2);
+    const Y = 1060;
+    tf(bars, 0, Y, 1, 0);
+    const hT = 400 * p(t, tVie, tDeux, E.back), hE = 400 * p(t, tDeux - .1, tCO2, E.out) * lerp(1, .4, p(t, tDeux, tCO2 + .3, E.out));
+    bT(hT); bE(hE);
+    at(lT, 320, Y + 62, pop(t, tVie)); at(lE, 710, Y + 62, pop(t, tDeux));
+    at(co, 320, Y - hT - 70, pop(t, tCO2 - .05));
+    at(div, 710, Y - Math.max(hE, 180) - 90, pop(t, tTh - .2), -5);
+    addShake(Math.max(0, 1 - Math.abs(t - tTh + .2) / .25) * .4);
+  };
+});
+
+// ====== 11. CALL TO ACTION : arnaque ou progrès ? =================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tProg = Wt('Progrès'), tOu = Wt('ou', 1, a), tArn = Wt('arnaque', 2), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const L = el('rect', { x: 0, width: 540, height: H, fill: RED }, cam);
+  const R = el('rect', { x: 540, width: 540, height: H, fill: GREEN }, cam);
+  el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+  const q = title(cam, [['ALORS ?', CREAM]], { size: 120 });
+  const no = el('g', {}, cam), yes = el('g', {}, cam);
+  const nT = el('g', {}, no); emoji(nT, '👎', 170);
+  const yT = el('g', {}, yes); emoji(yT, '👍', 170);
+  const nTx = el('g', {}, no), yTx = el('g', {}, yes);
+  txt(nTx, 'ARNAQUE', { size: 64, fill: CREAM, sw: 14, shadow: 10 });
+  ['PROGRÈS', 'ÉCOLO'].forEach((s, i) => txt(yTx, s, { size: 64, fill: CREAM, sw: 12, shadow: 8 }).g.setAttribute('transform', `translate(0,${i * 72})`));
+  const vs = el('g', {}, cam); el('circle', { r: 66, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'OU', { size: 56, fill: CREAM }).t.setAttribute('y', 20);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 220);
+  const ring = el('circle', { fill: 'none', stroke: CREAM, 'stroke-width': 10 }, cam);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    const kIn = p(t, a - .05, a + .35, E.out5);
+    set(L, { y: fmt(-H * (1 - kIn)) }); set(R, { y: fmt(H * (1 - kIn)) });
+    at(q, 540, 250, pop(t, a + .2), -2);
+    tf(no, 270, 540, 1, 0); tf(yes, 780, 540, 1, 0);
+    tf(nT, 0, -150, pop(t, tArn - .1), Math.sin(t * 5) * 8); tf(yT, 0, -150, pop(t, tProg - .1), Math.sin(t * 5 + 1) * 8);
+    tf(nTx, 0, 60, pop(t, tArn - .05), -4); tf(yTx, 0, 60, pop(t, tProg - .05), 4);
+    tf(vs, 540, 560, pop(t, tOu - .05), 0);
+    const kb = pop(t, tDis - .3, .4);
+    tf(bub, 540, 1000, kb * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    const rp = ((t - tDis) * .9) % 1;
+    set(ring, { cx: 540, cy: 990, r: fmt(90 + rp * 130), opacity: fmt(t > tDis ? (1 - rp) * .8 : 0) });
+    tf(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .3), 0);
+    addShake(Math.max(0, 1 - Math.abs(t - tArn) / .25) * .4);
+  };
+}, { swipe: GREEN });
+
+captions({ until: tDis, active: t => t >= T.fans + .1 ? YELLOW : GREEN });   // jaune sur les fonds verts
+start();
+})();
+</script>
+</body>
+</html>
