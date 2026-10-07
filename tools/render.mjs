@@ -9,7 +9,7 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const [outDir, fpsArg, a, b] = process.argv.slice(2);
-const url = 'file://' + resolve('animation.html') + '?render';
+const url = 'file://' + resolve(process.env.PAGE || 'animation.html') + '?render';
 mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
@@ -17,6 +17,8 @@ page.on('pageerror', e => { console.error('PAGE ERROR', e.message); process.exit
 await page.goto(url);
 await page.waitForFunction(() => window.ready === true);
 await page.evaluate(() => document.fonts.ready);
+const [vw, vh] = await page.evaluate(() => document.getElementById('stage').getAttribute('viewBox').split(' ').slice(2).map(Number));
+await page.setViewportSize({ width: vw, height: vh });
 const svgEl = await page.$('#stage');
 if (fpsArg === '--stills') {
   for (const t of a.split(',').map(Number)) {

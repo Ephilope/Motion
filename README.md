@@ -30,3 +30,31 @@ ffmpeg -framerate 30 -i frames/f_%05d.jpg -i music.wav \
 ```
 
 Toute l'animation est une fonction du temps (`renderAt(t)`), donc le rendu est déterministe. Pour changer un texte ou un timing, modifiez les sous-titres (`CAPS`) ou les scènes (`S(début, fin, …)`) dans `animation.html`.
+
+---
+
+# Les 9 signes du trouble dépressif caractérisé (format vertical)
+
+Une vidéo verticale (1080×1920, 9:16, 88 s) dans un style « film de super-héros » : pages de BD, titres en métal, transitions en bandes obliques, musique épique. Le héros, Alex, vit les 9 symptômes du DSM‑5 l'un après l'autre. Le noyau lumineux sur sa poitrine faiblit à chaque symptôme.
+
+- **Vidéo :** `les_9_signes_depression_vertical.mp4`
+- **Source :** `depression.html` (à ouvrir dans un navigateur pour la regarder en direct)
+- **Musique :** `tools/music_hero.py`
+
+| Temps | Séquence |
+|-------|----------|
+| 0–7 s | Pages de BD, titre « Les 9 signes du trouble dépressif caractérisé » |
+| 7–13 s | Alex atterrit, puis l'ombre de la dépression apparaît |
+| 13–67 s | Les 9 symptômes : humeur dépressive, perte d'intérêt, appétit et poids, sommeil, agitation ou lenteur, fatigue, dévalorisation et culpabilité, concentration, idées noires |
+| 67–74 s | Les critères du diagnostic (au moins 5 signes sur 9 pendant 2 semaines…) |
+| 74–81 s | « Même les héros ont besoin d'aide » : l'équipe se rassemble |
+| 81–88 s | Où trouver de l'aide : 3114, 15, 112 |
+
+Rendu :
+
+```bash
+PAGE=depression.html node tools/render.mjs frames 30
+python3 tools/music_hero.py music_hero.wav
+ffmpeg -framerate 30 -i frames/f_%05d.jpg -i music_hero.wav -c:v libx264 -crf 20 \
+  -pix_fmt yuv420p -c:a aac -b:a 192k -af loudnorm=I=-15:TP=-1.5 -shortest les_9_signes_depression_vertical.mp4
+```

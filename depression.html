@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les 9 signes</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #stage { height: 100vh; width: 56.25vh; max-width: 100vw; max-height: 177.78vw; display: block; }
+  text { font-family: Inter, "DejaVu Sans", sans-serif; }
+  #ui { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center;
+        background: rgba(5, 7, 15, .75); padding: 8px 14px; border-radius: 999px; font: 14px Inter, sans-serif; color: #fff; }
+  #ui button { background: #f5c04a; border: 0; border-radius: 999px; padding: 6px 14px; font-weight: 700; cursor: pointer; }
+  #ui input { width: min(40vw, 320px); }
+  body.render #ui { display: none; }
+</style>
+</head>
+<body>
+<div id="wrap"><svg id="stage" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg></div>
+<div id="ui"><button id="play">Pause</button><input id="seek" type="range" min="0" max="88" step="0.01" value="0"><span id="time">0.0s</span></div>
+<script>
+// ---------------------------------------------------------------------------
+// Moteur : l'image est une fonction pure du temps -> renderAt(t)
+// ---------------------------------------------------------------------------
+const NS = 'http://www.w3.org/2000/svg';
+const W = 1080, H = 1920, DUR = 88;
+const svg = document.getElementById('stage');
+const RENDER = new URLSearchParams(location.search).has('render');
+if (RENDER) document.body.classList.add('render');
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function set(e, attrs) { for (const k in attrs) e.setAttribute(k, attrs[k]); }
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const E = {
+  lin: t => t,
+  inOut: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  out: t => 1 - Math.pow(1 - t, 3),
+  out5: t => 1 - Math.pow(1 - t, 5),
+  in: t => t * t * t,
+  back: t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+  elastic: t => t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - .75) * (2 * Math.PI / 3)) + 1,
+};
+const p = (t, a, b, ease = E.inOut) => ease(clamp((t - a) / (b - a)));
+const rad = d => d * Math.PI / 180;
+const fmt = n => (+n).toFixed(1);
+function rng(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+function blink(t, off = 0, period = 3.3) { const ph = (t + off) % period; return ph < .2 ? Math.sin(ph / .2 * Math.PI) : 0; }
+function mix(c1, c2, k) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => Math.round(lerp((a >> s) & 255, (b >> s) & 255, k));
+  return '#' + ((1 << 24) + (ch(16) << 16) + (ch(8) << 8) + ch(0)).toString(16).slice(1);
+}
+function rot(pt, c, deg) {
+  const a = rad(deg), dx = pt[0] - c[0], dy = pt[1] - c[1];
+  return [c[0] + dx * Math.cos(a) - dy * Math.sin(a), c[1] + dx * Math.sin(a) + dy * Math.cos(a)];
+}
+function smoothClosed(pts) {
+  const n = pts.length; let d = `M${fmt(pts[0][0])},${fmt(pts[0][1])}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+    d += `C${fmt(p1[0] + (p2[0] - p0[0]) / 6)},${fmt(p1[1] + (p2[1] - p0[1]) / 6)} ${fmt(p2[0] - (p3[0] - p1[0]) / 6)},${fmt(p2[1] - (p3[1] - p1[1]) / 6)} ${fmt(p2[0])},${fmt(p2[1])}`;
+  }
+  return d + 'Z';
+}
+
+// ---------------------------------------------------------------------------
+// Dégradés, motifs
+// ---------------------------------------------------------------------------
+const defs = el('defs', {}, svg);
+function lg(id, stops, x2 = 0, y2 = 1) { const g = el('linearGradient', { id, x1: 0, y1: 0, x2, y2 }, defs); stops.forEach(([o, c, op = 1]) => el('stop', { offset: o, 'stop-color': c, 'stop-opacity': op }, g)); }
+function rg(id, stops, cx = .5, cy = .5, r = .5) { const g = el('radialGradient', { id, cx, cy, r }, defs); stops.forEach(([o, c, op = 1]) => el('stop', { offset: o, 'stop-color': c, 'stop-opacity': op }, g)); }
+rg('gBg', [[0, '#1b2546'], [1, '#04060d']], .5, .4, .9);
+lg('gMetal', [[0, '#ffffff'], [.42, '#cfd8e6'], [.5, '#5a687e'], [.6, '#9eabbf'], [1, '#eef3fa']]);
+lg('gGold', [[0, '#fff4c8'], [.42, '#f5c04a'], [.5, '#8f6210'], [.62, '#e3aa3a'], [1, '#ffe9a6']]);
+lg('gRedMetal', [[0, '#ff8a8a'], [.45, '#e23636'], [.52, '#7a0f0f'], [.65, '#c92a2a'], [1, '#ff6b6b']]);
+lg('gShine', [[0, '#ffffff', 0], [.5, '#ffffff', .95], [1, '#ffffff', 0]], 1, 0);
+rg('gFlare', [[0, '#ffffff', 1], [.25, '#bfe9ff', .7], [1, '#4fc3ff', 0]]);
+rg('gCore', [[0, '#ffffff'], [.35, '#9be8ff', .9], [1, '#4fc3ff', 0]]);
+rg('gVig', [[.45, '#000', 0], [1, '#000', .85]]);
+rg('gEmber', [[0, '#fff1c1'], [.4, '#ffb347', .9], [1, '#ff6a00', 0]]);
+rg('gSunrise', [[0, '#ffd56b', .95], [.35, '#ff9a3d', .55], [1, '#1b2546', 0]], .5, .95, .9);
+rg('gSmoke', [[0, '#05060b', .95], [.6, '#0b0d18', .7], [1, '#0b0d18', 0]]);
+lg('gNight', [[0, '#0a1230'], [1, '#26345e']]);
+lg('gPaper', [[0, '#f6efdc'], [1, '#e9dfc4']]);
+const ht = el('pattern', { id: 'ht', width: 18, height: 18, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(30)' }, defs);
+el('circle', { cx: 9, cy: 9, r: 3.4, fill: '#fff' }, ht);
+const htD = el('pattern', { id: 'htD', width: 14, height: 14, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(20)' }, defs);
+el('circle', { cx: 7, cy: 7, r: 3, fill: '#000' }, htD);
+const ACC = ['#3d6bff', '#8a90a6', '#ff9f43', '#6c5ce7', '#00c2a8', '#ffcc00', '#e84393', '#00a8ff', '#5b4a9e'];
+ACC.forEach((c, i) => { rg('gAcc' + i, [[0, c, .55], [1, c, 0]]); lg('gPan' + i, [[0, mix(c, '#05070f', .55)], [1, mix(c, '#05070f', .85)]]); });
+
+// ---------------------------------------------------------------------------
+// Textes
+// ---------------------------------------------------------------------------
+let uid = 0;
+function metalText(parent, str, o) {
+  const g = el('g', {}, parent);
+  const base = { x: o.x || 0, y: o.y || 0, 'font-size': o.size, 'font-weight': 900, 'text-anchor': o.anchor || 'start', 'letter-spacing': o.ls ?? 0 };
+  const depth = o.depth ?? Math.max(2, Math.round(o.size / 22));
+  for (let d = depth; d >= 1; d--) { const s = el('text', { ...base, y: base.y + d * 1.4, fill: d === depth ? '#000' : '#232a3b' }, g); s.textContent = str; }
+  const main = el('text', { ...base, fill: `url(#${o.grad || 'gMetal'})`, stroke: '#fff', 'stroke-opacity': .4, 'stroke-width': Math.max(1, o.size / 90) }, g);
+  main.textContent = str;
+  const w = main.getComputedTextLength();
+  const id = 'mt' + (uid++); const cp = el('clipPath', { id }, defs); el('text', base, cp).textContent = str;
+  const shine = el('rect', { x: 0, y: 0, width: o.size * .9, height: o.size * 1.4, fill: 'url(#gShine)' }, el('g', { 'clip-path': `url(#${id})` }, g));
+  const x0 = (o.anchor === 'middle' ? base.x - w / 2 : o.anchor === 'end' ? base.x - w : base.x);
+  return {
+    g, w,
+    shine(u) { set(shine, { transform: `translate(${fmt(x0 - o.size * 1.6 + u * (w + o.size * 3.2))},${fmt(base.y - o.size * 1.1)}) skewX(-22)` }); },
+  };
+}
+function wrapLines(str, size, maxW, weight = 600) {
+  const probe = el('text', { 'font-size': size, 'font-weight': weight }, svg);
+  const words = str.split(' '), lines = []; let cur = '';
+  for (const w of words) {
+    const test = cur ? cur + ' ' + w : w;
+    probe.textContent = test.replace(/\*/g, '');
+    if (probe.getComputedTextLength() > maxW && cur) { lines.push(cur); cur = w; } else cur = test;
+  }
+  if (cur) lines.push(cur);
+  probe.remove();
+  return lines;
+}
+function richText(parent, line, attrs, hi = '#f5c04a') {
+  const t = el('text', attrs, parent);
+  line.split(/(\*[^*]+\*)/).filter(Boolean).forEach(seg => {
+    const s = el('tspan', seg.startsWith('*') ? { fill: hi } : {}, t); s.textContent = seg.replace(/\*/g, '');
+  });
+  return t;
+}
+function pill(parent, str, o = {}) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const size = o.size || 32;
+  const bg = el('rect', { rx: o.rx ?? size * .5, fill: o.bg || '#e23636' }, inner);
+  const tx = el('text', { 'text-anchor': 'middle', 'font-size': size, 'font-weight': 900, fill: o.color || '#fff', y: size * .36, 'letter-spacing': o.ls ?? 2 }, inner);
+  tx.textContent = str;
+  const w = tx.getComputedTextLength(), h = size * 1.75, pad = size * .8;
+  set(bg, { x: -w / 2 - pad, y: -h / 2, width: w + pad * 2, height: h });
+  return { g, w: w + pad * 2, update(x, y, k, r = 0) { g.setAttribute('display', k <= .001 ? 'none' : ''); set(g, { transform: `translate(${fmt(x)},${fmt(y)}) rotate(${r})` }); set(inner, { transform: `scale(${Math.max(k, .001).toFixed(3)})` }); } };
+}
+
+// ---------------------------------------------------------------------------
+// Le héros (et ses allié·es) — vue de face, membres en cinématique inverse
+// ---------------------------------------------------------------------------
+function ik(R, T, l1, l2, side) {
+  let dx = T[0] - R[0], dy = T[1] - R[1], d = Math.hypot(dx, dy);
+  d = clamp(d, 1, l1 + l2 - .5);
+  const base = Math.atan2(dy, dx), a = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1));
+  const k1 = [R[0] + l1 * Math.cos(base + a), R[1] + l1 * Math.sin(base + a)];
+  const k2 = [R[0] + l1 * Math.cos(base - a), R[1] + l1 * Math.sin(base - a)];
+  const K = (side > 0 ? k1[0] > k2[0] : k1[0] < k2[0]) ? k1 : k2;
+  const Tf = [R[0] + d * Math.cos(base), R[1] + d * Math.sin(base)];
+  const ang = Math.atan2(Tf[1] - K[1], Tf[0] - K[0]);
+  return [K, [K[0] + l2 * Math.cos(ang), K[1] + l2 * Math.sin(ang)]];
+}
+function makeHero(parent, opt = {}) {
+  const c = Object.assign({ suit: '#22325e', suitDark: '#141d3a', trim: '#f5c04a', cape: '#c62828', capeDark: '#7d1414', skin: '#f0c29a', hair: '#2b1a12',
+    boots: '#121933', glove: '#c62828', pants: null, mask: true, hasCape: true, coat: false, hero: true, hairStyle: 'short' }, opt);
+  const g = el('g', {}, parent);
+  const body = el('g', {}, g);
+  const capeBack = c.hasCape ? el('path', { fill: c.capeDark }, body) : null;
+  const legsG = el('g', {}, body);
+  const mkLeg = () => ({ th: el('path', { stroke: c.pants || c.suit, 'stroke-width': 34, fill: 'none', 'stroke-linecap': 'round' }, legsG), sh: el('path', { stroke: c.boots, 'stroke-width': 30, fill: 'none', 'stroke-linecap': 'round' }, legsG), ft: el('ellipse', { rx: 24, ry: 13, fill: c.boots }, legsG) });
+  const legR = mkLeg(), legL = mkLeg();
+  const torso = el('g', {}, body);
+  el('path', { d: 'M-70,-338 Q0,-352 70,-338 L50,-198 Q0,-188 -50,-198Z', fill: c.suit, stroke: c.suit, 'stroke-width': 16, 'stroke-linejoin': 'round' }, torso);
+  if (c.coat) {
+    el('path', { d: 'M-78,-336 L-70,-120 L-14,-120 L0,-290 L14,-120 L70,-120 L78,-336 Q0,-350 -78,-336Z', fill: '#f4f7fb', stroke: '#d5dce8', 'stroke-width': 4, 'stroke-linejoin': 'round' }, torso);
+    el('path', { d: 'M-34,-340 C-46,-280 -20,-250 0,-252 C20,-250 46,-280 34,-340', stroke: '#2b3a55', 'stroke-width': 6, fill: 'none' }, torso);
+    el('circle', { cx: 0, cy: -250, r: 9, fill: '#8a99b5' }, torso);
+  }
+  let core = null, coreGlow = null;
+  if (c.hero) {
+    el('path', { d: 'M-68,-336 L0,-262 L68,-336', stroke: c.trim, 'stroke-width': 7, fill: 'none', 'stroke-linejoin': 'round' }, torso);
+    el('rect', { x: -54, y: -214, width: 108, height: 22, rx: 7, fill: c.trim }, torso);
+    el('rect', { x: -14, y: -217, width: 28, height: 28, rx: 6, fill: '#ffe08a', stroke: '#9a6b12', 'stroke-width': 3 }, torso);
+    coreGlow = el('circle', { cx: 0, cy: -292, r: 70, fill: 'url(#gCore)' }, torso);
+    el('circle', { cx: 0, cy: -292, r: 24, fill: '#0a1224', stroke: c.trim, 'stroke-width': 5 }, torso);
+    core = el('circle', { cx: 0, cy: -292, r: 14, fill: '#c8f3ff' }, torso);
+  }
+  const capeFront = c.hasCape ? el('path', { fill: c.cape }, torso) : null;
+  const head = el('g', {}, torso);
+  el('rect', { x: -15, y: 24, width: 30, height: 34, fill: c.skin }, head);
+  if (c.hairStyle === 'long') el('path', { d: 'M-58,-10 C-62,-72 62,-72 58,-10 L62,62 Q0,78 -62,62Z', fill: c.hair }, head);
+  [-1, 1].forEach(s => el('circle', { cx: s * 52, cy: 4, r: 11, fill: c.skin }, head));
+  el('ellipse', { rx: 52, ry: 56, fill: c.skin }, head);
+  if (c.hairStyle === 'bun') el('circle', { cx: 0, cy: -60, r: 22, fill: c.hair }, head);
+  el('path', { d: c.hairStyle === 'bald' ? 'M-52,-8 C-50,-30 -40,-40 -30,-44 L-44,-10Z M52,-8 C50,-30 40,-40 30,-44 L44,-10Z' : 'M-55,-4 C-62,-72 62,-76 55,-6 C46,-28 30,-30 18,-40 C0,-24 -30,-30 -55,-4Z', fill: c.hair }, head);
+  if (c.mask) el('path', { d: 'M-56,-18 Q-30,-32 0,-20 Q30,-32 56,-18 L52,10 Q30,18 0,6 Q-30,18 -52,10Z', fill: c.suitDark }, head);
+  const eyes = [-1, 1].map(s => {
+    const eg = el('g', { transform: `translate(${s * 22},-4)` }, head);
+    const lid = el('g', {}, eg);
+    el('ellipse', { rx: c.mask ? 14 : 11, ry: c.mask ? 11 : 12, fill: '#fff' }, lid);
+    const pupil = el('circle', { r: c.mask ? 5.5 : 6.5, fill: '#10162b' }, lid);
+    const brow = el('path', { d: 'M-15,0 L15,0', stroke: c.mask ? c.suitDark : c.hair, 'stroke-width': 7, 'stroke-linecap': 'round' }, eg);
+    return { eg, lid, pupil, brow, s };
+  });
+  const mouth = el('path', { fill: '#7a2333', stroke: '#3a1a1a', 'stroke-width': 5, 'stroke-linejoin': 'round' }, head);
+  const tear = el('path', { d: 'M0,-12 C7,-2 8,4 0,8 C-8,4 -7,-2 0,-12Z', fill: '#9fe3ff' }, head);
+  const armsG = el('g', {}, body);
+  const mkArm = () => ({ up: el('path', { stroke: c.coat ? '#f4f7fb' : c.suit, 'stroke-width': 28, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, armsG), hand: el('circle', { r: 17, fill: c.glove }, armsG) });
+  const armR = mkArm(), armL = mkArm();
+  if (c.hero) [armR, armL].forEach(a => a.cuff = el('circle', { r: 19, fill: 'none', stroke: c.trim, 'stroke-width': 5 }, armsG));
+  return {
+    g,
+    update(q) {
+      const t = q.t || 0, drop = q.drop || 0, lean = q.lean || 0;
+      set(g, { transform: `translate(${fmt(q.x)},${fmt(q.y)}) rotate(${q.rot || 0}) scale(${q.s ?? 1})`, opacity: q.op ?? 1 });
+      const hipC = [0, -195 + drop];
+      torso.setAttribute('transform', `translate(0,${fmt(drop)}) rotate(${fmt(lean)},0,-195)`);
+      const sh = s => rot([s * 68, -322 + drop], hipC, lean);
+      // jambes
+      [[legR, 1, q.fR || [32, 0], q.kR], [legL, -1, q.fL || [-32, 0], q.kL]].forEach(([L, s, F, Kx]) => {
+        const Hp = [s * 24, -195 + drop];
+        let K, Fp;
+        if (Kx) { K = Kx; Fp = F; } else [K, Fp] = ik(Hp, F, 98, 98, s);
+        L.th.setAttribute('d', `M${fmt(Hp[0])},${fmt(Hp[1])} L${fmt(K[0])},${fmt(K[1])}`);
+        L.sh.setAttribute('d', `M${fmt(K[0])},${fmt(K[1])} L${fmt(Fp[0])},${fmt(Fp[1])}`);
+        set(L.ft, { cx: fmt(Fp[0] + s * 8), cy: fmt(Fp[1] + 2) });
+      });
+      if (q.legsFront) body.appendChild(legsG); else body.insertBefore(legsG, torso);
+      // bras
+      [[armR, 1, q.hR || [92, -168]], [armL, -1, q.hL || [-92, -168]]].forEach(([A, s, T]) => {
+        const Sh = sh(s);
+        const [K, Hd] = ik(Sh, T, 84, 80, s);
+        A.up.setAttribute('d', `M${fmt(Sh[0])},${fmt(Sh[1])} L${fmt(K[0])},${fmt(K[1])} L${fmt(Hd[0])},${fmt(Hd[1])}`);
+        set(A.hand, { cx: fmt(Hd[0]), cy: fmt(Hd[1]) });
+        if (A.cuff) set(A.cuff, { cx: fmt(lerp(K[0], Hd[0], .78)), cy: fmt(lerp(K[1], Hd[1], .78)) });
+      });
+      // cape
+      const amp = q.capeAmp ?? 1, w1 = Math.sin(t * 3.1) * 18 * amp, w2 = Math.sin(t * 2.3 + 1) * 14 * amp, w3 = Math.sin(t * 2.7 + 2) * 18 * amp;
+      const cb = q.capeLen ?? -30;
+      if (capeBack) capeBack.setAttribute('d', `M${fmt(sh(-1)[0] + 4)},${fmt(sh(-1)[1])} L${fmt(sh(1)[0] - 4)},${fmt(sh(1)[1])} L${fmt(108 + w1)},${fmt(cb + drop * .3)} Q${fmt(50 + w2)},${fmt(cb + 22 + drop * .3)} 0,${fmt(cb + 4 + drop * .3)} Q${fmt(-50 + w2)},${fmt(cb + 22 + drop * .3)} ${fmt(-108 + w3)},${fmt(cb + drop * .3)}Z`);
+      if (capeFront) capeFront.setAttribute('d', 'M-70,-338 Q-90,-330 -96,-300 L-74,-312Z M70,-338 Q90,-330 96,-300 L74,-312Z');
+      // tête et visage
+      const hd = q.headDown || 0;
+      head.setAttribute('transform', `translate(${fmt(q.headX || 0)},${fmt(-398 + hd)}) rotate(${fmt(q.headTilt || 0)})`);
+      const m = q.mood ?? .4, sad = q.sad || 0, open = q.open || 0, eo = q.eyes ?? 1, look = q.look || [0, 0];
+      eyes.forEach(e => {
+        e.lid.setAttribute('transform', `scale(1,${fmt(clamp(eo * (1 - blink(t, e.s > 0 ? .3 : .3) * .9), .06, 1.2))})`);
+        set(e.pupil, { cx: fmt(look[0]), cy: fmt(look[1]) });
+        const ang = q.angry ? e.s * 18 * q.angry : -e.s * 20 * sad;
+        e.brow.setAttribute('transform', `translate(0,${fmt(-20 - sad * 4)}) rotate(${fmt(ang)})`);
+      });
+      const y0 = 28, w = 20 - open * 3, c1 = y0 + m * 12, c2 = y0 + m * 12 + open * 22 + (m > 0 ? m * 4 : 0);
+      mouth.setAttribute('d', `M${-w},${y0} Q0,${fmt(c1)} ${w},${y0} Q0,${fmt(c2)} ${-w},${y0}Z`);
+      const ph = (t * .8) % 1;
+      set(tear, { transform: `translate(-26,${fmt(10 + ph * 34)})`, opacity: fmt((q.tear || 0) * Math.sin(ph * Math.PI)) });
+      if (core) { const k = q.core ?? 1; coreGlow.setAttribute('opacity', fmt(k)); set(coreGlow, { r: fmt(40 + 40 * k) }); core.setAttribute('fill', mix('#1b2a44', '#c8f3ff', k)); }
+    }
+  };
+}
+const ALLIES = {
+  ami: { suit: '#ff8a3d', pants: '#2a3350', boots: '#2a2d3a', skin: '#c98b62', hair: '#1b1b2f', glove: '#c98b62', mask: false, hasCape: false, hero: false, hairStyle: 'long' },
+  medecin: { suit: '#7fb3e6', pants: '#33415c', boots: '#2a2d3a', skin: '#f2c39b', hair: '#6b4a2b', glove: '#f2c39b', mask: false, hasCape: false, hero: false, coat: true },
+  psy: { suit: '#7a5cff', pants: '#2b2d42', boots: '#2a2d3a', skin: '#8d5a3b', hair: '#1b1b2f', glove: '#8d5a3b', mask: false, hasCape: false, hero: false, hairStyle: 'bun' },
+  famille: { suit: '#2ecc71', pants: '#3a3f55', boots: '#2a2d3a', skin: '#f0c29a', hair: '#c9ccd6', glove: '#f0c29a', mask: false, hasCape: false, hero: false, hairStyle: 'bald' },
+};
+
+// ---------------------------------------------------------------------------
+// Éléments graphiques communs
+// ---------------------------------------------------------------------------
+function makeEmbers(parent, n, seed, area = [0, 0, W, H]) {
+  const R = rng(seed), em = [];
+  for (let i = 0; i < n; i++) em.push({ e: el('circle', { r: 2 + R() * 6, fill: 'url(#gEmber)' }, parent), x: area[0] + R() * area[2], sp: 60 + R() * 160, ph: R(), dr: R() * 6 });
+  return { update(t, k = 1) { em.forEach(o => { const y = area[1] + area[3] - ((t * o.sp + o.ph * area[3]) % area[3]); set(o.e, { cx: fmt(o.x + Math.sin(t + o.dr) * 30), cy: fmt(y), opacity: fmt(k * (.3 + .7 * Math.abs(Math.sin(t * 2 + o.dr)))) }); }); } };
+}
+function makeSpeedLines(parent, cx, cy, n, col = '#fff', op = .07) {
+  const g = el('g', { opacity: op }, parent);
+  const R = rng(n * 7 + 3);
+  for (let i = 0; i < n; i++) { const a = i / n * 360 + R() * 4; el('path', { d: `M0,-120 L${fmt(4 + R() * 10)},-1500 L${fmt(-4 - R() * 10)},-1500Z`, fill: col, transform: `rotate(${fmt(a)})` }, g); }
+  return { g, update(t) { g.setAttribute('transform', `translate(${cx},${cy}) rotate(${fmt(t * 4)})`); } };
+}
+function makeFlare(parent) {
+  const g = el('g', {}, parent);
+  el('ellipse', { rx: 900, ry: 9, fill: 'url(#gFlare)' }, g);
+  el('ellipse', { rx: 360, ry: 30, fill: 'url(#gFlare)', opacity: .5 }, g);
+  el('circle', { r: 60, fill: 'url(#gFlare)' }, g);
+  const ghosts = [[-.4, 26, .25], [-.7, 14, .35], [.5, 40, .15]].map(([k, r, o]) => ({ e: el('circle', { r, fill: '#7fd3ff', opacity: o }, parent), k }));
+  return { update(x, y, k) { set(g, { transform: `translate(${fmt(x)},${fmt(y)})`, opacity: fmt(k) }); ghosts.forEach(gh => set(gh.e, { cx: fmt(540 + (x - 540) * gh.k), cy: fmt(960 + (y - 960) * gh.k), opacity: fmt(k * .3) })); } };
+}
+function makeCloud(parent, col = '#3a4152') {
+  const g = el('g', {}, parent);
+  [[-80, 10, 60], [-20, -25, 78], [55, -5, 66], [100, 22, 46], [10, 25, 60]].forEach(([x, y, r]) => el('circle', { cx: x, cy: y, r, fill: col }, g));
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// Scènes
+// ---------------------------------------------------------------------------
+const sceneLayer = el('g', {}, svg);
+const scenes = [];
+let shake = 0;
+function S(a, b, build, zoom = .05) {
+  const root = el('g', {}, sceneLayer), cam = el('g', {}, root);
+  const upd = build(root, cam);
+  scenes.push({ a, b, root, upd: t => { const z = 1 + zoom * p(t, a, b, E.lin); cam.setAttribute('transform', `translate(540,960) scale(${z.toFixed(4)}) translate(-540,-960)`); upd(t); } });
+}
+
+// ====== INTRO : pages de BD + titre métal (0 – 7 s) =========================
+S(0, 7, (root, cam) => {
+  el('rect', { width: W, height: H, fill: 'url(#gBg)' }, cam);
+  // pages de comics qui défilent
+  const pagesG = el('g', {}, cam);
+  const R = rng(321);
+  const WORDS = ['!', '?', 'ALEX', '9', 'SOS', 'FORCE', 'AIDE', 'COURAGE', '…', 'HÉROS', 'TIENS BON', '!?'];
+  const LAYOUTS = [
+    [[0, 0, 1, .35], [0, .35, .5, .35], [.5, .35, .5, .35], [0, .7, 1, .3]],
+    [[0, 0, .6, .5], [.6, 0, .4, .5], [0, .5, .4, .5], [.4, .5, .6, .5]],
+    [[0, 0, 1, .25], [0, .25, 1, .4], [0, .65, .5, .35], [.5, .65, .5, .35]],
+  ];
+  const COLS = ['#e23636', '#f5c04a', '#3d6bff', '#00c2a8', '#e84393', '#22325e', '#ff9f43'];
+  const pages = [];
+  for (let i = 0; i < 13; i++) {
+    const pg = el('g', {}, pagesG);
+    el('rect', { width: W, height: H, fill: 'url(#gPaper)' }, pg);
+    const lay = LAYOUTS[i % 3];
+    lay.forEach(([x, y, w, h], j) => {
+      const X = 40 + x * 1000, Y = 40 + y * 1840, Wd = w * 1000 - 24, Hd = h * 1840 - 24;
+      const col = COLS[Math.floor(R() * COLS.length)];
+      el('rect', { x: X, y: Y, width: Wd, height: Hd, fill: col, stroke: '#111', 'stroke-width': 10 }, pg);
+      el('rect', { x: X, y: Y, width: Wd, height: Hd, fill: 'url(#htD)', opacity: .18 }, pg);
+      const cx = X + Wd / 2, cy = Y + Hd / 2;
+      if ((i + j) % 3 === 0) {
+        const s = Math.min(Wd, Hd) / 520;
+        const sil = el('g', { transform: `translate(${fmt(cx)},${fmt(cy + 220 * s)}) scale(${fmt(s)})` }, pg);
+        el('path', { d: 'M-150,0 L-70,-300 L70,-300 L150,0Z', fill: '#111', opacity: .85 }, sil);
+        el('circle', { cy: -360, r: 60, fill: '#111', opacity: .85 }, sil);
+        el('path', { d: 'M-70,-300 L-200,20 L200,20 L70,-300Z', fill: '#7d1414', opacity: .6 }, sil);
+      } else {
+        const wd = WORDS[(i * 3 + j) % WORDS.length];
+        const fs = Math.min(Hd * .5, Wd / Math.max(1.2, wd.length * .62));
+        const tx = el('text', { x: cx, y: cy + fs * .35, 'text-anchor': 'middle', 'font-size': fmt(fs), 'font-weight': 900, fill: '#fff', stroke: '#111', 'stroke-width': fmt(fs / 18), 'paint-order': 'stroke', transform: `rotate(${fmt(-8 + R() * 16)},${fmt(cx)},${fmt(cy)})` }, pg);
+        tx.textContent = wd;
+      }
+    });
+    pages.push(pg);
+  }
+  // titre
+  const flash = el('rect', { width: W, height: H, fill: '#fff', opacity: 0 }, root);
+  const titleG = el('g', {}, cam);
+  el('rect', { width: W, height: H, fill: 'url(#gBg)' }, titleG);
+  const lines = makeSpeedLines(titleG, 540, 960, 70, '#9fc4ff', .06);
+  const embers = makeEmbers(titleG, 45, 9);
+  const tInner = el('g', {}, titleG);
+  const t1 = metalText(tInner, 'LES 9', { x: 540, y: 860, size: 230, anchor: 'middle', ls: 4 });
+  const t2 = metalText(tInner, 'SIGNES', { x: 540, y: 1080, size: 230, anchor: 'middle', ls: 4 });
+  const subG = el('g', {}, titleG);
+  const s1 = metalText(subG, 'DU TROUBLE DÉPRESSIF', { x: 540, y: 1220, size: 62, anchor: 'middle', grad: 'gGold', ls: 6, depth: 3 });
+  const s2 = metalText(subG, 'CARACTÉRISÉ', { x: 540, y: 1300, size: 62, anchor: 'middle', grad: 'gGold', ls: 14, depth: 3 });
+  const bar = el('rect', { x: 140, y: 1130, width: 800, height: 8, rx: 4, fill: '#e23636' }, titleG);
+  const flare = makeFlare(titleG);
+  el('rect', { width: W, height: H, fill: 'url(#gVig)' }, titleG);
+  return t => {
+    const k = Math.min(12, Math.floor(t / .2));
+    pages.forEach((pg, i) => {
+      const vis = t < 2.6 && (i === k || i === k - 1);
+      pg.setAttribute('display', vis ? '' : 'none');
+      if (i === k) { const u = E.out(clamp((t - i * .2) / .09)); pg.setAttribute('transform', `translate(${fmt((1 - u) * W)},0) rotate(${fmt((1 - u) * 6)},0,${H})`); }
+      else pg.setAttribute('transform', '');
+    });
+    pagesG.setAttribute('transform', `translate(540,960) scale(${fmt(1.25 - .2 * p(t, 0, 2.6))}) translate(-540,-960)`);
+    titleG.setAttribute('display', t >= 2.55 ? '' : 'none');
+    flash.setAttribute('opacity', fmt(.55 * (1 - p(t, 2.55, 2.95, E.out)) * (t >= 2.55 ? 1 : 0)));
+    lines.update(t); embers.update(t, p(t, 2.6, 3.5));
+    const zk = p(t, 2.55, 3.6, E.out5);
+    tInner.setAttribute('transform', `translate(540,960) scale(${fmt(1.35 - .35 * zk)}) translate(-540,-960)`);
+    tInner.setAttribute('opacity', fmt(p(t, 2.55, 2.8)));
+    t1.shine(p(t, 3.4, 4.4)); t2.shine(p(t, 3.6, 4.6));
+    const sk = p(t, 3.7, 4.3, E.out);
+    set(subG, { opacity: fmt(sk), transform: `translate(0,${fmt((1 - sk) * 30)})` });
+    s1.shine(p(t, 4.6, 5.4)); s2.shine(p(t, 4.8, 5.6));
+    set(bar, { width: fmt(800 * p(t, 3.3, 3.9, E.out)), x: fmt(540 - 400 * p(t, 3.3, 3.9, E.out)) });
+    flare.update(lerp(-300, 1400, p(t, 2.7, 4.8, E.inOut)), 1040, Math.sin(p(t, 2.7, 4.8, E.lin) * Math.PI));
+  };
+}, 0);
+
+// ====== ALEX ENTRE EN SCÈNE (7 – 13 s) ======================================
+S(7, 13, (root, cam) => {
+  el('rect', { width: W, height: H, fill: 'url(#gNight)' }, cam);
+  const R = rng(55);
+  const beams = el('g', { opacity: .14 }, cam);
+  const bm = [0, 1, 2].map(i => el('path', { d: 'M-30,0 L30,0 L260,-1700 L-260,-1700Z', fill: '#bfe9ff' }, beams));
+  for (let layer = 0; layer < 2; layer++) {
+    const col = layer ? '#0d142c' : '#1a2547';
+    for (let x = -20; x < W; x += 80 + R() * 70) {
+      const h = (layer ? 220 : 420) + R() * (layer ? 260 : 380), w = 70 + R() * 70;
+      el('rect', { x, y: 1600 - h, width: w, height: h, fill: col }, cam);
+      if (!layer) for (let wy = 1600 - h + 20; wy < 1580; wy += 36) for (let wx = x + 10; wx < x + w - 12; wx += 22) if (R() < .35) el('rect', { x: wx, y: wy, width: 10, height: 16, fill: '#ffd88a', opacity: .5 }, cam);
+    }
+  }
+  el('rect', { x: 0, y: 1600, width: W, height: 320, fill: '#0a0f22' }, cam);
+  el('rect', { x: 0, y: 1600, width: W, height: 6, fill: '#3d6bff', opacity: .5 }, cam);
+  const smoke = el('g', {}, cam);
+  const blobs = [];
+  for (let i = 0; i < 12; i++) blobs.push({ e: el('circle', { r: 160 + R() * 120, fill: 'url(#gSmoke)' }, smoke), a: R() * 6.28, r: 260 + R() * 160, sp: .2 + R() * .3 });
+  const eyesG = el('g', {}, smoke);
+  el('ellipse', { cx: -70, cy: 0, rx: 34, ry: 10, fill: '#e23636' }, eyesG);
+  el('ellipse', { cx: 70, cy: 0, rx: 34, ry: 10, fill: '#e23636' }, eyesG);
+  const ring = el('ellipse', { cx: 540, cy: 1600, fill: 'none', stroke: '#9fe3ff', 'stroke-width': 10 }, cam);
+  const dust = []; for (let i = 0; i < 14; i++) dust.push({ e: el('circle', { fill: '#6b7699' }, cam), dir: i < 7 ? -1 : 1, sp: .5 + R(), sz: 20 + R() * 30 });
+  const hero = makeHero(cam);
+  const nameG = el('g', {}, cam);
+  const nm = metalText(nameG, 'ALEX', { x: 540, y: 520, size: 240, anchor: 'middle', ls: 10 });
+  const tag = metalText(nameG, 'HÉROS DU QUOTIDIEN', { x: 540, y: 620, size: 52, anchor: 'middle', grad: 'gGold', ls: 8, depth: 3 });
+  const flare = makeFlare(cam);
+  el('rect', { width: W, height: H, fill: 'url(#gVig)', opacity: .7 }, cam);
+  return t => {
+    bm.forEach((b, i) => b.setAttribute('transform', `translate(${200 + i * 340},1650) rotate(${fmt(Math.sin(t * .7 + i * 2) * 20)})`));
+    const fall = p(t, 7, 7.6, E.in), land = t >= 7.6;
+    const sq = land ? p(t, 7.6, 7.75, E.out) * (1 - p(t, 9.2, 9.9)) : 0;
+    const kneel = land ? 1 - p(t, 9.2, 9.9) : 0;
+    shake = land ? Math.max(0, 1 - (t - 7.6) / .45) : 0;
+    hero.update({ t, x: 540, y: lerp(-200, 1600, fall), s: 1.3,
+      drop: 110 * sq, lean: 8 * sq,
+      fR: [lerp(30, 95, kneel), 0], fL: [lerp(-30, -70, kneel), 0],
+      hR: kneel > .01 ? [lerp(92, 120, kneel), lerp(-168, 0, kneel)] : [92, -168],
+      hL: [lerp(-92, -150, kneel), lerp(-168, -200, kneel)],
+      headDown: 14 * sq, mood: lerp(.2, .8, p(t, 9.9, 10.4)), angry: .5 * kneel, capeAmp: land ? 1 : 3, capeLen: land ? -30 : -480, core: 1, look: [0, 0] });
+    const rk = clamp((t - 7.6) / .8);
+    set(ring, { rx: fmt(rk * 700), ry: fmt(rk * 90), opacity: fmt((1 - rk) * (land ? 1 : 0)) });
+    dust.forEach((d, i) => { const u = clamp((t - 7.6) / (1.2 * d.sp)); set(d.e, { cx: fmt(540 + d.dir * (60 + u * 420 * d.sp)), cy: fmt(1590 - Math.sin(u * Math.PI) * 60 * d.sp), r: fmt(d.sz * (.5 + u)), opacity: fmt(land ? (1 - u) * .6 : 0) }); });
+    const nk = p(t, 9.6, 10.2, E.out);
+    set(nameG, { opacity: fmt(nk), transform: `translate(0,${fmt((1 - nk) * -40)})` });
+    nm.shine(p(t, 10, 10.9)); tag.shine(p(t, 10.3, 11.1));
+    flare.update(lerp(-200, 1300, p(t, 9.8, 11.2)), 470, Math.sin(p(t, 9.8, 11.2, E.lin) * Math.PI) * .8);
+    // l'ombre (la dépression) arrive
+    const sk = p(t, 10.8, 12.6);
+    blobs.forEach((b, i) => { const a = b.a + t * b.sp; set(b.e, { cx: fmt(540 + Math.cos(a) * b.r), cy: fmt(1150 + Math.sin(a) * b.r * .6), opacity: fmt(sk * .9) }); });
+    set(eyesG, { transform: `translate(540,${fmt(980 + Math.sin(t * 2) * 8)})`, opacity: fmt(p(t, 11.6, 12.2) * (1 - blink(t, 0, 1.6))) });
+  };
+}, .04);
+
+// ====== LES 9 SYMPTÔMES =====================================================
+const SYM = [
+  { title: ['HUMEUR', 'DÉPRESSIVE'], desc: 'Tristesse, vide ou désespoir *presque toute la journée*, presque tous les jours.' },
+  { title: ['PERTE', "D'INTÉRÊT"], desc: "Plus de *plaisir* ni d'envie, même pour ce qu'on aimait faire." },
+  { title: ['APPÉTIT', '& POIDS'], desc: "Perte ou prise de poids importante, *appétit* en baisse ou en hausse." },
+  { title: ['TROUBLES', 'DU SOMMEIL'], desc: '*Insomnie*, ou au contraire besoin de dormir beaucoup trop.' },
+  { title: ['AGITATION', 'OU LENTEUR'], desc: 'Gestes et parole *ralentis* ou au contraire *agités*, visibles par les autres.' },
+  { title: ['FATIGUE', 'INTENSE'], desc: "*Perte d'énergie* presque tous les jours, même sans effort." },
+  { title: ['DÉVALORISATION', '& CULPABILITÉ'], desc: 'Se sentir *sans valeur*, culpabilité excessive ou injustifiée.' },
+  { title: ['CONCENTRATION', 'EN BAISSE'], desc: 'Mal à *penser*, à se *concentrer* ou à prendre des décisions.' },
+  { title: ['IDÉES', 'NOIRES'], desc: 'Pensées de mort qui reviennent, *idées suicidaires*.' },
+];
+const SYM_T = [13, 19, 25, 31, 37, 43, 49, 55, 61, 67.5];
+const PANEL = [[44, 900], [1036, 868], [1016, 1772], [64, 1800]];
+const PANEL_D = 'M' + PANEL.map(q => q.join(',')).join(' L') + 'Z';
+
+function symptomScene(i, vignette) {
+  const a = SYM_T[i], b = SYM_T[i + 1], info = SYM[i];
+  S(a, b, (root, cam) => {
+    el('rect', { width: W, height: H, fill: 'url(#gBg)' }, cam);
+    el('circle', { cx: 540, cy: 1330, r: 950, fill: `url(#gAcc${i})` }, cam);
+    const lines = makeSpeedLines(cam, 540, 1330, 60, '#fff', .05);
+    el('rect', { width: W, height: 860, fill: 'url(#ht)', opacity: .05 }, cam);
+    // colonne texte
+    const head = el('g', {}, cam);
+    const tagP = pill(head, `SYMPTÔME ${i + 1} / 9`, { size: 30, bg: '#e23636', ls: 4 });
+    const num = metalText(head, String(i + 1).padStart(2, '0'), { x: 70, y: 410, size: 250, grad: 'gGold', ls: -4 });
+    const tl = info.title.map((s, j) => metalText(head, s, { x: 74, y: 520 + j * 86, size: info.title[0].length > 12 || (info.title[1] || '').length > 12 ? 74 : 84, ls: 1 }));
+    const bar = el('rect', { x: 74, y: 638, height: 10, rx: 5, fill: '#e23636' }, head);
+    const descL = wrapLines(info.desc, 40, 920).map((ln, j) => richText(head, ln, { x: 76, y: 712 + j * 54, 'font-size': 40, 'font-weight': 600, fill: '#dfe6f2' }));
+    // case de BD
+    const id = 'pan' + i; const cp = el('clipPath', { id }, defs); el('path', { d: PANEL_D }, cp);
+    const panel = el('g', {}, cam);
+    el('path', { d: PANEL_D, fill: '#000', stroke: '#000', 'stroke-width': 30, 'stroke-linejoin': 'round' }, panel);
+    const inner = el('g', { 'clip-path': `url(#${id})` }, panel);
+    el('rect', { width: W, height: H, fill: `url(#gPan${i})` }, inner);
+    el('rect', { x: 0, y: 860, width: W, height: 960, fill: 'url(#ht)', opacity: .06 }, inner);
+    const vupd = vignette(inner, a, b);
+    el('path', { d: PANEL_D, fill: 'none', stroke: '#fff', 'stroke-width': 10, 'stroke-linejoin': 'round' }, panel);
+    return t => {
+      lines.update(t);
+      tagP.update(70 + tagP.w / 2, 170, p(t, a + .25, a + .65, E.back), -2);
+      const nk = p(t, a + .3, a + .9, E.out5);
+      set(num.g, { transform: `translate(${fmt((1 - nk) * -400)},0)`, opacity: fmt(nk) });
+      num.shine(p(t, a + 1, a + 1.9));
+      tl.forEach((m, j) => { const k = p(t, a + .45 + j * .12, a + 1 + j * .12, E.out5); set(m.g, { transform: `translate(${fmt((1 - k) * 300)},0)`, opacity: fmt(k) }); m.shine(p(t, a + 1.3 + j * .15, a + 2.2 + j * .15)); });
+      bar.setAttribute('width', fmt(500 * p(t, a + .8, a + 1.3, E.out)));
+      descL.forEach((d, j) => { const k = p(t, a + 1.1 + j * .2, a + 1.6 + j * .2, E.out); set(d, { opacity: fmt(k), transform: `translate(0,${fmt((1 - k) * 20)})` }); });
+      const pk = p(t, a + .15, a + .85, E.out5);
+      panel.setAttribute('transform', `translate(${fmt((1 - pk) * 1100)},${fmt((1 - pk) * 60)}) rotate(${fmt((1 - pk) * 6)},540,1330)`);
+      vupd(t);
+    };
+  }, .035);
+}
+const GROUND = 1745;
+const coreAt = i => lerp(.9, .12, i / 8);
+
+// 1. Humeur dépressive : nuage de pluie personnel
+symptomScene(0, (g, a) => {
+  const puddle = el('ellipse', { cx: 540, cy: GROUND + 6, rx: 0, ry: 26, fill: '#4f7cff', opacity: .35 }, g);
+  const hero = makeHero(g);
+  const rain = el('g', {}, g);
+  const drops = []; for (let i = 0; i < 16; i++) drops.push(el('line', { stroke: '#8fb6ff', 'stroke-width': 5, 'stroke-linecap': 'round' }, rain));
+  const cloud = makeCloud(g, '#2c3244');
+  return t => {
+    const ck = p(t, a + .8, a + 1.5, E.back);
+    cloud.setAttribute('transform', `translate(${fmt(540 + Math.sin(t * 1.2) * 10)},${fmt(1000 + Math.sin(t * 1.7) * 6)}) scale(${fmt(Math.max(ck, .001))})`);
+    const rk = p(t, a + 1.3, a + 1.8);
+    drops.forEach((d, i) => { const ph = (t * 1.6 + i * .137) % 1, x = 440 + (i * 53) % 200; set(d, { x1: x, y1: fmt(1060 + ph * 680), x2: x - 4, y2: fmt(1090 + ph * 680), opacity: fmt(rk * .8) }); });
+    set(puddle, { rx: fmt(200 * p(t, a + 1.6, a + 3)) });
+    const sad = p(t, a + .8, a + 1.8);
+    hero.update({ t, x: 540, y: GROUND, s: 1.25, headDown: 14 * sad, headTilt: -6 * sad, lean: 3 * sad, mood: lerp(.3, -.9, sad), sad, tear: p(t, a + 2, a + 2.5), eyes: lerp(1, .7, sad), look: [0, 3 * sad],
+      hR: [lerp(92, 70, sad), -165], hL: [lerp(-92, -70, sad), -165], capeAmp: .4, core: coreAt(0) });
+  };
+});
+
+// 2. Perte d'intérêt : les passions perdent leurs couleurs
+symptomScene(1, (g, a) => {
+  const hero = makeHero(g);
+  const icons = [];
+  const mk = (col, draw) => { const ig = el('g', {}, g); const bgc = el('circle', { r: 66, fill: col, stroke: '#fff', 'stroke-width': 6 }, ig); draw(ig); icons.push({ ig, bgc, col }); };
+  mk('#ff9f43', ig => { el('path', { d: 'M-8,-40 L-8,18 A16,14 0 1 1 -16,8 L-16,-46 L30,-56 L30,8 A16,14 0 1 1 22,-2 L22,-44Z', fill: '#fff' }, ig); });
+  mk('#3d6bff', ig => { el('rect', { x: -44, y: -22, width: 88, height: 46, rx: 22, fill: '#fff' }, ig); el('path', { d: 'M-26,0 h16 M-18,-8 v16', stroke: '#3d6bff', 'stroke-width': 6, 'stroke-linecap': 'round' }, ig); el('circle', { cx: 20, cy: -4, r: 6, fill: '#3d6bff' }, ig); el('circle', { cx: 30, cy: 6, r: 6, fill: '#3d6bff' }, ig); });
+  mk('#00c2a8', ig => { el('circle', { r: 36, fill: '#fff' }, ig); el('path', { d: 'M-36,0 Q0,-20 36,0 M0,-36 Q-20,0 0,36', stroke: '#00c2a8', 'stroke-width': 5, fill: 'none' }, ig); });
+  mk('#e84393', ig => { el('path', { d: 'M0,30 C-50,0 -40,-40 -18,-40 C-6,-40 0,-30 0,-24 C0,-30 6,-40 18,-40 C40,-40 50,0 0,30Z', fill: '#fff' }, ig); });
+  mk('#f5c04a', ig => { el('rect', { x: -40, y: -24, width: 80, height: 54, rx: 10, fill: '#fff' }, ig); el('circle', { cy: 3, r: 16, fill: '#f5c04a' }, ig); el('rect', { x: -14, y: -34, width: 28, height: 12, rx: 4, fill: '#fff' }, ig); });
+  return t => {
+    const grey = p(t, a + 1.6, a + 4.2);
+    icons.forEach((ic, i) => {
+      const ang = i / icons.length * Math.PI * 2 + t * .5;
+      const k = p(t, a + .7 + i * .12, a + 1.1 + i * .12, E.back);
+      const fall = p(t, a + 3.4 + i * .15, a + 5.4 + i * .15, E.in);
+      set(ic.ig, { transform: `translate(${fmt(540 + Math.cos(ang) * 360)},${fmt(1330 + Math.sin(ang) * 130 + fall * 360)}) scale(${fmt(Math.max(.001, k * (1 - grey * .25)))})`, opacity: fmt(1 - grey * .45 - fall * .3) });
+      ic.bgc.setAttribute('fill', mix(ic.col, '#4b5060', grey));
+    });
+    hero.update({ t, x: 540, y: GROUND, s: 1.25, mood: lerp(.5, -.15, grey), sad: .3 * grey, eyes: lerp(1, .55, grey), look: [Math.sin(t * .5) * 2, 4 * grey], headDown: 6 * grey, capeAmp: .3, core: coreAt(1) });
+  };
+});
+
+// 3. Appétit & poids : la balance s'affole
+symptomScene(2, (g, a) => {
+  const scale = el('g', { transform: 'translate(300,1110)' }, g);
+  el('circle', { r: 150, fill: '#f4f7fb', stroke: '#1b2546', 'stroke-width': 10 }, scale);
+  for (let k = -5; k <= 5; k++) el('line', { x1: 0, y1: -125, x2: 0, y2: k % 5 === 0 ? -100 : -112, stroke: '#1b2546', 'stroke-width': 5, transform: `rotate(${k * 13})` }, scale);
+  const lab = el('text', { y: 70, 'text-anchor': 'middle', 'font-size': 38, 'font-weight': 900, fill: '#1b2546' }, scale); lab.textContent = 'KG';
+  const needle = el('path', { d: 'M-7,0 L0,-115 L7,0Z', fill: '#e23636' }, scale);
+  el('circle', { r: 14, fill: '#1b2546' }, scale);
+  const up = el('path', { d: 'M0,-40 L34,10 L-34,10Z', fill: '#ff9f43' }, g);
+  const dn = el('path', { d: 'M0,40 L34,-10 L-34,-10Z', fill: '#4fc3ff' }, g);
+  const plate = el('g', {}, g);
+  el('ellipse', { rx: 120, ry: 40, fill: '#fff', stroke: '#c9d3e0', 'stroke-width': 6 }, plate);
+  el('ellipse', { rx: 76, ry: 24, fill: '#eef3fa' }, plate);
+  el('circle', { cx: -20, cy: -14, r: 24, fill: '#ff9f43' }, plate); el('circle', { cx: 22, cy: -10, r: 20, fill: '#3fbf6f' }, plate);
+  el('path', { d: 'M-150,-40 L-150,30 M150,-40 L150,30', stroke: '#c9d3e0', 'stroke-width': 8, 'stroke-linecap': 'round' }, plate);
+  const hero = makeHero(g);
+  return t => {
+    const sk = p(t, a + .7, a + 1.3, E.back);
+    const sw = Math.sin((t - a) * 2.4) * 55 * p(t, a + 1.2, a + 2);
+    scale.setAttribute('transform', `translate(300,1110) scale(${fmt(Math.max(sk, .001))})`);
+    needle.setAttribute('transform', `rotate(${fmt(sw)})`);
+    const ph = Math.sin((t - a) * 2.4);
+    set(up, { transform: `translate(300,${fmt(890 - Math.max(ph, 0) * 30)})`, opacity: fmt(sk * clamp(ph * 2)) });
+    set(dn, { transform: `translate(300,${fmt(1330 + Math.max(-ph, 0) * 30)})`, opacity: fmt(sk * clamp(-ph * 2)) });
+    const pk = p(t, a + 1.4, a + 1.9, E.back), push = p(t, a + 2.6, a + 3.2);
+    plate.setAttribute('transform', `translate(${fmt(880 + push * 60)},${fmt(1330)}) scale(${fmt(Math.max(pk, .001))})`);
+    hero.update({ t, x: 610, y: GROUND, s: 1.2, mood: -.4, sad: .5, headTilt: -10 * push, headX: -6 * push, look: [-5 * push, 1],
+      hR: push > .01 ? [lerp(92, 185, push), lerp(-168, -300, push)] : [92, -168], capeAmp: .3, core: coreAt(2) });
+  };
+});
+
+// 4. Sommeil : insomnie puis hypersomnie
+symptomScene(3, (g, a) => {
+  const win = el('g', { transform: 'translate(290,1060)' }, g);
+  const sky = el('rect', { x: -120, y: -110, width: 240, height: 220, rx: 14, fill: '#0b1230' }, win);
+  const moon = el('circle', { cx: 30, cy: -20, r: 40, fill: '#fff4c8' }, win);
+  const sunC = el('circle', { cx: 0, cy: 60, r: 46, fill: '#ffcc00' }, win);
+  el('rect', { x: -120, y: -110, width: 240, height: 220, rx: 14, fill: 'none', stroke: '#e9eef6', 'stroke-width': 12 }, win);
+  el('path', { d: 'M0,-110 V110 M-120,0 H120', stroke: '#e9eef6', 'stroke-width': 8 }, win);
+  const clock = el('g', { transform: 'translate(790,1060)' }, g);
+  el('circle', { r: 100, fill: '#f4f7fb', stroke: '#1b2546', 'stroke-width': 10 }, clock);
+  for (let k = 0; k < 12; k++) el('line', { x1: 0, y1: -84, x2: 0, y2: -72, stroke: '#1b2546', 'stroke-width': 6, transform: `rotate(${k * 30})` }, clock);
+  const hH = el('line', { x1: 0, y1: 0, x2: 0, y2: -48, stroke: '#1b2546', 'stroke-width': 10, 'stroke-linecap': 'round' }, clock);
+  const mH = el('line', { x1: 0, y1: 0, x2: 0, y2: -74, stroke: '#e23636', 'stroke-width': 7, 'stroke-linecap': 'round' }, clock);
+  const bed = el('g', {}, g);
+  el('rect', { x: 930, y: 1360, width: 40, height: 350, rx: 10, fill: '#8b5e3c' }, bed);
+  el('rect', { x: 110, y: 1500, width: 34, height: 210, rx: 10, fill: '#8b5e3c' }, bed);
+  el('rect', { x: 130, y: 1540, width: 810, height: 90, rx: 20, fill: '#e9eef6' }, bed);
+  el('ellipse', { cx: 790, cy: 1505, rx: 110, ry: 44, fill: '#fff' }, bed);
+  const hero = makeHero(g, { hasCape: false });
+  const blanket = el('path', { d: 'M150,1450 Q400,1420 640,1440 L650,1570 L140,1575Z', fill: '#3d6bff' }, g);
+  el('path', { d: 'M150,1450 Q400,1420 640,1440', stroke: '#9fb8ff', 'stroke-width': 10, fill: 'none' }, g);
+  const zz = [0, 1, 2].map(i => { const z = el('text', { 'font-size': 60 + i * 16, 'font-weight': 900, fill: '#bfe9ff' }, g); z.textContent = 'Z'; return z; });
+  const lab1 = pill(g, 'INSOMNIE', { size: 40, bg: '#6c5ce7' }), lab2 = pill(g, 'HYPERSOMNIE', { size: 40, bg: '#3d6bff' });
+  return t => {
+    const day = p(t, a + 3.1, a + 3.6);
+    sky.setAttribute('fill', mix('#0b1230', '#8fd3ff', day));
+    set(moon, { opacity: fmt(1 - day) }); set(sunC, { cy: fmt(lerp(140, -10, day)) });
+    const spin = (t - a) * (t < a + 3.1 ? 240 : 600);
+    hH.setAttribute('transform', `rotate(${fmt(spin / 12)})`); mH.setAttribute('transform', `rotate(${fmt(spin)})`);
+    const ins = t < a + 3.2;
+    hero.update({ t, x: 260, y: 1470, rot: 90, s: 1.05, mood: ins ? -.3 : .1, sad: ins ? .6 : 0, eyes: ins ? 1.15 : 0, look: ins ? [0, -2 + Math.sin(t * 3) * 1.5] : [0, 0],
+      fR: [26, 0], fL: [-26, 0], hR: [45, -215], hL: [-45, -215], core: coreAt(3) });
+    zz.forEach((z, i) => { const ph = ((t - a) * .6 + i / 3) % 1; set(z, { x: fmt(760 + ph * 110 + i * 20), y: fmt(1380 - ph * 220), opacity: fmt(ins ? 0 : Math.sin(ph * Math.PI)) }); });
+    lab1.update(540, 1220, p(t, a + .9, a + 1.3, E.back) * (1 - p(t, a + 3, a + 3.2)), -3);
+    lab2.update(540, 1220, p(t, a + 3.3, a + 3.7, E.back), 3);
+  };
+});
+
+// 5. Agitation ou ralentissement : la jauge
+symptomScene(4, (g, a) => {
+  const gauge = el('g', { transform: 'translate(540,1150)' }, g);
+  el('path', { d: 'M-190,0 A190,190 0 0 1 190,0', stroke: '#2b3550', 'stroke-width': 36, fill: 'none' }, gauge);
+  el('path', { d: 'M-190,0 A190,190 0 0 1 -134,-134', stroke: '#4fc3ff', 'stroke-width': 36, fill: 'none' }, gauge);
+  el('path', { d: 'M134,-134 A190,190 0 0 1 190,0', stroke: '#e23636', 'stroke-width': 36, fill: 'none' }, gauge);
+  const lt = el('text', { x: -190, y: 56, 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 900, fill: '#4fc3ff' }, gauge); lt.textContent = 'LENT';
+  const at = el('text', { x: 190, y: 56, 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 900, fill: '#ff6b6b' }, gauge); at.textContent = 'AGITÉ';
+  const needle = el('path', { d: 'M-9,0 L0,-170 L9,0Z', fill: '#fff' }, gauge);
+  el('circle', { r: 18, fill: '#fff' }, gauge);
+  const ghosts = [makeHero(g), makeHero(g)];
+  const hero = makeHero(g);
+  return t => {
+    gauge.setAttribute('transform', `translate(540,1150) scale(${fmt(Math.max(.001, p(t, a + .7, a + 1.2, E.back) * .8))})`);
+    const slow = t < a + 3.2;
+    const ang = slow ? lerp(0, -72, p(t, a + 1.1, a + 2)) : 72 + Math.sin(t * 40) * 6;
+    needle.setAttribute('transform', `rotate(${fmt(t < a + 3.2 ? ang : lerp(-72, ang, p(t, a + 3.2, a + 3.5)))})`);
+    const base = { s: 1.05, core: coreAt(4), capeAmp: slow ? .2 : 2 };
+    if (slow) {
+      const x = 420 + (t - a) * 30;
+      const pose = (k) => ({ ...base, t: t - k * .6, x: x - k * 80, y: GROUND, mood: -.3, sad: .6, eyes: .55, headDown: 10, op: k ? .22 / k : 1,
+        fR: [32 + Math.sin((t - k * .6) * 1.2) * 30, 0], fL: [-32 - Math.sin((t - k * .6) * 1.2) * 30, 0] });
+      ghosts.forEach((gh, k) => gh.update(pose(k + 1))); hero.update(pose(0));
+    } else {
+      const j = k => [Math.sin(t * 47 + k) * 14, Math.cos(t * 39 + k * 2) * 6];
+      const pose = (k) => { const [jx, jy] = j(k); return { ...base, t, x: 600 + jx + (k ? (k === 1 ? -50 : 50) : 0), y: GROUND + jy, op: k ? .25 : 1, mood: -.5, open: .3, sad: .2, angry: .3, eyes: 1.1, look: [Math.sin(t * 17) * 4, 0],
+        hR: [100 + Math.sin(t * 23) * 30, -230 + Math.cos(t * 19) * 40], hL: [-30 + Math.sin(t * 21) * 20, -380 + Math.cos(t * 25) * 15], headTilt: Math.sin(t * 15) * 6 }; };
+      ghosts.forEach((gh, k) => gh.update(pose(k + 1))); hero.update(pose(0));
+    }
+  };
+});
+
+// 6. Fatigue : la batterie se vide
+symptomScene(5, (g, a) => {
+  const bat = el('g', {}, g);
+  el('rect', { x: -170, y: -70, width: 320, height: 140, rx: 24, fill: '#0b1020', stroke: '#e9eef6', 'stroke-width': 12 }, bat);
+  el('rect', { x: 156, y: -28, width: 24, height: 56, rx: 6, fill: '#e9eef6' }, bat);
+  const cells = []; for (let k = 0; k < 5; k++) cells.push(el('rect', { x: -152 + k * 60, y: -52, width: 50, height: 104, rx: 8 }, bat));
+  const pct = el('text', { y: 128, 'text-anchor': 'middle', 'font-size': 56, 'font-weight': 900, fill: '#fff' }, bat);
+  const hero = makeHero(g);
+  return t => {
+    bat.setAttribute('transform', `translate(540,1000) scale(${fmt(Math.max(.001, p(t, a + .7, a + 1.2, E.back)))})`);
+    const lvl = 1 - p(t, a + 1.3, a + 4.4, E.inOut) * .95;
+    cells.forEach((c, k) => { const on = lvl * 5 > k + .02; const low = lvl < .25; c.setAttribute('fill', on ? (low ? '#e23636' : '#3fdc7a') : '#1c2338'); c.setAttribute('opacity', low && on ? fmt(.4 + .6 * Math.abs(Math.sin(t * 6))) : 1); });
+    pct.textContent = Math.round(lvl * 100) + ' %';
+    const sl = p(t, a + 1.8, a + 4.6);
+    hero.update({ t, x: 540, y: GROUND, s: 1.25, drop: 85 * sl, lean: 6 * sl, headDown: 22 * sl, headTilt: 8 * sl,
+      fR: [lerp(32, 105, sl), 0], fL: [lerp(-32, -80, sl), 0], hR: [lerp(92, 110, sl), lerp(-168, -40, sl)], hL: [lerp(-92, -100, sl), lerp(-168, -60, sl)],
+      mood: lerp(0, -.6, sl), sad: sl, eyes: lerp(1, .35, sl), capeAmp: .2, core: lerp(coreAt(5), .08, sl) });
+  };
+});
+
+// 7. Dévalorisation & culpabilité : les petites voix
+symptomScene(6, (g, a) => {
+  const hero = makeHero(g);
+  const BUB = [["C'EST MA FAUTE", 290, 980, -5], ['JE NE VAUX RIEN', 780, 1080, 4], ['JE DÉÇOIS TOUT LE MONDE', 470, 1180, -2], ['JE SUIS UN POIDS', 780, 1300, 3]];
+  const bubs = BUB.map(([s, x, y, r], i) => {
+    const bg = el('g', {}, g), inner = el('g', {}, bg);
+    const tx = el('text', { 'text-anchor': 'middle', 'font-size': 38, 'font-weight': 900, fill: '#1b1b2f', y: 13 }, inner); tx.textContent = s;
+    const w = tx.getComputedTextLength() + 60;
+    const pts = []; const n = 22;
+    for (let k = 0; k < n; k++) { const an = k / n * Math.PI * 2, rr = k % 2 ? 1 : 1.13; pts.push(`${fmt(Math.cos(an) * w / 2 * rr)},${fmt(Math.sin(an) * 52 * rr)}`); }
+    inner.insertBefore(el('path', { d: 'M' + pts.join(' L') + 'Z', fill: '#fff', stroke: '#e84393', 'stroke-width': 7, 'stroke-linejoin': 'round' }), tx);
+    return { bg, inner, x, y, r, t0: a + .9 + i * .55 };
+  });
+  return t => {
+    const press = p(t, a + 1.2, a + 4.5);
+    bubs.forEach(b => {
+      const k = p(t, b.t0, b.t0 + .4, E.back);
+      const cx = lerp(b.x, 540 + (b.x - 540) * .85, press), cy = lerp(b.y, b.y + (1150 - b.y) * .2, press);
+      set(b.bg, { transform: `translate(${fmt(cx + Math.sin(t * 9 + b.x) * 3)},${fmt(cy)}) rotate(${b.r})` });
+      set(b.inner, { transform: `scale(${fmt(Math.max(k, .001))})` });
+    });
+    const hs = p(t, a + 1.2, a + 2.2);
+    hero.update({ t, x: 540, y: GROUND, s: lerp(1.25, 1, press), drop: 30 * hs, headDown: 18 * hs,
+      hR: [lerp(92, 48, hs), lerp(-168, -440, hs)], hL: [lerp(-92, -48, hs), lerp(-168, -440, hs)],
+      mood: -.8 * hs, sad: hs, eyes: lerp(1, .3, hs), tear: p(t, a + 3, a + 3.5), capeAmp: .2, core: coreAt(6) });
+  };
+});
+
+// 8. Concentration : pensées en nœud et indécision
+symptomScene(7, (g, a) => {
+  const R = rng(808), pts = [];
+  for (let k = 0; k < 18; k++) { const an = R() * Math.PI * 2, rr = 30 + R() * 110; pts.push([Math.cos(an) * rr * 1.3, Math.sin(an) * rr * .8]); }
+  const knot = el('g', {}, g);
+  el('path', { d: smoothClosed(pts), fill: 'none', stroke: '#fff', 'stroke-width': 7, 'stroke-linejoin': 'round' }, knot);
+  const qs = [0, 1, 2, 3].map(i => { const q = el('text', { 'font-size': 70, 'font-weight': 900, fill: '#00a8ff', stroke: '#fff', 'stroke-width': 4, 'paint-order': 'stroke', 'text-anchor': 'middle' }, g); q.textContent = '?'; return q; });
+  const sign = el('g', {}, g);
+  el('rect', { x: -8, y: -40, width: 16, height: 360, fill: '#8b5e3c' }, sign);
+  const arL = el('g', {}, sign), arR = el('g', {}, sign);
+  el('path', { d: 'M0,-40 L150,-40 L190,0 L150,40 L0,40Z', fill: '#f5c04a', stroke: '#1b1b2f', 'stroke-width': 5 }, arR);
+  el('text', { x: 80, y: 18, 'text-anchor': 'middle', 'font-size': 46, 'font-weight': 900, fill: '#1b1b2f' }, arR).textContent = '?';
+  el('path', { d: 'M0,-40 L-150,-40 L-190,0 L-150,40 L0,40Z', fill: '#ff9f43', stroke: '#1b1b2f', 'stroke-width': 5 }, arL);
+  el('text', { x: -80, y: 18, 'text-anchor': 'middle', 'font-size': 46, 'font-weight': 900, fill: '#1b1b2f' }, arL).textContent = '?';
+  const hero = makeHero(g);
+  return t => {
+    knot.setAttribute('transform', `translate(640,1030) rotate(${fmt(t * 50)}) scale(${fmt(Math.max(.001, p(t, a + .8, a + 1.3, E.back)))})`);
+    qs.forEach((q, i) => { const ph = ((t - a) * .7 + i / 4) % 1, on = t > a + 1.2; set(q, { x: fmt(640 + Math.cos(i * 1.7) * 230), y: fmt(1090 - ph * 160), opacity: fmt(on ? Math.sin(ph * Math.PI) : 0) }); });
+    sign.setAttribute('transform', `translate(230,1380) scale(${fmt(Math.max(.001, p(t, a + 1.2, a + 1.6, E.back) * .8))})`);
+    const flip = Math.sin((t - a) * 3);
+    arL.setAttribute('transform', `translate(0,${fmt(40 + flip * 10)}) rotate(${fmt(flip * 8)})`);
+    arR.setAttribute('transform', `translate(0,${fmt(-60 - flip * 10)}) rotate(${fmt(-flip * 8)})`);
+    const dir = Math.sin((t - a) * 2.2);
+    hero.update({ t, x: 650, y: GROUND, s: 1.15, headTilt: dir * 10, look: [dir * 6, -2], mood: -.2, sad: .4, open: .1,
+      hR: [36, -300], hL: [-92, -168], capeAmp: .3, core: coreAt(7) });
+  };
+});
+
+// 9. Idées noires : l'obscurité, mais une lueur reste
+symptomScene(8, (g, a) => {
+  const hero = makeHero(g);
+  const dark = el('rect', { x: 0, y: 860, width: W, height: 960, fill: 'url(#gVig)' }, g);
+  const spark = el('g', {}, g);
+  el('circle', { r: 60, fill: 'url(#gEmber)' }, spark); el('circle', { r: 10, fill: '#fff6d8' }, spark);
+  const box = el('g', {}, g);
+  el('rect', { x: -430, y: -110, width: 860, height: 220, rx: 30, fill: '#e23636', stroke: '#fff', 'stroke-width': 6 }, box);
+  el('path', { d: 'M-360,-50 L-310,40 L-410,40Z', fill: '#fff', stroke: '#fff', 'stroke-width': 10, 'stroke-linejoin': 'round' }, box);
+  el('text', { x: -360, y: 30, 'text-anchor': 'middle', 'font-size': 56, 'font-weight': 900, fill: '#e23636' }, box).textContent = '!';
+  el('text', { x: 40, y: -30, 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 800, fill: '#fff' }, box).textContent = "C'est une urgence : parlez-en.";
+  el('text', { x: 40, y: 58, 'text-anchor': 'middle', 'font-size': 76, 'font-weight': 900, fill: '#fff' }, box).textContent = '☎ 3114';
+  return t => {
+    const d = p(t, a + .8, a + 3);
+    dark.setAttribute('opacity', fmt(.4 + .5 * d));
+    hero.update({ t, x: 540, y: GROUND, s: 1.3, drop: 150, legsFront: true, headDown: 30, headTilt: -4,
+      fR: [70, 0], fL: [-70, 0], kR: [40, -150], kL: [-40, -150], hR: [12, -150], hL: [-12, -150],
+      mood: -.6, sad: 1, eyes: .3, capeAmp: .15, capeLen: 0, core: .06 });
+    const sp = p(t, a + 2.2, a + 3);
+    set(spark, { transform: `translate(${fmt(770 + Math.sin(t * 1.3) * 30)},${fmt(1380 + Math.cos(t * 1.1) * 25)}) scale(${fmt(Math.max(.001, sp * (.85 + .15 * Math.sin(t * 4))))})` });
+    const bk = p(t, a + 2.6, a + 3.1, E.back);
+    set(box, { transform: `translate(540,1020) scale(${fmt(Math.max(.001, bk * .98))})` });
+  };
+});
+
+// ====== LE DIAGNOSTIC (67.5 – 74 s) =========================================
+S(67.5, 74, (root, cam) => {
+  const a = 67.5;
+  el('rect', { width: W, height: H, fill: 'url(#gBg)' }, cam);
+  const lines = makeSpeedLines(cam, 540, 700, 60, '#9fc4ff', .05);
+  const title = metalText(cam, 'LE DIAGNOSTIC', { x: 540, y: 250, size: 116, anchor: 'middle', ls: 2 });
+  const hexes = [];
+  for (let i = 0; i < 9; i++) {
+    const hx = el('g', {}, cam);
+    const x = 540 + (i % 3 - 1) * 210, y = 480 + Math.floor(i / 3) * 190;
+    const poly = el('path', { d: 'M0,-92 L80,-46 L80,46 L0,92 L-80,46 L-80,-46Z', fill: '#1c2747', stroke: '#5a6b90', 'stroke-width': 6 }, hx);
+    const ring = el('path', { d: 'M0,-108 L94,-54 L94,54 L0,108 L-94,54 L-94,-54Z', fill: 'none', stroke: '#e23636', 'stroke-width': 8, opacity: 0 }, hx);
+    const tx = el('text', { y: 24, 'text-anchor': 'middle', 'font-size': 68, 'font-weight': 900, fill: '#8a9ab8' }, hx); tx.textContent = i + 1;
+    hexes.push({ hx, poly, ring, tx, x, y });
+  }
+  const CRIT = ['Au moins *5 signes sur 9*', 'Presque tous les jours, depuis *au moins 2 semaines*', "Dont *l'humeur dépressive* ou *la perte d'intérêt*", 'Avec une *souffrance* ou une gêne *importante*'];
+  const items = []; let y = 1140;
+  CRIT.forEach((c, i) => {
+    const g = el('g', {}, cam);
+    el('circle', { cx: 100, cy: y - 14, r: 28, fill: '#3fdc7a' }, g);
+    el('path', { d: `M86,${y - 14} l10,11 l18,-20`, stroke: '#0b1020', 'stroke-width': 7, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+    const ls = wrapLines(c, 42, 860, 700);
+    ls.forEach((ln, j) => richText(g, ln, { x: 150, y: y + j * 54, 'font-size': 42, 'font-weight': 700, fill: '#fff' }));
+    items.push({ g, t0: a + .9 + i * .75 });
+    y += ls.length * 54 + 44;
+  });
+  const foot = pill(cam, 'SEUL UN PROFESSIONNEL DE SANTÉ', { size: 34, bg: '#f5c04a', color: '#1b1b2f' });
+  const foot2 = pill(cam, 'PEUT POSER LE DIAGNOSTIC', { size: 34, bg: '#f5c04a', color: '#1b1b2f' });
+  return t => {
+    lines.update(t);
+    const tk = p(t, a + .2, a + .7, E.out5);
+    set(title.g, { opacity: fmt(tk), transform: `translate(0,${fmt((1 - tk) * -40)})` }); title.shine(p(t, a + .6, a + 1.5));
+    hexes.forEach((h, i) => {
+      const k = p(t, a + .3 + i * .05, a + .7 + i * .05, E.back);
+      const lit = i < 5 ? p(t, a + 1 + i * .15, a + 1.2 + i * .15) : 0;
+      set(h.hx, { transform: `translate(${h.x},${h.y}) scale(${fmt(Math.max(k, .001) * (1 + lit * .06))})` });
+      h.poly.setAttribute('fill', mix('#1c2747', '#f5c04a', lit)); h.tx.setAttribute('fill', mix('#8a9ab8', '#1b1b2f', lit));
+      if (i < 2) h.ring.setAttribute('opacity', fmt(p(t, a + 2.4, a + 2.7) * (.6 + .4 * Math.sin(t * 6))));
+    });
+    items.forEach(it => { const k = p(t, it.t0, it.t0 + .45, E.out); set(it.g, { opacity: fmt(k), transform: `translate(${fmt((1 - k) * -60)},0)` }); });
+    foot.update(540, 1700, p(t, a + 4.1, a + 4.5, E.back)); foot2.update(540, 1780, p(t, a + 4.3, a + 4.7, E.back));
+  };
+}, .03);
+
+// ====== L'ÉQUIPE SE RASSEMBLE (74 – 81 s) ===================================
+S(74, 81, (root, cam) => {
+  const a = 74;
+  el('rect', { width: W, height: H, fill: 'url(#gBg)' }, cam);
+  const sun = el('rect', { width: W, height: H, fill: 'url(#gSunrise)', opacity: 0 }, cam);
+  const lines = makeSpeedLines(cam, 540, 1350, 40, '#ffd56b', .1);
+  const embers = makeEmbers(cam, 40, 77);
+  el('rect', { x: 0, y: 1600, width: W, height: 320, fill: '#0b1020' }, cam);
+  const allies = [['ami', 150, 'AMI·E', 75.2], ['medecin', 340, 'MÉDECIN', 75.6], ['psy', 740, 'PSY', 76.0], ['famille', 930, 'FAMILLE', 76.4]].map(([k, x, lab, t0]) => ({ h: makeHero(cam, ALLIES[k]), x, t0, lab: pill(cam, lab, { size: 26, bg: '#fff', color: '#1b2546' }) }));
+  const hero = makeHero(cam);
+  const t1 = metalText(cam, 'MÊME LES HÉROS', { x: 540, y: 270, size: 96, anchor: 'middle', ls: 2 });
+  const t2 = metalText(cam, "ONT BESOIN D'AIDE", { x: 540, y: 375, size: 96, anchor: 'middle', ls: 2 });
+  const sub = metalText(cam, "Demander de l'aide, c'est une force.", { x: 540, y: 470, size: 48, anchor: 'middle', grad: 'gGold', depth: 2 });
+  const flare = makeFlare(cam);
+  return t => {
+    sun.setAttribute('opacity', fmt(p(t, a + .5, a + 4)));
+    lines.update(t); embers.update(t, p(t, a + 2, a + 4));
+    const up = p(t, 78.3, 78.7, E.back);
+    allies.forEach((al, i) => {
+      const k = p(t, al.t0, al.t0 + .6, E.out5), dir = al.x < 540 ? -1 : 1;
+      al.h.update({ t: t + i, x: al.x + dir * (1 - k) * 500, y: 1560, s: .74, op: k, mood: .8, look: [-dir * 4, 0],
+        hR: dir > 0 ? [92, -168] : [lerp(92, 70, up), lerp(-168, -560, up)], hL: dir < 0 ? [-92, -168] : [lerp(-92, -70, up), lerp(-168, -560, up)] });
+      al.lab.update(al.x + dir * (1 - k) * 500, 1615, k);
+    });
+    const rise = p(t, a + .3, a + 3.5);
+    hero.update({ t, x: 540, y: 1660, s: 1.12, drop: 60 * (1 - rise), headDown: 16 * (1 - rise), mood: lerp(-.4, 1, rise), sad: 1 - rise, eyes: lerp(.5, 1, rise),
+      hR: [lerp(92, 60, up), lerp(-168, -580, up)], capeAmp: lerp(.2, 1.6, rise), core: lerp(.1, 1, p(t, a + 1, a + 4)) });
+    [t1, t2].forEach((m, i) => { const k = p(t, a + 1.6 + i * .2, a + 2.2 + i * .2, E.out5); set(m.g, { opacity: fmt(k), transform: `translate(0,${fmt((1 - k) * -40)})` }); m.shine(p(t, a + 2.4 + i * .2, a + 3.4 + i * .2)); });
+    const sk = p(t, a + 2.8, a + 3.3); set(sub.g, { opacity: fmt(sk) }); sub.shine(p(t, a + 4.4, a + 5.2));
+    shake = Math.max(0, 1 - Math.abs(t - 78.4) / .25) * .5;
+    flare.update(lerp(-300, 1400, p(t, 78.2, 79.8)), 1080, Math.sin(p(t, 78.2, 79.8, E.lin) * Math.PI));
+  };
+}, .05);
+
+// ====== FIN : OÙ TROUVER DE L'AIDE (81 – 88 s) ==============================
+S(81, 88, (root, cam) => {
+  const a = 81;
+  el('rect', { width: W, height: H, fill: 'url(#gBg)' }, cam);
+  const embers = makeEmbers(cam, 25, 31);
+  const q1 = metalText(cam, 'VOUS VOUS', { x: 540, y: 330, size: 92, anchor: 'middle', ls: 2 });
+  const q2 = metalText(cam, 'RECONNAISSEZ ?', { x: 540, y: 430, size: 92, anchor: 'middle', ls: 2 });
+  const tx = wrapLines('Parlez-en à votre *médecin*, à un *psychologue* ou à un *proche*.', 44, 900).map((ln, j) => richText(cam, ln, { x: 540, y: 560 + j * 58, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 600, fill: '#dfe6f2' }));
+  const card = el('g', {}, cam);
+  el('rect', { x: -440, y: -240, width: 880, height: 480, rx: 40, fill: 'url(#gRedMetal)', stroke: '#fff', 'stroke-width': 8 }, card);
+  el('text', { y: -120, 'text-anchor': 'middle', 'font-size': 36, 'font-weight': 800, fill: '#fff', 'letter-spacing': 3 }, card).textContent = 'BESOIN DE PARLER ?';
+  el('text', { y: 60, 'text-anchor': 'middle', 'font-size': 200, 'font-weight': 900, fill: '#fff' }, card).textContent = '3114';
+  el('text', { y: 135, 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 700, fill: '#fff' }, card).textContent = 'Numéro national de prévention du suicide';
+  el('text', { y: 190, 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 900, fill: '#ffe08a' }, card).textContent = 'Gratuit · 24h/24 · 7j/7';
+  const urg = el('text', { x: 540, y: 1520, 'text-anchor': 'middle', 'font-size': 38, 'font-weight': 700, fill: '#fff' }, cam);
+  urg.textContent = 'Danger immédiat : appelez le 15 ou le 112';
+  const hero = makeHero(cam);
+  const fade = el('rect', { width: W, height: H, fill: '#000', opacity: 0 }, root);
+  return t => {
+    embers.update(t, .6);
+    [q1, q2].forEach((m, i) => { const k = p(t, a + .3 + i * .15, a + .9 + i * .15, E.out5); set(m.g, { opacity: fmt(k), transform: `translate(0,${fmt((1 - k) * -40)})` }); m.shine(p(t, a + 1 + i * .2, a + 2 + i * .2)); });
+    tx.forEach((d, j) => d.setAttribute('opacity', fmt(p(t, a + 1 + j * .2, a + 1.5 + j * .2))));
+    const ck = p(t, a + 1.6, a + 2.2, E.back);
+    set(card, { transform: `translate(540,1060) scale(${fmt(Math.max(.001, ck))})` });
+    urg.setAttribute('opacity', fmt(p(t, a + 2.5, a + 3)));
+    hero.update({ t, x: 540, y: 1880, s: .55, mood: 1, core: 1, op: p(t, a + 3, a + 3.6), hR: [60, -560] });
+    fade.setAttribute('opacity', fmt(p(t, 86.8, 88)));
+  };
+}, .03);
+
+// ---------------------------------------------------------------------------
+// Sous-titres (intro du héros)
+// ---------------------------------------------------------------------------
+const CAPS = [
+  [8.0, 10.6, 'Voici *Alex*. Un héros du quotidien.'],
+  [10.8, 12.85, 'Mais Alex mène un *combat invisible* : la *dépression*.'],
+];
+const capLayer = el('g', {}, svg);
+const caps = CAPS.map(([a, b, txt]) => {
+  const g = el('g', {}, capLayer);
+  const bg = el('rect', { rx: 34, fill: '#05070f', opacity: .85, stroke: '#f5c04a', 'stroke-width': 3 }, g);
+  const ls = wrapLines(txt, 44, 900, 700);
+  const tl = ls.map((ln, j) => richText(g, ln, { x: 0, y: 15 + (j - (ls.length - 1) / 2) * 56, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 700, fill: '#fff' }));
+  const wd = Math.max(...tl.map(x => x.getComputedTextLength())), hh = ls.length * 56 + 40;
+  set(bg, { x: -wd / 2 - 40, y: -hh / 2, width: wd + 80, height: hh });
+  return { a, b, g };
+});
+
+// ---------------------------------------------------------------------------
+// Transitions : bandes obliques rouge / or / nuit
+// ---------------------------------------------------------------------------
+const BOUNDS = [7, 13, 19, 25, 31, 37, 43, 49, 55, 61, 67.5, 74, 81];
+const trLayer = el('g', {}, svg);
+const bars = [['#e23636', -.1], ['#f5c04a', -.05], ['#0b1020', 0]].map(([c, d]) => ({ e: el('path', { fill: c }, trLayer), d }));
+const edge = el('path', { fill: '#fff', opacity: .9 }, trLayer);
+const barPath = (cx, w) => `M${fmt(cx - w / 2 + 360)},0 L${fmt(cx + w / 2 + 360)},0 L${fmt(cx + w / 2 - 360)},${H} L${fmt(cx - w / 2 - 360)},${H}Z`;
+
+function renderAt(t) {
+  t = clamp(t, 0, DUR - 1e-6);
+  shake = 0;
+  for (const s of scenes) {
+    const vis = t >= s.a && t < s.b;
+    s.root.setAttribute('display', vis ? '' : 'none');
+    if (vis) s.upd(t);
+  }
+  sceneLayer.setAttribute('transform', shake > 0 ? `translate(${fmt(Math.sin(t * 90) * 18 * shake)},${fmt(Math.cos(t * 70) * 14 * shake)})` : '');
+  for (const c of caps) {
+    if (t < c.a || t > c.b) { c.g.setAttribute('display', 'none'); continue; }
+    c.g.removeAttribute('display');
+    const k = p(t, c.a, c.a + .4, E.back), out = p(t, c.b - .3, c.b, E.in);
+    set(c.g, { transform: `translate(540,${fmt(1790 + (1 - k) * 40 + out * 30)}) scale(${fmt(.85 + .15 * k)})`, opacity: fmt(Math.min(p(t, c.a, c.a + .2), 1 - out)) });
+  }
+  let active = null;
+  for (const b of BOUNDS) if (Math.abs(t - b) < .6) active = b;
+  bars.forEach(br => {
+    if (active === null) { br.e.setAttribute('d', ''); return; }
+    const u = (t - active - br.d + .45) / .9;
+    br.e.setAttribute('d', u <= 0 || u >= 1 ? '' : barPath(lerp(-1700, 2780, E.inOut(u)), 1900));
+  });
+  if (active !== null) { const u = (t - active + .45) / .9; edge.setAttribute('d', u <= 0 || u >= 1 ? '' : barPath(lerp(-1700, 2780, E.inOut(u)) + 960, 14)); }
+  else edge.setAttribute('d', '');
+}
+window.renderAt = renderAt;
+window.DURATION = DUR;
+window.ready = true;
+
+// ---------------------------------------------------------------------------
+// Lecteur (aperçu navigateur)
+// ---------------------------------------------------------------------------
+if (!RENDER) {
+  const btn = document.getElementById('play'), seek = document.getElementById('seek'), tl = document.getElementById('time');
+  let playing = true, t0 = performance.now(), cur = 0;
+  btn.onclick = () => { playing = !playing; btn.textContent = playing ? 'Pause' : 'Lecture'; t0 = performance.now() - cur * 1000; };
+  seek.oninput = () => { cur = +seek.value; t0 = performance.now() - cur * 1000; renderAt(cur); };
+  (function loop(now) {
+    if (playing) { cur = ((now - t0) / 1000) % DUR; seek.value = cur; renderAt(cur); tl.textContent = cur.toFixed(1) + 's'; }
+    requestAnimationFrame(loop);
+  })(performance.now());
+} else renderAt(0);
+</script>
+</body>
+</html>
