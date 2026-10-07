@@ -73,7 +73,8 @@ S(T.s2, T.s3, (cam, a) => {
 // ====== 3. CALL TO ACTION ======================================================
 S(T.s3, M.DUR, (cam, a) => {
   const tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
-  bg(cam, RED, false);
+  el('rect', { width: W / 2, height: H, fill: RED }, cam); el('rect', { x: W / 2, width: W / 2, height: H, fill: GREEN }, cam);   // écran coupé rouge / vert
+  el('line', { x1: W / 2, x2: W / 2, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
   const q = title(cam, [['TU LE', CREAM], ['SAVAIS ?', CREAM]], { size: 150 });
   const cta = el('g', {}, cam);
   card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);

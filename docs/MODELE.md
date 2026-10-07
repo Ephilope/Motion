@@ -2,6 +2,39 @@
 
 Tiré de `pourboire.html`. Le moteur commun est dans `lib/motion.js`, la page de départ dans `modele.html` (démo de 12 s, sans voix).
 
+## Charte (identique pour toutes les vidéos)
+
+C'est la direction artistique de « Pourboire : qui a raison ? ». Le moteur l'applique par défaut ; seules les scènes changent d'une vidéo à l'autre.
+
+- **Format :** 1080 × 1920 (9:16), 30 i/s, environ 55 s, export MP4 H.264.
+- **Style :** flat design, couleurs vives, contours noirs épais et ombres portées décalées.
+- **Couleurs :** vert dollar `#2ECC71`, rouge `#E74C3C`, crème `#FFF4E0`, noir `#1A1A1A`. Le vert sert au positif et au mot prononcé, le rouge au négatif et à l'alerte, le crème au fond.
+- **Police :** Montserrat Black, en capitales.
+- **Transitions :** rapides (glissement de 0,16 s avec une bande oblique verte ou rouge).
+- **Sous-titres :** mot à mot, en bas du tiers central, synchronisés sur la voix-off fournie.
+- **Zones de sécurité TikTok :** pas de texte important dans les 250 px du bas ni sur les 120 px de droite.
+- **Procédés récurrents :** accroche choc dans les premières secondes (gros chiffre qui claque avec un tremblement, puis question en zoom), étiquette de section en haut, objets du quotidien stylisés (ticket, fiche de paie, terminal), personnages simples, écran coupé rouge / vert pour opposer deux camps, fin sur « DIS-LE EN COMMENTAIRE 👇 » avec une bulle 💬 qui pulse.
+
+## Brief type pour une nouvelle vidéo
+
+À copier et compléter, avec le fichier audio de la voix-off :
+
+```
+Nouvelle vidéo Motion, avec la charte habituelle (docs/MODELE.md).
+Sujet : …
+Voix-off : fichier joint
+Durée : ~55 s
+
+SCÈNE 1 — ACCROCHE (0–6 s)
+- …
+SCÈNE 2 — … (6–12 s)
+- …
+…
+SCÈNE N — CALL TO ACTION (dernières 7 s)
+- Écran divisé rouge / vert : « … » vs « … »
+- Bulle de commentaire 💬 qui pulse, texte « DIS-LE EN COMMENTAIRE 👇 »
+```
+
 ## Démarrer une nouvelle vidéo
 
 1. Copier `modele.html` en `<nom>.html`.
