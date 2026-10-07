@@ -58,3 +58,36 @@ python3 tools/music_hero.py music_hero.wav
 ffmpeg -framerate 30 -i frames/f_%05d.jpg -i music_hero.wav -c:v libx264 -crf 20 \
   -pix_fmt yuv420p -c:a aac -b:a 192k -af loudnorm=I=-15:TP=-1.5 -shortest les_9_signes_depression_vertical.mp4
 ```
+
+---
+
+# Pourboire : qui a raison ? (TikTok, 9:16)
+
+Une vidéo verticale de 54 s (1080×1920, 30 i/s, H.264) en flat design, calée sur la voix-off ElevenLabs `assets/voix_pourboire.mp3`.
+
+- **Vidéo :** `pourboire_tiktok.mp4` (voix + bruitages discrets) et `pourboire_tiktok_voix_seule.mp4` (voix seule, si vous ajoutez une musique sur TikTok)
+- **Source :** `pourboire.html`, à ouvrir dans un navigateur pour la lire avec la voix. La case « zones TikTok » affiche les zones à garder libres.
+- **Palette :** vert dollar `#2ECC71`, rouge `#E74C3C`, crème `#FFF4E0`, noir `#1A1A1A`. Police : Montserrat Black (`assets/fonts`, licence OFL).
+- **Sous-titres :** mot à mot, en bas du tiers central. Le mot prononcé passe en vert.
+- **Zones de sécurité :** rien d'important dans les 250 px du bas ni dans les 120 px de droite.
+
+## Synchronisation sur la voix
+
+Chaque animation est déclenchée par un mot de la voix-off (fonction `Wt('mot')` dans `pourboire.html`). Les horodatages viennent de `assets/pourboire_words.json` :
+
+1. Deux modèles de reconnaissance vocale `sherpa-onnx` tournent en local : Whisper « small » pour le texte, zipformer FR pour l'horodatage de chaque mot.
+2. `tools/align_words.py` aligne le texte de référence sur les mots reconnus, puis compense le retard du modèle phrase par phrase, en se calant sur les silences.
+
+Si la voix change : relancez la transcription, puis `python3 tools/align_words.py result.json assets/pourboire_words.json assets/pourboire_words.js`. Les animations se recalent toutes seules.
+
+## Rendu
+
+```bash
+PAGE=pourboire.html node tools/render.mjs frames 30
+python3 tools/sfx_pourboire.py sfx.wav
+ffmpeg -i assets/voix_pourboire.mp3 -i sfx.wav -filter_complex \
+  "[0:a]aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur=54[v];[1:a]volume=0.32[s];[v][s]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5[a]" \
+  -map "[a]" -t 54 mix.wav
+ffmpeg -framerate 30 -i frames/f_%05d.jpg -i mix.wav -c:v libx264 -crf 20 -pix_fmt yuv420p \
+  -c:a aac -b:a 192k -shortest pourboire_tiktok.mp4
+```

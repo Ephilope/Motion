@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pourboire : qui a raison ?</title>
+<style>
+  @font-face { font-family: 'Montserrat'; font-weight: 700; src: url(assets/fonts/montserrat-latin-700-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Montserrat'; font-weight: 800; src: url(assets/fonts/montserrat-latin-800-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Montserrat'; font-weight: 900; src: url(assets/fonts/montserrat-latin-900-normal.woff2) format('woff2'); }
+  html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+  #wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #stage { height: 100vh; width: 56.25vh; max-width: 100vw; max-height: 177.78vw; display: block; }
+  text { font-family: Montserrat, 'Noto Color Emoji', sans-serif; font-weight: 900; }
+  .mono { font-family: 'DejaVu Sans Mono', monospace; font-weight: 700; }
+  .emoji { font-family: 'Noto Color Emoji', sans-serif; font-weight: 400; }
+  #ui { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center;
+        background: rgba(26, 26, 26, .8); padding: 8px 14px; border-radius: 999px; font: 14px sans-serif; color: #fff; }
+  #ui button { background: #2ECC71; border: 0; border-radius: 999px; padding: 6px 14px; font-weight: 700; cursor: pointer; }
+  #ui input { width: min(40vw, 320px); }
+  body.render #ui, body.render #safe { display: none; }
+</style>
+</head>
+<body>
+<div id="wrap"><svg id="stage" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg></div>
+<div id="ui"><button id="play">Lecture</button><label><input id="safezone" type="checkbox"> zones TikTok</label><input id="seek" type="range" min="0" max="54" step="0.01" value="0"><span id="time">0.0s</span></div>
+<audio id="voice" src="assets/voix_pourboire.mp3" preload="auto"></audio>
+<script src="assets/pourboire_words.js"></script>
+<script>
+// ---------------------------------------------------------------------------
+// Moteur : image = fonction pure du temps -> renderAt(t)
+// ---------------------------------------------------------------------------
+const NS = 'http://www.w3.org/2000/svg';
+const W = 1080, H = 1920, DUR = 54;
+const CX = 510;                       // centre utile (la marge droite de 120 px reste libre)
+const GREEN = '#2ECC71', RED = '#E74C3C', CREAM = '#FFF4E0', INK = '#1A1A1A', WHITE = '#FFFFFF';
+const svg = document.getElementById('stage');
+const RENDER = new URLSearchParams(location.search).has('render');
+if (RENDER) document.body.classList.add('render');
+
+function el(tag, attrs = {}, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function set(e, attrs) { for (const k in attrs) e.setAttribute(k, attrs[k]); }
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const E = {
+  lin: t => t,
+  inOut: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  out: t => 1 - Math.pow(1 - t, 3),
+  out5: t => 1 - Math.pow(1 - t, 5),
+  in: t => t * t * t,
+  back: t => { const c1 = 2.2, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+  elastic: t => t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - .75) * (2 * Math.PI / 3)) + 1,
+};
+const p = (t, a, b, ease = E.inOut) => ease(clamp((t - a) / (b - a)));
+const pop = (t, t0, d = .35) => E.back(clamp((t - t0) / d));
+const fmt = n => (+n).toFixed(1);
+function rng(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+function hash(n) { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+function mix(c1, c2, k) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => Math.round(lerp((a >> s) & 255, (b >> s) & 255, k));
+  return '#' + ((1 << 24) + (ch(16) << 16) + (ch(8) << 8) + ch(0)).toString(16).slice(1);
+}
+function blink(t, off = 0, period = 3.1) { const ph = (t + off) % period; return ph < .18 ? Math.sin(ph / .18 * Math.PI) : 0; }
+const show = (e, v) => e.setAttribute('display', v ? '' : 'none');
+const tf = (e, x, y, s = 1, r = 0) => e.setAttribute('transform', `translate(${fmt(x)},${fmt(y)}) rotate(${fmt(r)}) scale(${Math.max(+s, .001).toFixed(3)})`);
+
+(async () => {
+await Promise.all(['700', '800', '900'].map(w => document.fonts.load(`${w} 80px Montserrat`)).concat([document.fonts.load('80px "Noto Color Emoji"', '😤👎👍💬👇')]));
+// --- temps des mots de la voix-off (assets/pourboire_words.js) ---------------
+const WORDS = window.WORDS;
+const keyOf = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9%$]/g, '');
+function Wt(word, n = 1, from = 0) {           // début du n-ième mot correspondant (après le temps `from`)
+  const k = keyOf(word); let c = 0;
+  for (const w of WORDS) if (w.t0 >= from && keyOf(w.w) === k && ++c === n) return w.t0;
+  throw new Error('mot introuvable : ' + word);
+}
+
+// --- éléments graphiques communs --------------------------------------------
+const defs = el('defs', {}, svg);
+function txt(parent, str, o = {}) {
+  const g = el('g', {}, parent);
+  const a = { x: 0, y: 0, 'text-anchor': o.anchor || 'middle', 'font-size': o.size || 80, 'font-weight': o.weight || 900, fill: o.fill || INK, 'letter-spacing': o.ls ?? 0 };
+  if (o.cls) a.class = o.cls;
+  if (o.shadow) { const s = el('text', { ...a, x: o.shadow, y: o.shadow, fill: INK, stroke: INK, 'stroke-width': o.sw || 0, 'stroke-linejoin': 'round' }, g); s.textContent = str; }
+  const m = el('text', { ...a, ...(o.sw ? { stroke: o.stroke || INK, 'stroke-width': o.sw, 'paint-order': 'stroke', 'stroke-linejoin': 'round' } : {}) }, g);
+  m.textContent = str;
+  return { g, t: m, w: m.getComputedTextLength() };
+}
+function card(parent, x, y, w, h, fill, r = 26, sh = 12, sw = 7) {
+  el('rect', { x: x + sh, y: y + sh, width: w, height: h, rx: r, fill: INK }, parent);
+  return el('rect', { x, y, width: w, height: h, rx: r, fill, stroke: INK, 'stroke-width': sw }, parent);
+}
+function chip(parent, str, fill = INK, color = CREAM, size = 44) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36); if (t.g.firstChild !== t.t) t.g.firstChild.setAttribute('y', size * .36 + 0);
+  const w = t.w + size * 1.4, h = size * 1.8;
+  inner.insertBefore(el('rect', { x: -w / 2 + 8, y: -h / 2 + 8, width: w, height: h, rx: h / 2, fill: INK }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: h / 2, fill, stroke: INK, 'stroke-width': 6 }), t.g);
+  return { g, inner, w, update(x, y, k, r = 0) { show(g, k > .001); tf(g, x, y, 1, r); tf(inner, 0, 0, k); } };
+}
+function emoji(parent, ch, size) { const t = el('text', { class: 'emoji', 'font-size': size, 'text-anchor': 'middle', y: size * .35 }, parent); t.textContent = ch; return t; }
+function starPath(r1, r2, n = 5) { let d = ''; for (let i = 0; i < n * 2; i++) { const r = i % 2 ? r2 : r1, a = Math.PI * i / n - Math.PI / 2; d += (i ? 'L' : 'M') + fmt(Math.cos(a) * r) + ',' + fmt(Math.sin(a) * r); } return d + 'Z'; }
+function coin(parent, label, r = 100, size) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 10, cy: 10, r, fill: INK }, g);
+  el('circle', { r, fill: GREEN, stroke: INK, 'stroke-width': 8 }, g);
+  el('circle', { r: r * .78, fill: 'none', stroke: '#1E9E57', 'stroke-width': 8 }, g);
+  el('path', { d: `M${-r * .55},${-r * .35} A${r * .7},${r * .7} 0 0 1 ${r * .2},${-r * .65}`, stroke: '#7EEBAA', 'stroke-width': 10, fill: 'none', 'stroke-linecap': 'round' }, g);
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size || r * .9, y: (size || r * .9) * .36, fill: CREAM, stroke: INK, 'stroke-width': 6, 'paint-order': 'stroke' }, g); t.textContent = label;
+  if (label === '¥') t.setAttribute('style', "font-family: 'DejaVu Sans'; font-weight: 700");
+  return g;
+}
+function sparkles(parent, n, seed, rad = 160) {
+  const R = rng(seed), s = [];
+  for (let i = 0; i < n; i++) s.push({ e: el('path', { d: starPath(22, 7, 4), fill: CREAM, stroke: INK, 'stroke-width': 4 }, parent), a: R() * 6.28, r: rad * (.8 + R() * .5), ph: R() * 6 });
+  return { update(x, y, k, t) { s.forEach(o => { const kk = k * (.5 + .5 * Math.abs(Math.sin(t * 4 + o.ph))); tf(o.e, x + Math.cos(o.a) * o.r * (.6 + .4 * k), y + Math.sin(o.a) * o.r * (.6 + .4 * k), kk, t * 60); }); } };
+}
+function burst(parent, n = 14, col = INK) {
+  const g = el('g', {}, parent);
+  const ls = []; for (let i = 0; i < n; i++) ls.push(el('line', { stroke: col, 'stroke-width': 10, 'stroke-linecap': 'round', transform: `rotate(${i * 360 / n})` }, g));
+  return { update(x, y, u) { show(g, u > 0 && u < 1); g.setAttribute('transform', `translate(${fmt(x)},${fmt(y)})`); const r0 = 120 + 220 * E.out(u), r1 = r0 + 70 * (1 - u); ls.forEach(l => set(l, { x1: 0, y1: -r0, x2: 0, y2: -r1, opacity: fmt(1 - u) })); } };
+}
+function bubble(parent, str, fill = RED, color = CREAM, size = 54) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const probe = txt(inner, str, { size, fill: color });
+  const w = probe.w + 80, h = size * 2;
+  const d = `M${-w / 2},${-h / 2} h${w} a26,26 0 0 1 0,0 v${h} h${-w * .55} l-46,52 l6,-52 h${-w * .45 - 6} Z`;
+  inner.insertBefore(el('path', { d: `M${-w / 2 + 10},${-h / 2 + 10} h${w} v${h} h${-w * .55} l-46,52 l6,-52 h${-w * .45 - 6} Z`, fill: INK, 'stroke-linejoin': 'round' }), probe.g);
+  inner.insertBefore(el('path', { d: `M${-w / 2},${-h / 2} h${w} v${h} h${-w * .55} l-46,52 l6,-52 h${-w * .45 - 6} Z`, fill, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }), probe.g);
+  probe.t.setAttribute('y', size * .36);
+  return { g, update(x, y, k, r = 0) { show(g, k > .001); tf(g, x, y, 1, r); tf(inner, 0, 0, k); } };
+}
+
+// --- personnages flat --------------------------------------------------------
+function makeChar(parent, o) {
+  const c = Object.assign({ skin: '#F2C09A', shirt: WHITE, pants: INK, hair: INK, hairStyle: 'short', jacket: null, tie: null, bow: false, apron: false, mustache: false }, o);
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const limb = (par, col, len, w) => { el('line', { x1: 0, y1: 0, x2: 0, y2: len, stroke: INK, 'stroke-width': w + 12, 'stroke-linecap': 'round' }, par); el('line', { x1: 0, y1: 0, x2: 0, y2: len, stroke: col, 'stroke-width': w, 'stroke-linecap': 'round' }, par); };
+  [-1, 1].forEach(s => { const lg = el('g', { transform: `translate(${s * 30},-160)` }, inner); limb(lg, c.pants, 140, 38); el('ellipse', { cx: s * 8, cy: 150, rx: 32, ry: 15, fill: INK }, lg); });
+  const armL = el('g', {}, inner), armR = el('g', {}, inner);
+  [armL, armR].forEach(a => { limb(a, c.jacket || c.shirt, 135, 32); el('circle', { cy: 148, r: 19, fill: c.skin, stroke: INK, 'stroke-width': 6 }, a); });
+  el('path', { d: 'M-88,-328 Q0,-346 88,-328 L76,-150 Q0,-136 -76,-150Z', fill: c.jacket || c.shirt, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, inner);
+  if (c.jacket) el('path', { d: 'M-34,-334 L0,-250 L34,-334Z', fill: c.shirt, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, inner);
+  if (c.apron) el('path', { d: 'M-70,-240 L70,-240 L74,-120 L-74,-120Z', fill: INK }, inner);
+  if (c.tie) el('path', { d: 'M0,-322 L-14,-300 L0,-210 L14,-300Z', fill: c.tie, stroke: INK, 'stroke-width': 5, 'stroke-linejoin': 'round' }, inner);
+  if (c.bow) el('path', { d: 'M0,-322 L-30,-336 L-30,-306Z M0,-322 L30,-336 L30,-306Z', fill: INK, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, inner);
+  const head = el('g', {}, inner);
+  el('rect', { x: -16, y: 44, width: 32, height: 30, fill: c.skin, stroke: INK, 'stroke-width': 6 }, head);
+  el('circle', { r: 66, fill: c.skin, stroke: INK, 'stroke-width': 7 }, head);
+  if (c.hairStyle === 'short') el('path', { d: 'M-66,-6 C-72,-80 72,-84 66,-10 C50,-40 10,-46 -10,-38 C-30,-46 -54,-34 -66,-6Z', fill: c.hair, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, head);
+  if (c.hairStyle === 'bald') el('path', { d: 'M-66,0 C-66,-30 -56,-40 -46,-44 L-50,4Z M66,0 C66,-30 56,-40 46,-44 L50,4Z', fill: c.hair, stroke: INK, 'stroke-width': 5 }, head);
+  if (c.hairStyle === 'cap') { el('path', { d: 'M-68,-10 C-68,-82 68,-82 68,-10Z', fill: c.hair, stroke: INK, 'stroke-width': 6 }, head); el('path', { d: 'M20,-14 L104,-10 Q104,4 60,4 L18,4Z', fill: c.hair, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, head); }
+  const face = el('g', {}, head);
+  const eyes = [-1, 1].map(s => el('ellipse', { cx: s * 24, cy: -4, rx: 8, ry: 10, fill: INK }, face));
+  const brows = [-1, 1].map(s => el('path', { d: 'M-14,0 L14,0', stroke: INK, 'stroke-width': 7, 'stroke-linecap': 'round' }, face));
+  if (c.mustache) el('path', { d: 'M-36,26 Q-18,12 0,22 Q18,12 36,26 Q20,36 0,30 Q-20,36 -36,26Z', fill: INK }, face);
+  const mouth = el('path', { stroke: INK, 'stroke-width': 7, fill: 'none', 'stroke-linecap': 'round' }, face);
+  [-1, 1].forEach(s => el('ellipse', { cx: s * 42, cy: 22, rx: 11, ry: 7, fill: RED, opacity: .35 }, face));
+  const sweat = el('path', { d: 'M0,-26 C14,-6 16,6 0,14 C-16,6 -14,-6 0,-26Z', fill: '#8FD3FF', stroke: INK, 'stroke-width': 5 }, head);
+  return {
+    g,
+    update(q) {
+      const t = q.t || 0, bob = q.bob ?? Math.sin(t * 3) * 3;
+      tf(g, q.x, q.y + bob, q.s ?? 1);
+      inner.setAttribute('transform', q.flip ? 'scale(-1,1)' : '');
+      armL.setAttribute('transform', `translate(-86,-312) rotate(${fmt(q.armL ?? 8)})`);
+      armR.setAttribute('transform', `translate(86,-312) rotate(${fmt(-(q.armR ?? 8))})`);
+      head.setAttribute('transform', `translate(${fmt(q.headX || 0)},-410) rotate(${fmt(q.headTilt || 0)})`);
+      const lk = q.look || [0, 0];
+      eyes.forEach((e, i) => { const cx = (i ? 1 : -1) * 24; e.setAttribute('transform', `translate(${fmt(lk[0] + cx)},${fmt(lk[1] - 4)}) scale(1,${fmt(1 - blink(t, q.blinkOff || 0) * .9)}) translate(${-cx},4)`); });
+      const m = q.mood ?? .6, worry = q.worry || 0;
+      brows.forEach((b, i) => { const s = i ? 1 : -1; b.setAttribute('transform', `translate(${s * 24 + lk[0]},${fmt(-30 - worry * 6)}) rotate(${fmt(-s * 18 * worry + s * 10 * (q.angry || 0))})`); });
+      mouth.setAttribute('d', `M-20,${fmt(34 - m * 4)} Q0,${fmt(34 + m * 16)} 20,${fmt(34 - m * 4)}`);
+      const sw = q.sweat || 0, ph = (t * 1.3) % 1;
+      set(sweat, { transform: `translate(58,${fmt(-34 + ph * 30)}) scale(${fmt(sw)})`, opacity: fmt(sw * (1 - ph * .6)) });
+    }
+  };
+}
+
+// --- drapeaux qui flottent (tranches verticales) -----------------------------
+function flagSymbol(id, draw) { const s = el('g', { id }, defs); draw(s); return id; }
+flagSymbol('flagUS', g => {
+  for (let i = 0; i < 7; i++) el('rect', { x: 0, y: i * 500 / 7, width: 780, height: 500 / 7 + .5, fill: i % 2 ? WHITE : RED }, g);
+  el('rect', { width: 330, height: 500 * 4 / 7, fill: INK }, g);
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) el('path', { d: starPath(22, 9), fill: CREAM, transform: `translate(${50 + c * 77},${55 + r * 85})` }, g);
+});
+flagSymbol('flagJP', g => { el('rect', { width: 780, height: 500, fill: WHITE }, g); el('circle', { cx: 390, cy: 250, r: 150, fill: RED }, g); });
+function makeFlag(parent, id, w = 780, h = 500) {
+  const g = el('g', {}, parent);
+  el('rect', { x: 16, y: 16, width: w, height: h, rx: 18, fill: INK }, g);
+  const slices = [], N = 18;
+  for (let i = 0; i < N; i++) {
+    const cid = `${id}c${uid++}`; const cp = el('clipPath', { id: cid }, defs);
+    el('rect', { x: i * w / N - .6, y: -40, width: w / N + 1.2, height: h + 80 }, cp);
+    const wrap = el('g', {}, g);
+    const inner = el('g', { 'clip-path': `url(#${cid})` }, wrap);
+    el('use', { href: `#${id}` }, inner);
+    slices.push(wrap);
+  }
+  el('rect', { width: w, height: h, rx: 18, fill: 'none', stroke: INK, 'stroke-width': 9 }, g);
+  return { g, update(t, amp = 10) { slices.forEach((s, i) => s.setAttribute('transform', `translate(0,${fmt(Math.sin(t * 5 - i * .45) * amp * (i / slices.length))})`)); } };
+}
+let uid = 0;
+
+// ---------------------------------------------------------------------------
+// Scènes
+// ---------------------------------------------------------------------------
+const sceneLayer = el('g', {}, svg);
+const scenes = [];
+let shake = 0;
+function S(a, b, build, dir = 1) {
+  const root = el('g', {}, sceneLayer), cam = el('g', {}, root);
+  const upd = build(cam, a, b);
+  scenes.push({ a, b, root, cam, upd, dir });
+}
+
+// Temps clés (dérivés des mots de la voix)
+const T = {
+  s2: 9.62, s3: 16.36, s4: 22.75, s5: 34.3, s6: 40.03, s7: 46.42,
+};
+
+// ====== 1. ACCROCHE ==========================================================
+S(0, T.s2, (cam) => {
+  const t20 = Wt('20 %'), tIns = Wt('insulte.'), tJap = Wt('Au') - .12, tUn = Wt('un', 1, tJap), tVex = Wt('vexer.'), tAlors = Wt('Alors ?'), tQui = Wt('Qui');
+  el('rect', { width: W, height: H, fill: CREAM }, cam);
+  const dots = el('g', { opacity: .08 }, cam);
+  for (let y = 160; y < 1700; y += 60) for (let x = 40; x < 1000; x += 60) el('circle', { cx: x + (y / 60 % 2) * 30, cy: y, r: 5, fill: INK }, dots);
+  const us = el('g', {}, cam);
+  const fUS = makeFlag(us, 'flagUS');
+  const big = el('g', {}, us);
+  txt(big, '20 %', { size: 300, fill: GREEN, sw: 18, shadow: 16, ls: -6 });
+  const stamp = el('g', {}, us);
+  el('rect', { x: -230, y: -62, width: 460, height: 124, rx: 16, fill: 'none', stroke: RED, 'stroke-width': 12 }, stamp);
+  txt(stamp, 'INSULTE !', { size: 76, fill: RED }).t.setAttribute('y', 27);
+  const bst = burst(us, 16, INK);
+  const jp = el('g', {}, cam);
+  const fJP = makeFlag(jp, 'flagJP');
+  const yen = coin(jp, '¥', 95, 110);
+  const vexe = el('g', {}, jp); emoji(vexe, '😤', 230);
+  const puffs = [0, 1].map(() => el('ellipse', { rx: 40, ry: 24, fill: WHITE, stroke: INK, 'stroke-width': 5 }, jp));
+  const vs = el('g', {}, cam);
+  el('circle', { r: 70, fill: INK }, vs); txt(vs, 'VS', { size: 64, fill: CREAM }).t.setAttribute('y', 23);
+  const q = el('g', {}, cam);
+  const q1 = txt(q, 'QUI A', { size: 170, fill: INK, shadow: 12, sw: 0 }); q1.g.setAttribute('transform', 'translate(0,-90)');
+  const q2 = el('g', { transform: 'translate(0,100)' }, q);
+  const qa = txt(q2, 'RAISON', { size: 170, fill: GREEN, sw: 14, shadow: 14 });
+  const qm = txt(q2, '?', { size: 230, fill: RED, sw: 14, shadow: 14 }); qm.g.setAttribute('transform', `translate(${fmt(qa.w / 2 + 70)},10)`); qa.g.setAttribute('transform', 'translate(-50,0)');
+  return t => {
+    // drapeau US
+    const inUS = E.back(clamp(t / .55));
+    const outUS = p(t, tJap - .05, tJap + .25, E.in);
+    const mini = p(t, tAlors - .1, tAlors + .3, E.out5);
+    const usX = lerp(lerp(CX, CX + 0, 0) + outUS * -1100, 270, mini), usY = lerp(lerp(-700, 560, inUS), 330, mini), usS = lerp(1, .33, mini);
+    show(us, outUS < 1 || mini > 0);
+    tf(us, mini > 0 ? 270 : CX - 1100 * outUS, mini > 0 ? lerp(330, 330, 1) : lerp(-700, 560, inUS), mini > 0 ? .33 * mini + .001 : 1, mini > 0 ? 0 : (1 - inUS) * -8);
+    fUS.g.setAttribute('transform', 'translate(-390,-250)'); fUS.update(t);
+    const k20 = t < t20 ? 0 : 1, s20 = t < t20 ? 0 : lerp(3.2, 1, E.out(clamp((t - t20) / .14)));
+    show(big, k20 && mini === 0); tf(big, 0, 120 + (t > tIns ? Math.sin((t - tIns) * 40) * 10 * (1 - p(t, tIns, tIns + .4)) : 0), s20, -7);
+    bst.update(0, 30, clamp((t - t20) / .5));
+    show(stamp, t >= tIns && mini === 0); tf(stamp, 30, 340, lerp(2.4, 1, E.out(clamp((t - tIns) / .16))), -9);
+    // drapeau Japon
+    const inJP = p(t, tJap - .05, tJap + .3, E.out5);
+    show(jp, t >= tJap - .06);
+    tf(jp, mini > 0 ? lerp(CX, 760, mini) : CX + 1100 * (1 - inJP), mini > 0 ? lerp(560, 330, mini) : 560, lerp(1, .33, mini), 0);
+    fJP.g.setAttribute('transform', 'translate(-390,-250)'); fJP.update(t);
+    // pièce qui tombe puis rebondit
+    const tc = tUn - .25, ground = 340;
+    let cy = -900;
+    if (t >= tc) { const u = t - tc; const fall = .35; if (u < fall) cy = lerp(-900, ground, (u / fall) ** 2); else { const v = u - fall; cy = ground - Math.abs(Math.sin(v * Math.PI / .32)) * 190 * Math.exp(-v * 3.2); } }
+    tf(yen, -170, cy, 1, t >= tc ? (t - tc) * 260 * Math.exp(-(t - tc) * .8) : 0);
+    show(yen, t >= tc);
+    const kv = pop(t, tVex, .3);
+    show(vexe, t >= tVex); tf(vexe, 200, 250 + (t > tVex ? Math.sin(t * 30) * 4 : 0), kv * (1 + .04 * Math.sin(t * 12)), Math.sin(t * 25) * 4 * (1 - p(t, tVex, tVex + .6)));
+    puffs.forEach((pf, i) => { const ph = ((t - tVex) * 1.6 + i * .5) % 1; show(pf, t > tVex + .2); tf(pf, 200 + (i ? 120 : -120) + (i ? 1 : -1) * ph * 60, 230 - ph * 80, (.4 + ph * .7) * (1 - ph), 0); });
+    // VS puis « QUI A RAISON ? »
+    show(vs, mini > 0); tf(vs, CX, 330, pop(t, tAlors + .1, .3), 0);
+    const kq = clamp((t - tQui + .05) / .5);
+    show(q, t >= tQui - .05);
+    tf(q, CX, 860, lerp(.15, 1, E.out5(kq)) * (1 + .06 * p(t, tQui + .5, T.s2, E.lin)), 0);
+    shake = t > t20 ? Math.max(0, 1 - (t - t20) / .4) : 0;
+  };
+});
+
+// ====== 2. FRANCE ============================================================
+S(T.s2, T.s3, (cam, a) => {
+  const tFr = Wt('France,'), t87 = Wt('1987,'), tServ = Wt('service'), tBonus = Wt('bonus.');
+  el('rect', { width: W, height: H, fill: CREAM }, cam);
+  const title = chip(cam, 'EN FRANCE', INK, CREAM, 46);
+  const RX = 170, RW = 560, RY = 330, RH = 800;
+  const printer = el('g', {}, cam);
+  el('rect', { x: RX - 50 + 10, y: RY - 50 + 10, width: RW + 100, height: 64, rx: 32, fill: INK }, printer);
+  el('rect', { x: RX - 50, y: RY - 50, width: RW + 100, height: 64, rx: 32, fill: '#3A3A3A', stroke: INK, 'stroke-width': 7 }, printer);
+  el('rect', { x: RX - 10, y: RY - 22, width: RW + 20, height: 12, rx: 6, fill: INK }, printer);
+  const cid = 'rcpt'; const cp = el('clipPath', { id: cid }, defs); const clipR = el('rect', { x: RX - 40, y: RY - 12, width: RW + 80, height: 0 }, cp);
+  const paperG = el('g', { 'clip-path': `url(#${cid})` }, cam);
+  const paper = el('g', {}, paperG);
+  let zig = `M${RX},${RY - 30} H${RX + RW} V${RY + RH}`;
+  for (let i = 0; i < 20; i++) zig += ` L${fmt(RX + RW - (i + .5) * RW / 20)},${RY + RH + 22} L${fmt(RX + RW - (i + 1) * RW / 20)},${RY + RH}`;
+  zig += 'Z';
+  el('path', { d: zig, fill: INK, transform: 'translate(12,12)' }, paper);
+  el('path', { d: zig, fill: WHITE, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, paper);
+  const L = (y, l, r, o = {}) => { const a1 = el('text', { x: RX + 40, y, class: 'mono', 'font-size': o.size || 36, fill: INK }, paper); a1.textContent = l; if (r) { const a2 = el('text', { x: RX + RW - 40, y, class: 'mono', 'font-size': o.size || 36, fill: INK, 'text-anchor': 'end' }, paper); a2.textContent = r; } return a1; };
+  const head = el('text', { x: RX + RW / 2, y: RY + 70, 'text-anchor': 'middle', 'font-size': 46, fill: INK }, paper); head.textContent = 'LE PETIT BISTROT';
+  L(RY + 120, '- - - - - - - - - - - - -', null, { size: 30 });
+  L(RY + 190, 'CAFÉ CRÈME', '3,50'); L(RY + 255, 'CROQUE-MONSIEUR', '9,80'); L(RY + 320, 'TARTE TATIN', '6,20');
+  L(RY + 380, '- - - - - - - - - - - - -', null, { size: 30 });
+  const hl = el('rect', { x: RX + 22, y: RY + 410, height: 72, rx: 10, fill: GREEN, transform: `rotate(-1.5 ${RX + 22} ${RY + 446})` }, paper);
+  L(RY + 458, 'SERVICE COMPRIS', 'INCLUS', { size: 33 });
+  L(RY + 540, '- - - - - - - - - - - - -', null, { size: 30 });
+  L(RY + 620, 'TOTAL TTC', '19,50 €', { size: 42 });
+  const thanks = el('text', { x: RX + RW / 2, y: RY + 720, 'text-anchor': 'middle', class: 'mono', 'font-size': 36, fill: INK }, paper); thanks.textContent = 'MERCI ET À BIENTÔT !';
+  const badge = el('g', {}, cam);
+  el('path', { d: starPath(150, 128, 18), fill: INK, transform: 'translate(10,10)' }, badge);
+  el('path', { d: starPath(150, 128, 18), fill: RED, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, badge);
+  txt(badge, 'DEPUIS', { size: 36, fill: CREAM }).g.setAttribute('transform', 'translate(0,-30)');
+  txt(badge, '1987', { size: 80, fill: CREAM }).g.setAttribute('transform', 'translate(0,52)');
+  const bonus = coin(cam, 'BONUS', 120, 46);
+  const sp = sparkles(cam, 6, 21, 190);
+  return t => {
+    title.update(CX, 250, pop(t, a + .1));
+    const u = p(t, tFr - .2, t87 + .25, E.out);
+    clipR.setAttribute('height', fmt(u * (RH + 60) + 30));
+    paper.setAttribute('transform', `translate(0,${fmt(-(1 - u) * RH)})`);
+    hl.setAttribute('width', fmt((RW - 44) * p(t, tServ - .05, tServ + .3, E.out)));
+    show(badge, t >= t87 - .05); tf(badge, 840, 470, .82 * pop(t, t87 - .05, .4), lerp(-40, -12, p(t, t87, t87 + .5)) + Math.sin(t * 2) * 4);
+    const kb = pop(t, tBonus - .1, .4);
+    show(bonus, t >= tBonus - .1); tf(bonus, 800, 1000, kb * (1 + .05 * Math.sin(t * 8)), Math.sin(t * 3) * 8);
+    sp.update(800, 1000, t >= tBonus ? p(t, tBonus, tBonus + .3) : 0, t);
+  };
+});
+
+// ====== 3. ÉTATS-UNIS ========================================================
+S(T.s3, T.s4, (cam, a) => {
+  const tInv = Wt("l'inverse."), tCert = Wt('Certains'), t2 = Wt('2 $'), tSans = Wt('Sans'), tViv = Wt('vivent');
+  el('rect', { width: W, height: H, fill: CREAM }, cam);
+  const title = chip(cam, 'AUX ÉTATS-UNIS', INK, CREAM, 46);
+  const slip = el('g', {}, cam);
+  card(slip, -320, -260, 640, 520, WHITE, 28);
+  el('path', { d: 'M-320,-232 a28,28 0 0 1 28,-28 h584 a28,28 0 0 1 28,28 v80 h-640Z', fill: INK }, slip);
+  txt(slip, 'FICHE DE PAIE', { size: 50, fill: CREAM }).g.setAttribute('transform', 'translate(0,-190)');
+  const row = (y, l, r) => { const a1 = el('text', { x: -280, y, class: 'mono', 'font-size': 34, fill: INK }, slip); a1.textContent = l; if (r) { const a2 = el('text', { x: 280, y, class: 'mono', 'font-size': 34, fill: INK, 'text-anchor': 'end' }, slip); a2.textContent = r; } };
+  row(-90, 'POSTE', 'SERVEUR'); row(-35, 'CONTRAT', 'TEMPS PLEIN');
+  el('line', { x1: -280, x2: 280, y1: 0, y2: 0, stroke: INK, 'stroke-width': 4, 'stroke-dasharray': '10 10' }, slip);
+  row(50, 'SALAIRE HORAIRE', null);
+  const counter = el('text', { x: 0, y: 190, 'text-anchor': 'middle', 'font-size': 120, fill: INK }, slip);
+  const jar = el('g', {}, cam);
+  el('path', { d: 'M-110,-250 h220 v30 q30,20 30,70 v200 q0,40 -40,40 h-200 q-40,0 -40,-40 v-200 q0,-50 30,-70Z', fill: INK, transform: 'translate(12,12)' }, jar);
+  el('path', { d: 'M-110,-250 h220 v30 q30,20 30,70 v200 q0,40 -40,40 h-200 q-40,0 -40,-40 v-200 q0,-50 30,-70Z', fill: '#DDF3FF', stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, jar);
+  el('rect', { x: -124, y: -276, width: 248, height: 40, rx: 10, fill: '#3A3A3A', stroke: INK, 'stroke-width': 7 }, jar);
+  el('rect', { x: -120, y: -110, width: 240, height: 90, rx: 8, fill: CREAM, stroke: INK, 'stroke-width': 6 }, jar);
+  txt(jar, 'TIPS', { size: 60, fill: INK }).g.setAttribute('transform', 'translate(0,-44)');
+  el('path', { d: 'M-80,-200 v120', stroke: WHITE, 'stroke-width': 14, 'stroke-linecap': 'round', opacity: .8 }, jar);
+  const fly = el('g', {}, cam);
+  el('circle', { r: 8, fill: INK }, fly); el('ellipse', { cx: -8, cy: -10, rx: 9, ry: 6, fill: WHITE, stroke: INK, 'stroke-width': 3 }, fly); el('ellipse', { cx: 8, cy: -10, rx: 9, ry: 6, fill: WHITE, stroke: INK, 'stroke-width': 3 }, fly);
+  const waiter = makeChar(cam, { shirt: WHITE, pants: INK, apron: true, bow: true, hair: '#5A3A22', skin: '#E8B08A' });
+  el('rect', { x: 60, y: 1118, width: 900, height: 10, rx: 5, fill: INK }, cam);
+  return t => {
+    title.update(CX, 250, pop(t, a + .1));
+    const fall = p(t, a + .05, a + .55, E.out);
+    const shrink = p(t, tSans - .35, tSans + .05, E.inOut);
+    tf(slip, lerp(CX, CX, shrink), lerp(-500, 640, fall) + lerp(0, -170, shrink), lerp(1, .62, shrink), lerp(28, -3, E.back(clamp((t - a - .05) / .6))));
+    const v = p(t, tCert - .1, t2 + .05, E.inOut);
+    const done = t >= t2 + .05;
+    counter.textContent = done ? '~2 $/h' : (15 - (15 - 2.13) * v).toFixed(2).replace('.', ',') + ' $/h';
+    counter.setAttribute('fill', mix(INK, RED, v));
+    counter.setAttribute('transform', done ? `translate(${fmt(Math.sin(t * 50) * 8 * (1 - p(t, t2, t2 + .45)))},0) scale(${fmt(1 + .15 * (1 - p(t, t2, t2 + .3)))})` : '');
+    const kw = p(t, tSans - .1, tSans + .35, E.out5);
+    show(waiter.g, kw > 0); show(jar, kw > 0); show(fly, kw > 0);
+    const sad = p(t, tViv - .3, tViv + .2);
+    waiter.update({ t, x: lerp(-200, 300, kw), y: 1115, s: 1, mood: lerp(.5, -.8, sad), worry: sad, sweat: sad, look: [10, 6], headTilt: 8 * sad, armL: 6, armR: 10 });
+    tf(jar, 720, 1088, pop(t, tSans + .1, .35) * .9, 0);
+    tf(fly, 720 + Math.sin(t * 5) * 70, 760 + Math.cos(t * 7) * 30, kw, Math.sin(t * 20) * 20);
+    shake = done ? Math.max(0, .6 - (t - t2 - .05) / .5) : 0;
+  };
+});
+
+// ====== 4. LA DÉRIVE =========================================================
+S(T.s4, T.s5, (cam, a) => {
+  const tDer = Wt('ça', 1, 23), tCafe = Wt('Un', 1, 24.5), tSug1 = Wt('Pourboire', 1, 25), tCaisse = Wt('Une', 1, 27), tSug2 = Wt('Pourboire', 1, 28),
+    t15 = Wt('15,'), t20 = Wt('20,'), t25 = Wt('25 %.'), tOn = Wt('On', 1, 31), tTip = Wt('tipflation.');
+  el('rect', { width: W, height: H, fill: CREAM }, cam);
+  // courbe qui grimpe
+  const chart = el('g', {}, cam);
+  el('path', { d: 'M150,1050 V420 M150,1050 H930', stroke: INK, 'stroke-width': 10, 'stroke-linecap': 'round', fill: 'none' }, chart);
+  const curve = el('path', { d: 'M170,1000 L320,960 L440,900 L560,860 L660,720 L760,640 L860,420', stroke: RED, 'stroke-width': 22, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1, 'stroke-dasharray': '1 1' }, chart);
+  const head = el('path', { d: 'M0,0 L-60,-30 L-60,30Z', fill: RED, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, chart);
+  txt(chart, 'POURBOIRES', { size: 46, fill: INK, anchor: 'start' }).g.setAttribute('transform', 'translate(180,470)');
+  // glitch
+  const gl = el('g', {}, cam);
+  const glitchLayers = [];
+  const SL = 7;
+  for (let i = 0; i < SL; i++) {
+    const id = 'gl' + i; const cp = el('clipPath', { id }, defs); el('rect', { x: -600, y: -230 + i * 460 / SL, width: 1200, height: 460 / SL + 1 }, cp);
+    const slice = el('g', { 'clip-path': `url(#${id})` }, gl);
+    const mk = (fill, dx) => { const g = el('g', {}, slice); const t1 = txt(g, 'ÇA', { size: 190, fill }); t1.g.setAttribute('transform', 'translate(0,-50)'); const t2 = txt(g, 'DÉRAPE', { size: 190, fill }); t2.g.setAttribute('transform', 'translate(0,140)'); return g; };
+    glitchLayers.push({ slice, r: mk(RED), g: mk(GREEN), k: mk(INK) });
+  }
+  // café puis caisse automatique
+  const cup = el('g', {}, cam);
+  el('path', { d: 'M-130,-200 L130,-200 L100,230 Q96,260 66,260 L-66,260 Q-96,260 -100,230Z', fill: INK, transform: 'translate(12,12)' }, cup);
+  el('path', { d: 'M-130,-200 L130,-200 L100,230 Q96,260 66,260 L-66,260 Q-96,260 -100,230Z', fill: WHITE, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, cup);
+  el('path', { d: 'M-122,-90 L122,-90 L112,80 L-112,80Z', fill: GREEN, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, cup);
+  el('rect', { x: -150, y: -250, width: 300, height: 56, rx: 20, fill: INK }, cup);
+  el('rect', { x: -100, y: -280, width: 200, height: 40, rx: 14, fill: '#3A3A3A', stroke: INK, 'stroke-width': 6 }, cup);
+  const steam = [0, 1, 2].map(i => el('path', { d: 'M0,0 q-20,-30 0,-60 q20,-30 0,-60', stroke: INK, 'stroke-width': 10, fill: 'none', 'stroke-linecap': 'round' }, cup));
+  const kiosk = el('g', {}, cam);
+  card(kiosk, -190, -320, 380, 640, '#3A3A3A', 34);
+  el('rect', { x: -150, y: -280, width: 300, height: 220, rx: 18, fill: CREAM, stroke: INK, 'stroke-width': 6 }, kiosk);
+  txt(kiosk, 'SCAN', { size: 54, fill: INK }).g.setAttribute('transform', 'translate(0,-150)');
+  el('path', { d: 'M-90,-110 h180', stroke: GREEN, 'stroke-width': 16, 'stroke-linecap': 'round' }, kiosk);
+  el('rect', { x: -150, y: -20, width: 300, height: 90, rx: 14, fill: INK }, kiosk);
+  const laser = el('rect', { x: -130, y: 18, width: 260, height: 12, rx: 6, fill: RED }, kiosk);
+  el('rect', { x: -150, y: 110, width: 300, height: 170, rx: 16, fill: '#555', stroke: INK, 'stroke-width': 6 }, kiosk);
+  el('rect', { x: -60, y: 150, width: 120, height: 20, rx: 10, fill: INK }, kiosk);
+  const ask1 = bubble(cam, 'Pourboire ?'), ask2 = bubble(cam, 'Pourboire ?');
+  // terminal de paiement
+  const term = el('g', {}, cam);
+  card(term, -300, -470, 600, 940, INK, 60, 14);
+  el('rect', { x: -250, y: -420, width: 500, height: 560, rx: 26, fill: CREAM, stroke: '#555', 'stroke-width': 6 }, term);
+  txt(term, 'POURBOIRE ?', { size: 58, fill: INK }).g.setAttribute('transform', 'translate(0,-332)');
+  const BTN = [['15 %', .3, 300, 86, 54], ['20 %', .65, 370, 108, 66], ['25 %', 1, 450, 140, 86]];
+  const btns = BTN.map(([s, k, w, h, fs], i) => {
+    const g = el('g', {}, term), inner = el('g', {}, g);
+    el('rect', { x: -w / 2 + 8, y: -h / 2 + 8, width: w, height: h, rx: h / 2.4, fill: INK }, inner);
+    el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: h / 2.4, fill: mix(CREAM, RED, k), stroke: INK, 'stroke-width': 6 }, inner);
+    txt(inner, s, { size: fs, fill: k > .6 ? CREAM : INK }).g.setAttribute('transform', `translate(0,${fs * .36})`);
+    return { g, inner, y: [-220, -90, 60][i] };
+  });
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) el('rect', { x: -200 + c * 140, y: 190 + r * 80, width: 120, height: 60, rx: 16, fill: '#3A3A3A', stroke: '#555', 'stroke-width': 4 }, term);
+  // TIPFLATION
+  const balloon = el('g', {}, cam);
+  const string = el('path', { stroke: INK, 'stroke-width': 6, fill: 'none', 'stroke-linecap': 'round' }, cam);
+  const bt = (fill, sw, dy = 0, op = 1) => { const t1 = el('text', { y: 40 + dy, x: dy, 'text-anchor': 'middle', 'font-size': 128, fill, stroke: fill, 'stroke-width': sw, 'stroke-linejoin': 'round', opacity: op, 'letter-spacing': 2 }, balloon); t1.textContent = 'TIPFLATION'; return t1; };
+  bt(INK, 62, 10); bt(INK, 50); bt(RED, 34); bt('#FF8A7D', 10, -6, .9); bt(RED, 0);
+  const shine = el('path', { d: 'M-380,-40 q20,-30 60,-34', stroke: WHITE, 'stroke-width': 14, fill: 'none', 'stroke-linecap': 'round', opacity: .8 }, balloon);
+  return t => {
+    // 1) courbe
+    const cOut = p(t, tDer - .25, tDer - .05);
+    show(chart, t < tDer);
+    curve.setAttribute('stroke-dashoffset', fmt(1 - p(t, a + .1, tDer - .3, E.out)));
+    const hp = p(t, a + .1, tDer - .3, E.out);
+    tf(head, lerp(170, 860, hp), lerp(1000, 420, hp ** 1.6), hp > .02 ? 1 : 0, -55 - 20 * hp);
+    tf(chart, 0, 0, 1 - cOut * .2, 0);
+    // 2) glitch « ÇA DÉRAPE »
+    const gOn = t >= tDer - .05 && t < tCafe - .15;
+    show(gl, gOn);
+    if (gOn) {
+      const f = Math.floor(t * 30), strong = 1 - p(t, tDer + .1, tDer + .7) * .75;
+      tf(gl, CX, 760, lerp(1.25, 1, E.out(clamp((t - tDer + .05) / .15))), 0);
+      glitchLayers.forEach((L, i) => {
+        const j = (hash(f * 13 + i) - .5) * 90 * strong * (hash(f + i * 7) > .55 ? 1 : .15);
+        L.slice.setAttribute('transform', `translate(${fmt(j)},0)`);
+        L.r.setAttribute('transform', `translate(${fmt(-14 * strong - hash(f) * 10)},0)`);
+        L.g.setAttribute('transform', `translate(${fmt(14 * strong + hash(f + 3) * 10)},0)`);
+      });
+    }
+    // 3) café
+    const kc = pop(t, tCafe - .1, .35), outC = p(t, tCaisse - .25, tCaisse - .02, E.in);
+    show(cup, t >= tCafe - .1 && outC < 1); tf(cup, CX - outC * 1100, 760, kc * .9, Math.sin(t * 3) * 3);
+    steam.forEach((s, i) => { const ph = (t * .8 + i / 3) % 1; set(s, { transform: `translate(${-60 + i * 60},${fmt(-290 - ph * 60)})`, opacity: fmt(Math.sin(ph * Math.PI)) }); });
+    ask1.update(700, 470, pop(t, tSug1 - .05, .3) * (1 - outC), -4);
+    // 4) caisse automatique
+    const kk = p(t, tCaisse - .2, tCaisse + .1, E.out5), outK = p(t, t15 - .45, t15 - .2, E.in);
+    show(kiosk, kk > 0 && outK < 1); tf(kiosk, CX + 1100 * (1 - kk) - 1100 * outK, 760, .95, 0);
+    laser.setAttribute('opacity', fmt(.5 + .5 * Math.abs(Math.sin(t * 8))));
+    ask2.update(720, 430, pop(t, tSug2 - .05, .3) * (1 - outK), 4);
+    // 5) terminal, boutons de plus en plus gros et rouges
+    const kt = p(t, t15 - .4, t15 - .05, E.out5), outT = p(t, tOn - .2, tOn + .05, E.in);
+    show(term, kt > 0 && outT < 1); tf(term, CX, lerp(1900, 700, kt) - outT * 1400, lerp(.7, .86, kt), 0);
+    [t15, t20, t25].forEach((tb, i) => { const k = pop(t, tb - .03, .28); show(btns[i].g, t >= tb - .03); tf(btns[i].g, 0, btns[i].y, 1, 0); tf(btns[i].inner, Math.sin(t * 40) * (i + 1) * 3 * (1 - p(t, tb, tb + .35)), 0, k, i === 2 ? -2 : 0); });
+    // 6) TIPFLATION qui gonfle
+    const kb = clamp((t - tOn + .05) / (tTip + .7 - tOn));
+    show(balloon, t >= tOn - .05); show(string, t >= tOn - .05);
+    const s = lerp(.15, 1, E.out(kb)) + Math.sin(t * 16) * .025 * (1 - kb) + (t > tTip + .7 ? Math.sin(t * 3) * .02 : 0);
+    const by = 700 - 60 * kb + Math.sin(t * 2) * 10;
+    set(balloon, { transform: `translate(${CX},${fmt(by)}) scale(${fmt(s)},${fmt(s * (1 + Math.sin(t * 9) * .04 * (1 - kb)))}) rotate(${fmt(Math.sin(t * 2.2) * 3)})` });
+    string.setAttribute('d', `M${CX},${fmt(by + 80 * s)} q${fmt(40 * Math.sin(t * 3))},120 0,240 q${fmt(-40 * Math.sin(t * 3 + 1))},120 0,240`);
+    shake = Math.max(0, ...[t15, t20, t25].map((tb, i) => t >= tb ? (.25 + i * .2) - (t - tb) * 1.4 : 0), gOn ? .35 * (1 - p(t, tDer, tDer + .5)) : 0);
+  };
+});
+
+// ====== 5 & 6. LES DEUX CAMPS ================================================
+function campScene(a, b, side) {
+  S(a, b, (cam) => {
+    const red = side === 'stop';
+    const tExp = red ? Wt("C'est", 1, 36) - .3 : Wt('le', 1, 40.5);
+    el('rect', { width: W, height: H, fill: CREAM }, cam);
+    const leftP = el('rect', { x: 0, y: 0, width: 540, height: H, fill: RED }, cam);
+    const rightP = el('rect', { x: 540, y: 0, width: 540, height: H, fill: GREEN }, cam);
+    const split = el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+    const qmark = txt(cam, '?', { size: 300, fill: INK }); qmark.g.setAttribute('opacity', .15);
+    const thumbG = el('g', {}, cam); emoji(thumbG, red ? '👎' : '👍', 230);
+    const lab = el('g', {}, cam);
+    txt(lab, 'ON', { size: 90, fill: CREAM, sw: 14, shadow: 10 }).g.setAttribute('transform', 'translate(0,-50)');
+    txt(lab, red ? 'ARRÊTE' : 'GARDE', { size: 90, fill: CREAM, sw: 14, shadow: 10 }).g.setAttribute('transform', 'translate(0,60)');
+    const other = el('g', { opacity: .55 }, cam); emoji(other, red ? '👍' : '👎', 150);
+    const content = el('g', {}, cam);
+    let upd;
+    if (red) {
+      const tPat = Wt('patron'), tPay = Wt('payer'), tCli = Wt('clients'), tCul = Wt('culpabiliser.');
+      const boss = makeChar(content, { shirt: WHITE, jacket: INK, tie: RED, pants: INK, mustache: true, hairStyle: 'bald', hair: '#5A3A22', skin: '#F2C09A' });
+      const bars = el('g', {}, content);
+      const BR = [0, 1, 2].map(i => el('rect', { x: 630 + i * 100, width: 84, rx: 12, fill: CREAM, stroke: INK, 'stroke-width': 7 }, bars));
+      const sal = txt(content, 'SALAIRE', { size: 54, fill: CREAM, sw: 12 });
+      const arrow = el('path', { stroke: GREEN, 'stroke-width': 26, fill: 'none', 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': '1 1' }, content);
+      const aHead = el('path', { d: 'M0,0 L-50,-32 L-50,32Z', fill: GREEN, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, content);
+      const client = makeChar(content, { shirt: GREEN, pants: '#3A3A3A', hairStyle: 'cap', hair: INK, skin: '#C98B62' });
+      const bill = el('g', {}, content); card(bill, -50, -70, 100, 140, WHITE, 10, 6, 5); for (let i = 0; i < 4; i++) el('line', { x1: -30, x2: 30, y1: -40 + i * 26, y2: -40 + i * 26, stroke: INK, 'stroke-width': 5 }, bill);
+      upd = t => {
+        const kb = p(t, tPat - .4, tPat - .05, E.out5);
+        show(boss.g, kb > 0);
+        boss.update({ t, x: lerp(-200, 250, kb), y: 1110, s: 1, mood: .7, armR: lerp(8, 130, p(t, tPay - .3, tPay)), look: [8, -4] });
+        const g = [0, 1, 2].map(i => p(t, tPay - .2 + i * .15, tPay + .4 + i * .15, E.back));
+        BR.forEach((r, i) => { const h = (100 + i * 90) * g[i] + 10; set(r, { y: fmt(700 - h), height: fmt(h) }); });
+        show(bars, kb > 0); tf(sal.g, 772, 770, pop(t, tPay - .1, .35), 0);
+        const ka = p(t, tPay - .1, tPay + .5, E.out);
+        arrow.setAttribute('d', 'M450,660 Q480,450 610,400'); arrow.setAttribute('stroke-dashoffset', fmt(1 - ka)); show(arrow, ka > 0);
+        show(aHead, ka > .95); tf(aHead, 622, 396, 1, -18);
+        const kc = p(t, tCli - .35, tCli, E.out5);
+        show(client.g, kc > 0); show(bill, kc > 0);
+        const guilt = p(t, tCul - .2, tCul + .3);
+        client.update({ t, x: lerp(1300, 800, kc), y: 1110, s: .62, flip: true, mood: lerp(.3, -.6, guilt), worry: guilt, sweat: guilt, look: [-6, 6], headTilt: -6 * guilt, armR: 40, armL: 8 });
+        tf(bill, 690, 960, kc * .7, -12);
+      };
+    } else {
+      const tRec = Wt('récompense'), STAR = ['récompense', 'un', 'vrai', 'bon', 'service.'].map((w, i) => i ? Wt(w, 1, tRec) : tRec);
+      const tSup = Wt('supprimer'), tTrin = Wt('trinqueraient.'), tServ = Wt('serveurs', 1, 44);
+      const stars = STAR.map(() => el('path', { d: starPath(66, 28), stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, content));
+      const waiter = makeChar(content, { shirt: WHITE, pants: INK, apron: true, bow: true, hair: '#5A3A22', skin: '#E8B08A' });
+      const chart = el('g', {}, content);
+      card(chart, 560, 560, 380, 300, CREAM, 22);
+      txt(chart, 'REVENUS', { size: 40, fill: INK }).g.setAttribute('transform', 'translate(750,615)');
+      const line = el('path', { stroke: INK, 'stroke-width': 14, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, chart);
+      const drop = el('path', { stroke: RED, 'stroke-width': 18, fill: 'none', 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': '1 1' }, chart);
+      const dHead = el('path', { d: 'M0,0 L-40,-26 L-40,26Z', fill: RED, stroke: INK, 'stroke-width': 5, 'stroke-linejoin': 'round' }, chart);
+      const tipC = el('g', {}, content); coin(tipC, '$', 70, 80);
+      const cross = el('path', { d: 'M-70,-70 L70,70 M70,-70 L-70,70', stroke: RED, 'stroke-width': 22, 'stroke-linecap': 'round' }, tipC);
+      upd = t => {
+        const up = p(t, tSup - .5, tSup - .1);
+        stars.forEach((s, i) => {
+          const on = p(t, STAR[i] - .05, STAR[i] + .15);
+          s.setAttribute('fill', mix('#1E9E57', CREAM, on));
+          tf(s, lerp(190 + i * 160, 300 + i * 105, up), lerp(600, 430, up), (1 + .35 * (1 - E.out(clamp((t - STAR[i]) / .3))) * (t > STAR[i] ? 1 : 0)) * lerp(1, .6, up), on * 72);
+        });
+        const kw = p(t, tSup - .4, tSup, E.out5);
+        show(waiter.g, kw > 0); show(chart, kw > 0);
+        const sad = p(t, tTrin - .2, tTrin + .3);
+        waiter.update({ t, x: lerp(-200, 250, kw), y: 1110, s: 1, mood: lerp(.6, -.8, sad), worry: sad, sweat: sad, look: [8, 2] });
+        tf(chart, 0, 0, 1, 0);
+        line.setAttribute('d', 'M600,780 L680,740 L760,752 L830,710');
+        const kd = p(t, tServ - .1, tTrin + .3, E.in);
+        drop.setAttribute('d', 'M830,710 L870,730 L905,830'); drop.setAttribute('stroke-dashoffset', fmt(1 - kd)); show(drop, kd > 0);
+        show(dHead, kd > .97); tf(dHead, 908, 838, 1, 72);
+        const kc = pop(t, tSup, .3), gone = p(t, tSup + .9, tSup + 1.3, E.in);
+        show(tipC, kc > 0 && gone < 1); tf(tipC, 470, 700, kc * (1 - gone), 0);
+        cross.setAttribute('opacity', fmt(p(t, tSup + .3, tSup + .4)));
+      };
+    }
+    return t => {
+      const kIn = p(t, a - .05, a + .35, E.out5);
+      const ex = p(t, tExp - .3, tExp, E.inOut);   // le camp prend tout l'écran
+      if (red) {
+        set(leftP, { x: fmt(-540 * (1 - kIn)), width: fmt(540 + 540 * ex) });
+        set(rightP, { x: fmt(540 + 540 * ex), opacity: 0 });
+        set(qmark.g, { transform: `translate(${810 + 540 * ex},780)`, opacity: .15 });
+        tf(thumbG, lerp(270, 250, ex), lerp(620, 250, ex), pop(t, a + .15, .35) * lerp(1, .45, ex), Math.sin(t * 6) * 6);
+        tf(lab, lerp(270, 560, ex), lerp(880, 250, ex), pop(t, a + .3, .35) * lerp(1, .62, ex), 0);
+        show(other, false); split.setAttribute('opacity', fmt(1 - ex)); split.setAttribute('transform', `translate(${fmt(540 * ex)},0)`);
+      } else {
+        set(leftP, { x: fmt(-540 * ex), width: 540 });
+        set(rightP, { x: fmt(lerp(1080, 540, kIn) - 540 * ex), width: fmt(540 + 540 * ex), opacity: 1 });
+        show(qmark.g, false);
+        show(other, ex < 1); tf(other, 270 - 540 * ex, 620, 1, 0);
+        tf(thumbG, lerp(780, 250, ex), lerp(620, 250, ex), pop(t, a + .15, .35) * lerp(1, .45, ex), Math.sin(t * 6) * 6);
+        tf(lab, lerp(780, 560, ex), lerp(880, 250, ex), pop(t, a + .3, .35) * lerp(1, .62, ex), 0);
+        split.setAttribute('opacity', fmt(1 - ex)); split.setAttribute('transform', `translate(${fmt(-540 * ex)},0)`);
+      }
+      show(content, ex > .5);
+      upd(t);
+    };
+  });
+}
+campScene(T.s5, T.s6, 'stop');
+campScene(T.s6, T.s7, 'keep');
+
+// ====== 7. CALL TO ACTION ====================================================
+const tDis = Wt('Dis-le');
+S(T.s7, DUR, (cam, a) => {
+  const tLaisse = Wt('laisses'), tPb = Wt('pourboire', 1, 47.5), tPas = Wt('pas ?'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const L = el('rect', { x: 0, width: 540, height: H, fill: RED }, cam);
+  const R = el('rect', { x: 540, width: 540, height: H, fill: GREEN }, cam);
+  el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+  const no = el('g', {}, cam), yes = el('g', {}, cam);
+  const nT = el('g', {}, no); emoji(nT, '👎', 170);
+  const yT = el('g', {}, yes); emoji(yT, '👍', 170);
+  const nTx = el('g', {}, no), yTx = el('g', {}, yes);
+  ['JE', 'DONNE', 'PAS'].forEach((s, i) => txt(nTx, s, { size: 92, fill: CREAM, sw: 14, shadow: 10 }).g.setAttribute('transform', `translate(0,${i * 100})`));
+  ['JE', 'DONNE'].forEach((s, i) => txt(yTx, s, { size: 92, fill: CREAM, sw: 14, shadow: 10 }).g.setAttribute('transform', `translate(0,${i * 100})`));
+  const vs = el('g', {}, cam); el('circle', { r: 66, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'OU', { size: 56, fill: CREAM }).t.setAttribute('y', 20);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 220);
+  const ring = el('circle', { fill: 'none', stroke: CREAM, 'stroke-width': 10 }, cam);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84, fill: INK }), w2 = txt(cta, 'EN', { size: 84, fill: INK }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  const w3g = w3.g; w3g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    const kIn = p(t, a - .05, a + .35, E.out5);
+    set(L, { y: fmt(-H * (1 - kIn)) }); set(R, { y: fmt(H * (1 - kIn)) });
+    tf(nT, 0, -180, pop(t, a + .3), Math.sin(t * 5) * 8); tf(yT, 0, -180, pop(t, a + .45), Math.sin(t * 5 + 1) * 8);
+    tf(no, 270, 520, 1, 0); tf(yes, 780, 520, 1, 0);
+    tf(nTx, 0, 0, pop(t, tPas - .05), -4); tf(yTx, 0, 0, pop(t, tPb - .05), 4);
+    tf(vs, 540, 800, pop(t, tLaisse), 0);
+    const kb = pop(t, tDis - .3, .4);
+    tf(bub, 540, 1010, kb * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    const rp = ((t - tDis) * .9) % 1;
+    set(ring, { cx: 540, cy: 1000, r: fmt(90 + rp * 130), opacity: fmt(t > tDis ? (1 - rp) * .8 : 0) });
+    tf(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 10 - 40 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .3), 0);
+  };
+});
+
+// ---------------------------------------------------------------------------
+// Sous-titres mot à mot (bas du tiers central)
+// ---------------------------------------------------------------------------
+const CAP_Y = 1230, CAP_SIZE = 72, CAP_MAX = 840;
+const capLayer = el('g', {}, svg);
+const probe = el('text', { 'font-size': CAP_SIZE, 'font-weight': 900 }, svg);
+const measure = s => { probe.textContent = s; return probe.getComputedTextLength(); };
+const chunks = [];
+{
+  let cur = [];
+  const words = WORDS.filter(w => w.t0 < tDis - .01);
+  words.forEach((w, i) => {
+    const up = w.w.toUpperCase();
+    const width = measure([...cur.map(c => c.up), up].join(' '));
+    const prev = cur[cur.length - 1];
+    if (cur.length && (width > CAP_MAX || cur.length >= 4 || /[.?!,]$/.test(prev.w) || w.t0 - prev.t1 > .35)) { chunks.push(cur); cur = []; }
+    cur.push({ ...w, up });
+  });
+  if (cur.length) chunks.push(cur);
+}
+probe.remove();
+const capEls = chunks.map((c, ci) => {
+  const g = el('g', {}, capLayer);
+  const ws = c.map(w => w.up);
+  const widths = ws.map(s => { const tt = el('text', { 'font-size': CAP_SIZE }, g); tt.textContent = s; const v = tt.getComputedTextLength(); tt.remove(); return v; });
+  const gap = 34, total = widths.reduce((a, b) => a + b, 0) + gap * (ws.length - 1);
+  let x = -total / 2;
+  const items = c.map((w, i) => {
+    const wg = el('g', {}, g);
+    const tt = el('text', { 'text-anchor': 'middle', 'font-size': CAP_SIZE, y: CAP_SIZE * .36, fill: CREAM, stroke: INK, 'stroke-width': 13, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, wg);
+    tt.textContent = w.up;
+    const cx = x + widths[i] / 2; x += widths[i] + gap;
+    return { wg, tt, cx, ...w };
+  });
+  const next = chunks[ci + 1];
+  const end = Math.min(next ? next[0].t0 - .02 : tDis - .15, c[c.length - 1].t1 + .45);
+  return { g, items, start: c[0].t0 - .02, end };
+});
+
+// ---------------------------------------------------------------------------
+// Transitions rapides (swipe + bande colorée) et rendu
+// ---------------------------------------------------------------------------
+const TR = .16;
+const trLayer = el('g', {}, svg);
+const swipe = el('path', { fill: GREEN }, trLayer), swipe2 = el('path', { fill: INK }, trLayer);
+const BOUNDS = [T.s2, T.s3, T.s4, T.s5, T.s6, T.s7];
+const SW_COL = [GREEN, RED, GREEN, RED, GREEN, RED];
+const safe = el('g', { id: 'safe', 'pointer-events': 'none' }, svg);
+el('rect', { x: 0, y: H - 250, width: W, height: 250, fill: RED, opacity: .25 }, safe);
+el('rect', { x: W - 120, y: 0, width: 120, height: H, fill: RED, opacity: .25 }, safe);
+show(safe, false);
+
+function renderAt(t) {
+  t = clamp(t, 0, DUR - 1e-6);
+  shake = 0;
+  for (const s of scenes) {
+    const vis = t >= s.a - TR && t < s.b + TR && !(s.a === 0 && false);
+    const inWin = t >= s.a && t < s.b;
+    show(s.root, inWin || (t >= s.a - TR && t < s.a) || (t >= s.b && t < s.b + TR && s.b < DUR));
+    if (!(inWin || (t >= s.a - TR && t < s.a) || (t >= s.b && t < s.b + TR && s.b < DUR))) continue;
+    let dx = 0;
+    if (t < s.a + TR && s.a > 0) dx = W * (1 - E.out(clamp((t - (s.a - TR)) / (2 * TR))));
+    if (t > s.b - TR && s.b < DUR) dx = -W * E.in(clamp((t - (s.b - TR)) / (2 * TR)));
+    s.root.setAttribute('transform', `translate(${fmt(dx)},0)`);
+    s.upd(t);
+  }
+  sceneLayer.setAttribute('transform', shake > 0 ? `translate(${fmt((hash(Math.floor(t * 30)) - .5) * 40 * shake)},${fmt((hash(Math.floor(t * 30) + 9) - .5) * 30 * shake)}) translate(540,960) scale(${(1 + .05 * Math.min(1, shake * 2)).toFixed(3)}) translate(-540,-960)` : '');
+  // bande de transition
+  let act = -1; BOUNDS.forEach((b, i) => { if (Math.abs(t - b) < TR + .04) act = i; });
+  if (act >= 0) {
+    const u = (t - BOUNDS[act] + TR + .04) / (2 * TR + .08);
+    const x = lerp(1300, -500, E.inOut(u));
+    swipe.setAttribute('d', `M${fmt(x)},0 h140 l-260,${H} h-140Z`); swipe.setAttribute('fill', SW_COL[act]);
+    swipe2.setAttribute('d', `M${fmt(x + 170)},0 h40 l-260,${H} h-40Z`);
+  } else { swipe.setAttribute('d', ''); swipe2.setAttribute('d', ''); }
+  // sous-titres
+  for (const c of capEls) {
+    const vis = t >= c.start && t < c.end;
+    show(c.g, vis);
+    if (!vis) continue;
+    tf(c.g, CX, CAP_Y, 1, 0);
+    c.items.forEach(w => {
+      const on = t >= w.t0;
+      show(w.wg, on);
+      if (!on) return;
+      const k = E.back(clamp((t - w.t0) / .14));
+      const active = t < (w.t1 + .02) && t >= w.t0;
+      tf(w.wg, w.cx, (1 - k) * 18, lerp(.55, 1, k) * (active ? 1.08 : 1), 0);
+      w.tt.setAttribute('fill', active ? GREEN : CREAM);
+    });
+  }
+}
+window.renderAt = renderAt;
+window.shakeAt = t => { renderAt(t); return shake; };
+window.DURATION = DUR;
+window.ready = true;
+
+// ---------------------------------------------------------------------------
+// Lecteur (aperçu navigateur, avec la voix)
+// ---------------------------------------------------------------------------
+if (!RENDER) {
+  const btn = document.getElementById('play'), seek = document.getElementById('seek'), tl = document.getElementById('time'), au = document.getElementById('voice');
+  document.getElementById('safezone').onchange = e => show(safe, e.target.checked);
+  let playing = false, t0 = 0, cur = 0;
+  btn.onclick = () => { playing = !playing; btn.textContent = playing ? 'Pause' : 'Lecture'; t0 = performance.now() - cur * 1000; if (playing) { au.currentTime = cur; if (cur < au.duration) au.play(); } else au.pause(); };
+  seek.oninput = () => { cur = +seek.value; t0 = performance.now() - cur * 1000; au.currentTime = Math.min(cur, au.duration || cur); renderAt(cur); };
+  (function loop(now) {
+    if (playing) { cur = (now - t0) / 1000; if (cur >= DUR) { cur = 0; t0 = now; au.currentTime = 0; au.play(); } seek.value = cur; renderAt(cur); tl.textContent = cur.toFixed(1) + 's'; }
+    requestAnimationFrame(loop);
+  })(performance.now());
+  renderAt(0);
+} else renderAt(0);
+})();
+</script>
+</body>
+</html>
