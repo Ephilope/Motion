@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modèle TikTok</title>
+</head>
+<body>
+<!-- Modèle de vidéo TikTok 9:16. Copier ce fichier en <nom>.html, puis remplacer :
+     1. VOIX : la voix-off et ses mots horodatés (assets/<nom>_words.js, produit par tools/align_words.py)
+     2. TEMPS : les débuts de scène, calés sur des mots de la voix (Wt)
+     3. SCÈNES : une fonction S(début, fin, build) par scène -->
+<script src="lib/motion.js"></script>
+<!-- <script src="assets/<nom>_words.js"></script>  (définit window.WORDS) -->
+<script>
+// Démo sans fichier audio : quelques mots horodatés à la main pour voir les sous-titres.
+window.WORDS ??= [
+  ['Pourquoi', 0.3, 0.8], ['les', 0.8, 0.95], ['chats', 0.95, 1.4], ['ronronnent-ils ?', 1.4, 2.4],
+  ['Le', 3.0, 3.15], ['ronronnement', 3.15, 3.9], ['vibre', 3.9, 4.3], ['entre', 4.3, 4.55], ['25', 4.55, 4.9], ['et', 4.9, 5.0], ['150', 5.0, 5.5], ['hertz.', 5.5, 6.0],
+  ['Ça', 6.4, 6.6], ['les', 6.6, 6.75], ['aide', 6.75, 7.05], ['à', 7.05, 7.15], ['se', 7.15, 7.3], ['soigner.', 7.3, 8.0],
+  ['Tu', 8.6, 8.75], ['le', 8.75, 8.85], ['savais ?', 8.85, 9.5], ['Dis-le', 9.9, 10.3], ['en', 10.3, 10.45], ['commentaire.', 10.45, 11.2],
+].map(([w, t0, t1]) => ({ w, t0, t1 }));
+
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, el, show, tf, txt, title, card, chip, emoji, burst, bg } = Motion;
+await setup({
+  duration: 12,
+  words: window.WORDS,
+  audio: null,                          // 'assets/voix_<nom>.mp3'
+  emojis: '😺💬👇',                      // emojis utilisés (préchargés pour le rendu)
+  // palette: { GREEN: '#2ECC71', RED: '#E74C3C', CREAM: '#FFF4E0', INK: '#1A1A1A' },
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK } = M.C;
+
+// Débuts de scène, calés sur la voix
+const T = { s2: Wt('Le') - .2, s3: Wt('Tu') - .2 };
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE (0–3 s) : grosse question, impact visuel immédiat =========
+S(0, T.s2, (cam) => {
+  const tChats = Wt('chats');
+  bg(cam);
+  const cat = el('g', {}, cam); emoji(cat, '😺', 300);
+  const q = title(cam, ['POURQUOI', ['ÇA RONRONNE', GREEN], ['?', RED]], { size: 112 });
+  const bst = burst(cam, 16, INK);
+  return t => {
+    tf(cat, CX, 520, pop(t, tChats - .1, .4) * (1 + .04 * Math.sin(t * 10)), Math.sin(t * 4) * 6);
+    bst.update(CX, 520, clamp((t - tChats) / .5));
+    tf(q, CX, 860, lerp(.15, 1, E.out5(clamp(t / .5))) * (1 + .05 * p(t, .5, T.s2, E.lin)), -3);
+    addShake(Math.max(0, 1 - Math.abs(t - tChats) / .3) * .5);
+  };
+});
+
+// ====== 2. EXPLICATION : étiquette de section + carte avec un chiffre =========
+S(T.s2, T.s3, (cam, a) => {
+  const t25 = Wt('25'), t150 = Wt('150'), tSoin = Wt('soigner.');
+  bg(cam);
+  const tag = chip(cam, 'LA SCIENCE', INK, CREAM);
+  const box = el('g', {}, cam);
+  card(box, -360, -220, 720, 440, CREAM, 30);
+  txt(box, 'FRÉQUENCE', { size: 50 }).g.setAttribute('transform', 'translate(0,-120)');
+  const num = el('text', { 'text-anchor': 'middle', 'font-size': 150, y: 80, fill: GREEN, stroke: INK, 'stroke-width': 12, 'paint-order': 'stroke' }, box);
+  const heal = chip(cam, 'OS + MUSCLES', GREEN, INK, 54);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .1));
+    tf(box, CX, 620, pop(t, a + .05, .45), lerp(6, -2, p(t, a, a + .6)));
+    const v = p(t, t25 - .05, t150 + .2, E.out);
+    num.textContent = Math.round(lerp(25, 150, v)) + ' Hz';
+    heal.update(CX, 960, pop(t, tSoin - .1), 3);
+  };
+});
+
+// ====== 3. CALL TO ACTION ======================================================
+S(T.s3, M.DUR, (cam, a) => {
+  const tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  el('rect', { width: W / 2, height: H, fill: RED }, cam); el('rect', { x: W / 2, width: W / 2, height: H, fill: GREEN }, cam);   // écran coupé rouge / vert
+  el('line', { x1: W / 2, x2: W / 2, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+  const q = title(cam, [['TU LE', CREAM], ['SAVAIS ?', CREAM]], { size: 150 });
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE EN', { size: 84 }), w2 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  w1.g.setAttribute('transform', 'translate(0,-12)'); w2.g.setAttribute('transform', 'translate(0,84)');
+  const bub = el('g', {}, cam); emoji(bub, '💬', 200);
+  const point = el('g', {}, cam); emoji(point, '👇', 110);
+  return t => {
+    tf(q, CX, 520, pop(t, a + .1, .4), -2);
+    tf(bub, CX, 1000, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    tf(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, CX, 1500 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .3), 0);
+  };
+}, { swipe: GREEN });
+
+captions({ until: tDis });              // sous-titres mot à mot ; le CTA a son propre texte
+start();
+})();
+</script>
+</body>
+</html>
