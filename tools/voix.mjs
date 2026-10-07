@@ -4,12 +4,20 @@
 //   node tools/voix.mjs <nom> --audio voix.mp3   garde une voix existante, aligne seulement le texte
 //
 // Écrit assets/voix_<nom>.mp3 (sauf avec --audio), assets/<nom>_words.json et assets/<nom>_words.js
-// (window.WORDS, lu par lib/motion.js). La clé est lue dans ELEVENLABS_API_KEY.
+// (window.WORDS, lu par lib/motion.js). La clé est lue dans ELEVENLABS_API_KEY ; sans elle, la requête part
+// sans clé, pour un proxy qui l'ajoute lui-même (environnement cloud).
 // Options : --voice <id>, --model <id>, --force (régénère même si le texte n'a pas changé).
 // Réglages par défaut (voix, modèle, stabilité…) : voix.config.json à la racine.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+
+// fetch() de Node ignore HTTPS_PROXY : on se relance avec NODE_USE_ENV_PROXY pour passer par le proxy.
+if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_USE_ENV_PROXY) {
+  const env = { ...process.env, NODE_USE_ENV_PROXY: '1', NODE_NO_WARNINGS: '1' };
+  process.exit(spawnSync(process.execPath, process.argv.slice(1), { stdio: 'inherit', env }).status ?? 1);
+}
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const API = process.env.ELEVENLABS_API_URL || 'https://api.elevenlabs.io';
@@ -62,7 +70,6 @@ function parseScript(src) {
 
 // --- appel à l'API -------------------------------------------------------------------
 const key = process.env.ELEVENLABS_API_KEY;
-if (!key) die('ELEVENLABS_API_KEY absente : exportez votre clé ElevenLabs dans cette variable.');
 
 const settings = { model, voice, voice_settings: cfg.voice_settings, language_code: cfg.language_code, audio: audioIn && hashFile(audioIn) };
 const stamp = crypto.createHash('sha1').update(JSON.stringify({ spoken, settings })).digest('hex').slice(0, 12);
@@ -135,7 +142,8 @@ function mapChars(text, chars) {
 }
 
 async function call(route, init) {
-  const res = await fetch(API + route, { ...init, headers: { ...init.headers, 'xi-api-key': key } });
+  const res = await fetch(API + route, { ...init, headers: key ? { ...init.headers, 'xi-api-key': key } : init.headers });
+  if (res.status === 401 && !key) die('ELEVENLABS_API_KEY absente : exportez votre clé ElevenLabs dans cette variable.');
   if (!res.ok) die(`ElevenLabs ${res.status} sur ${route} : ${(await res.text()).slice(0, 400)}`);
   return res.json();
 }
