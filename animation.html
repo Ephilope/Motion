@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le réchauffement climatique</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #070b1c; overflow: hidden; }
+  #wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #stage { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; display: block; }
+  text { font-family: Inter, "DejaVu Sans", sans-serif; }
+  #ui { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center;
+        background: rgba(7, 11, 28, .7); padding: 8px 14px; border-radius: 999px; font: 14px Inter, sans-serif; color: #fff; }
+  #ui button { background: #ffb547; border: 0; border-radius: 999px; padding: 6px 14px; font-weight: 700; cursor: pointer; }
+  #ui input { width: min(50vw, 480px); }
+  body.render #ui { display: none; }
+</style>
+</head>
+<body>
+<div id="wrap"><svg id="stage" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg"></svg></div>
+<div id="ui"><button id="play">Pause</button><input id="seek" type="range" min="0" max="61" step="0.01" value="0"><span id="time">0.0s</span></div>
+<script>
+// ---------------------------------------------------------------------------
+// Moteur : tout est une fonction pure du temps -> renderAt(t) (rendu image par image)
+// ---------------------------------------------------------------------------
+const NS = 'http://www.w3.org/2000/svg';
+const W = 1920, H = 1080, DUR = 61;
+const svg = document.getElementById('stage');
+const RENDER = new URLSearchParams(location.search).has('render');
+if (RENDER) document.body.classList.add('render');
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function set(e, attrs) { for (const k in attrs) e.setAttribute(k, attrs[k]); }
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const E = {
+  lin: t => t,
+  inOut: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  out: t => 1 - Math.pow(1 - t, 3),
+  in: t => t * t * t,
+  back: t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+  elastic: t => t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - .75) * (2 * Math.PI / 3)) + 1,
+};
+const p = (t, a, b, ease = E.inOut) => ease(clamp((t - a) / (b - a)));
+const rad = d => d * Math.PI / 180;
+function rng(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+function blink(t, off = 0, period = 3.4) { const ph = (t + off) % period; return ph < .2 ? Math.sin(ph / .2 * Math.PI) : 0; }
+const fmt = n => n.toFixed(1);
+
+function smoothClosed(pts) {
+  const n = pts.length; let d = `M${fmt(pts[0][0])},${fmt(pts[0][1])}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+    d += `C${fmt(p1[0] + (p2[0] - p0[0]) / 6)},${fmt(p1[1] + (p2[1] - p0[1]) / 6)} ${fmt(p2[0] - (p3[0] - p1[0]) / 6)},${fmt(p2[1] - (p3[1] - p1[1]) / 6)} ${fmt(p2[0])},${fmt(p2[1])}`;
+  }
+  return d + 'Z';
+}
+function blobPath(cx, cy, r, seed, n = 8, jit = .45) {
+  const R = rng(seed), pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2, rr = r * (1 - jit / 2 + R() * jit);
+    pts.push([cx + Math.cos(a) * rr * 1.25, cy + Math.sin(a) * rr * .85]);
+  }
+  return smoothClosed(pts);
+}
+function wavy(p0, p1, amp, wl) {
+  const dx = p1[0] - p0[0], dy = p1[1] - p0[1], len = Math.hypot(dx, dy);
+  const ux = dx / len, uy = dy / len, n = Math.ceil(len / 8);
+  let d = '';
+  for (let i = 0; i <= n; i++) {
+    const s = i / n, w = Math.sin(s * len / wl * Math.PI * 2) * amp * Math.sin(Math.PI * Math.min(1, s * 6)) ;
+    d += (i ? 'L' : 'M') + fmt(p0[0] + dx * s - uy * w) + ',' + fmt(p0[1] + dy * s + ux * w);
+  }
+  return d;
+}
+
+// ---------------------------------------------------------------------------
+// Dégradés
+// ---------------------------------------------------------------------------
+const defs = el('defs', {}, svg);
+function lg(id, stops, x2 = 0, y2 = 1) { const g = el('linearGradient', { id, x1: 0, y1: 0, x2, y2 }, defs); stops.forEach(([o, c, op = 1]) => el('stop', { offset: o, 'stop-color': c, 'stop-opacity': op }, g)); }
+function rg(id, stops, cx = .5, cy = .5, r = .5) { const g = el('radialGradient', { id, cx, cy, r }, defs); stops.forEach(([o, c, op = 1]) => el('stop', { offset: o, 'stop-color': c, 'stop-opacity': op }, g)); }
+rg('gSpace', [[0, '#22306e'], [1, '#090e26']], .45, .45, .8);
+rg('gOcean', [[0, '#7fd0ff'], [.55, '#2f86e6'], [1, '#1b4aa8']], .35, .3, .8);
+rg('gShade', [[0, '#ffffff', .28], [.45, '#ffffff', 0], [1, '#0a1748', .5]], .35, .3, .8);
+rg('gEarthGlow', [[.6, '#7fd3ff', .45], [1, '#7fd3ff', 0]]);
+rg('gSun', [[0, '#fff6c2'], [.6, '#ffd23f'], [1, '#ff9f2b']], .4, .35, .7);
+rg('gSunGlow', [[.35, '#ffd23f', .55], [1, '#ffb347', 0]]);
+rg('gAtmo', [[.62, '#7fd3ff', 0], [.82, '#7fd3ff', .22], [1, '#7fd3ff', 0]]);
+rg('gAtmoHot', [[.62, '#ff9a5c', 0], [.82, '#ff7a45', .45], [1, '#ff7a45', 0]]);
+lg('gSkyCity', [[0, '#73bfff'], [1, '#d9f0ff']]);
+lg('gSmog', [[0, '#5d4f45', .95], [.7, '#8a7d70', .35], [1, '#8a7d70', 0]]);
+lg('gSkyArctic', [[0, '#ff9f7a'], [.6, '#ffd2a8'], [1, '#fff0de']]);
+lg('gSea', [[0, '#3aa0ff'], [1, '#123f8f']]);
+lg('gWarm', [[0, '#ff9a5c'], [1, '#ff4f6d']], 1, 1);
+lg('gSkySol', [[0, '#55c1ff'], [1, '#dcf7ff']]);
+rg('gOutro', [[0, '#2fc1a7'], [1, '#0b4566']], .5, .45, .8);
+lg('gPanel', [[0, '#2f5bb7'], [1, '#1b3576']], 1, 1);
+
+// ---------------------------------------------------------------------------
+// Personnages
+// ---------------------------------------------------------------------------
+let uid = 0;
+
+// --- La Terre ---------------------------------------------------------------
+function makeEarth(parent) {
+  const id = uid++;
+  const g = el('g', {}, parent);
+  const glow = el('circle', { r: 300, fill: 'url(#gEarthGlow)' }, g);
+  const arms = [el('g', {}, g), el('g', {}, g)];
+  for (const a of arms) {
+    el('path', { d: 'M0,0 C35,-5 70,-30 95,-65', fill: 'none', stroke: '#1d4f9e', 'stroke-width': 20, 'stroke-linecap': 'round' }, a);
+    el('circle', { cx: 95, cy: -65, r: 27, fill: '#fff', stroke: '#c9d6ef', 'stroke-width': 5 }, a);
+  }
+  const clip = el('clipPath', { id: 'ec' + id }, defs); el('circle', { r: 200 }, clip);
+  el('circle', { r: 200, fill: 'url(#gOcean)' }, g);
+  const clipped = el('g', { 'clip-path': `url(#ec${id})` }, g);
+  const land = el('g', {}, clipped);
+  const shapes = [[-280, -60, 70, 3], [-120, 40, 85, 7], [40, -95, 62, 11], [165, 60, 75, 13], [300, -25, 80, 17], [430, 110, 45, 19], [-20, 155, 40, 23], [235, -150, 45, 29], [520, -90, 55, 31]];
+  for (const k of [0, 800]) {
+    const gg = el('g', { transform: `translate(${k},0)` }, land);
+    for (const s of shapes) {
+      el('path', { d: blobPath(s[0], s[1], s[2], s[3]), fill: '#5fd38d' }, gg);
+      el('path', { d: blobPath(s[0] + 10, s[1] + 12, s[2] * .5, s[3] + 1), fill: '#3fb874', opacity: .75 }, gg);
+    }
+  }
+  const capN = el('ellipse', { cx: 0, cy: -205, rx: 150, ry: 55, fill: '#f2fbff' }, clipped);
+  const capS = el('ellipse', { cx: 0, cy: 210, rx: 125, ry: 45, fill: '#f2fbff' }, clipped);
+  el('circle', { r: 200, fill: 'url(#gShade)' }, g);
+  const heat = el('circle', { r: 200, fill: '#ff6a1f', opacity: 0 }, g);
+  el('circle', { r: 200, fill: 'none', stroke: '#0f2b66', 'stroke-width': 6, opacity: .3 }, g);
+  // visage
+  const face = el('g', {}, g);
+  const cheeks = [-1, 1].map(sx => el('ellipse', { cx: sx * 112, cy: 38, rx: 30, ry: 18, fill: '#ff8fa3', opacity: .6 }, face));
+  const eyes = [-1, 1].map(sx => {
+    const eg = el('g', { transform: `translate(${sx * 64},-25)` }, face);
+    const lid = el('g', {}, eg);
+    el('ellipse', { rx: 31, ry: 37, fill: '#fff' }, lid);
+    const pupil = el('g', {}, lid);
+    el('circle', { r: 18, fill: '#16213e' }, pupil);
+    el('circle', { cx: 6, cy: -7, r: 6.5, fill: '#fff' }, pupil);
+    const brow = el('path', { d: 'M-26,0 Q0,-10 26,0', stroke: '#0f2b66', 'stroke-width': 9, fill: 'none', 'stroke-linecap': 'round' }, eg);
+    return { lid, pupil, brow, sx };
+  });
+  const mouth = el('path', { fill: '#7a1f33', stroke: '#0f2b66', 'stroke-width': 8, 'stroke-linejoin': 'round' }, face);
+  const drops = [[-150, -95], [158, -70], [-95, -150]].map(([x, y]) => {
+    const d = el('g', {}, g);
+    el('path', { d: 'M0,-20 C11,-3 13,6 0,13 C-13,6 -11,-3 0,-20Z', fill: '#a8e8ff', stroke: '#2f86e6', 'stroke-width': 3 }, d);
+    return { d, x, y };
+  });
+  return {
+    g,
+    update(o) {
+      const t = o.t || 0;
+      set(g, { transform: `translate(${o.x},${o.y}) rotate(${o.rot || 0}) scale(${o.s ?? 1})` });
+      land.setAttribute('transform', `translate(${-((((o.spin || 0) % 800) + 800) % 800)},0)`);
+      const ht = o.heat || 0;
+      heat.setAttribute('opacity', ht * .45);
+      glow.setAttribute('opacity', 1 - ht * .5);
+      const ice = o.ice ?? 1;
+      set(capN, { rx: 150 * ice, ry: 55 * ice }); set(capS, { rx: 125 * ice, ry: 45 * ice });
+      const m = o.mood ?? 1, op = o.open ?? .2, bl = o.blink || 0;
+      const look = o.look || [0, 0];
+      for (const e of eyes) {
+        e.lid.setAttribute('transform', `scale(1,${1 - bl * .92})`);
+        e.pupil.setAttribute('transform', `translate(${look[0]},${look[1]})`);
+        const raise = m < 0 ? -m * 10 : 0;
+        e.brow.setAttribute('transform', `translate(0,${-52 - raise - Math.max(m, 0) * 4}) rotate(${m < 0 ? -e.sx * m * 18 : e.sx * m * 6})`);
+      }
+      const y0 = 60, w = 52 - op * 8, c1 = y0 + m * 30, c2 = y0 + m * 30 + op * 55 + (m > 0 ? m * 8 : 0);
+      mouth.setAttribute('d', `M${-w},${y0} Q0,${c1} ${w},${y0} Q0,${c2} ${-w},${y0}Z`);
+      cheeks.forEach(c => c.setAttribute('opacity', .45 + ht * .5));
+      set(arms[0], { transform: `translate(-182,45) scale(-1,1) rotate(${o.armL ?? 70})` });
+      set(arms[1], { transform: `translate(182,45) rotate(${o.armR ?? 70})` });
+      drops.forEach((d, i) => {
+        const ph = (t * .9 + i * .37) % 1;
+        const vis = clamp((ht - .35) * 3);
+        set(d.d, { transform: `translate(${d.x + (d.x > 0 ? 1 : -1) * ph * 10},${d.y + ph * 70}) scale(${.8 + ph * .3})`, opacity: vis * Math.sin(ph * Math.PI) });
+      });
+    }
+  };
+}
+
+// --- Le Soleil (à lunettes) -------------------------------------------------
+function makeSun(parent) {
+  const g = el('g', {}, parent);
+  el('circle', { r: 280, fill: 'url(#gSunGlow)' }, g);
+  const rays = el('g', {}, g);
+  for (let i = 0; i < 12; i++)
+    el('path', { d: 'M-18,-150 L0,-205 L18,-150Z', fill: '#ffc93c', stroke: '#ffc93c', 'stroke-width': 12, 'stroke-linejoin': 'round', transform: `rotate(${i * 30})` }, rays);
+  el('circle', { r: 128, fill: 'url(#gSun)' }, g);
+  [-1, 1].forEach(sx => el('ellipse', { cx: sx * 78, cy: 32, rx: 22, ry: 13, fill: '#ff7b54', opacity: .5 }, g));
+  const gl = el('g', {}, g);
+  el('rect', { x: -100, y: -45, width: 84, height: 54, rx: 22, fill: '#1b1b2f' }, gl);
+  el('rect', { x: 16, y: -45, width: 84, height: 54, rx: 22, fill: '#1b1b2f' }, gl);
+  el('path', { d: 'M-18,-30 Q0,-40 18,-30', stroke: '#1b1b2f', 'stroke-width': 8, fill: 'none' }, gl);
+  el('path', { d: 'M-80,-32 L-62,-32 M64,-32 L84,-32', stroke: '#fff', 'stroke-width': 7, 'stroke-linecap': 'round', opacity: .7 }, gl);
+  const mouth = el('path', { d: 'M-42,42 Q0,85 42,42', stroke: '#a8441a', 'stroke-width': 10, fill: 'none', 'stroke-linecap': 'round' }, g);
+  return {
+    g,
+    update(o) {
+      const t = o.t || 0;
+      set(g, { transform: `translate(${o.x},${o.y}) scale(${o.s ?? 1})` });
+      set(rays, { transform: `rotate(${t * 18}) scale(${1 + .05 * Math.sin(t * 3)})` });
+      const m = o.mood ?? 1;
+      mouth.setAttribute('d', `M-42,48 Q0,${48 + m * 40} 42,48`);
+      gl.setAttribute('transform', `translate(0,${Math.sin(t * 2.2) * 3})`);
+    }
+  };
+}
+
+// --- Molécule de CO2 (petit méchant) ---------------------------------------
+function makeCO2(parent) {
+  const g = el('g', {}, parent);
+  const inner = el('g', {}, g);
+  el('circle', { cx: -33, r: 21, fill: '#ff6b6b' }, inner);
+  el('circle', { cx: 33, r: 21, fill: '#ff6b6b' }, inner);
+  el('circle', { r: 28, fill: '#3d405b' }, inner);
+  [-1, 1].forEach(sx => {
+    el('circle', { cx: sx * 10, cy: -2, r: 7.5, fill: '#fff' }, inner);
+    el('circle', { cx: sx * 10 + 1.5, cy: -1, r: 3.6, fill: '#1b1b2f' }, inner);
+    el('path', { d: `M${sx * 18},-15 L${sx * 4},-9`, stroke: '#fff', 'stroke-width': 4, 'stroke-linecap': 'round' }, inner);
+  });
+  el('path', { d: 'M-7,13 Q0,8 7,13', stroke: '#fff', 'stroke-width': 3.5, fill: 'none', 'stroke-linecap': 'round' }, inner);
+  return {
+    g,
+    update(x, y, s, rot = 0) {
+      if (s <= .001) { g.setAttribute('display', 'none'); return; }
+      g.removeAttribute('display');
+      set(g, { transform: `translate(${fmt(x)},${fmt(y)}) rotate(${fmt(rot)}) scale(${s.toFixed(3)})` });
+    }
+  };
+}
+
+// --- Humain (bonhomme flat design) -----------------------------------------
+function makePerson(parent, c) {
+  const g = el('g', {}, parent);
+  const inner = el('g', {}, g);
+  const leg = (col) => { const lg_ = el('g', {}, inner); el('line', { x1: 0, y1: 0, x2: 0, y2: 98, stroke: col, 'stroke-width': 24, 'stroke-linecap': 'round' }, lg_); el('ellipse', { cx: 12, cy: 108, rx: 23, ry: 11, fill: '#2b2d42' }, lg_); return lg_; };
+  const arm = (col) => {
+    const sh = el('g', {}, inner);
+    el('line', { x1: 0, y1: 0, x2: 0, y2: 46, stroke: col, 'stroke-width': 21, 'stroke-linecap': 'round' }, sh);
+    const fo = el('g', {}, sh);
+    el('line', { x1: 0, y1: 0, x2: 0, y2: 40, stroke: c.skin, 'stroke-width': 17, 'stroke-linecap': 'round' }, fo);
+    el('circle', { cy: 46, r: 12, fill: c.skin }, fo);
+    return { sh, fo };
+  };
+  const legB = leg(c.pantsDark), armB = arm(c.shirtDark);
+  el('rect', { x: -35, y: -208, width: 70, height: 115, rx: 30, fill: c.shirt }, inner);
+  const legF = leg(c.pants);
+  const head = el('g', {}, inner);
+  el('rect', { x: -10, y: 18, width: 20, height: 22, fill: c.skin }, head);
+  if (c.hair === 'long') el('path', { d: 'M-46,-10 C-50,-60 50,-60 46,-10 L50,48 Q0,60 -50,48Z', fill: c.hairCol }, head);
+  el('circle', { r: 43, fill: c.skin }, head);
+  if (c.hair === 'bun') el('circle', { cx: -6, cy: -50, r: 20, fill: c.hairCol }, head);
+  el('path', { d: 'M-45,-2 C-50,-60 50,-62 46,-6 C30,-30 -5,-34 -45,-2Z', fill: c.hairCol }, head);
+  el('ellipse', { cx: 28, cy: 16, rx: 9, ry: 6, fill: '#ff8fa3', opacity: .6 }, head);
+  const eyeG = el('g', {}, head);
+  el('circle', { cx: 4, cy: 0, r: 5.5, fill: '#1b1b2f' }, eyeG);
+  el('circle', { cx: 26, cy: 0, r: 5.5, fill: '#1b1b2f' }, eyeG);
+  const mouth = el('path', { stroke: '#1b1b2f', 'stroke-width': 4.5, fill: 'none', 'stroke-linecap': 'round' }, head);
+  const armF = arm(c.shirt);
+  return {
+    g,
+    update(o) {
+      const t = o.t || 0, w = o.walk;
+      let lf = o.legF ?? 0, lb = o.legB ?? 0, af = o.armF ?? [-8, -10], ab = o.armB ?? [8, -10], bob = 0;
+      if (w !== undefined) {
+        const s = Math.sin(w); lf = 26 * s; lb = -26 * s;
+        af = [-24 * s, -18]; ab = [24 * s, -18]; bob = -Math.abs(Math.cos(w)) * 7;
+      }
+      set(g, { transform: `translate(${fmt(o.x)},${fmt(o.y + bob)}) scale(${o.s ?? 1})` });
+      inner.setAttribute('transform', o.flip ? 'scale(-1,1)' : '');
+      legF.setAttribute('transform', `translate(6,-105) rotate(${lf})`);
+      legB.setAttribute('transform', `translate(-6,-105) rotate(${lb})`);
+      set(armF.sh, { transform: `translate(4,-185) rotate(${af[0]})` }); set(armF.fo, { transform: `translate(0,46) rotate(${af[1]})` });
+      set(armB.sh, { transform: `translate(-4,-185) rotate(${ab[0]})` }); set(armB.fo, { transform: `translate(0,46) rotate(${ab[1]})` });
+      head.setAttribute('transform', `translate(4,-250) rotate(${o.headRot || 0})`);
+      eyeG.setAttribute('transform', `scale(1,${1 - (o.blink || 0) * .9})`);
+      const m = o.mood ?? 1;
+      mouth.setAttribute('d', `M4,${20 - m * 2} Q15,${20 + m * 9} 26,${20 - m * 2}`);
+    }
+  };
+}
+
+// --- Cycliste --------------------------------------------------------------
+function makeCyclist(parent, c) {
+  const g = el('g', {}, parent);
+  const legBack = el('path', { stroke: c.pantsDark, 'stroke-width': 22, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+  const shoeB = el('ellipse', { rx: 18, ry: 9, fill: '#2b2d42' }, g);
+  const spokes = [-100, 100].map(x => {
+    const w = el('g', { transform: `translate(${x},0)` }, g);
+    el('circle', { r: 56, fill: 'none', stroke: '#2b2d42', 'stroke-width': 11 }, w);
+    const sp = el('g', {}, w);
+    for (let i = 0; i < 6; i++) el('line', { x1: 0, y1: 0, x2: 0, y2: -50, stroke: '#8d99ae', 'stroke-width': 3, transform: `rotate(${i * 60})` }, sp);
+    el('circle', { r: 8, fill: '#2b2d42' }, w);
+    return sp;
+  });
+  el('path', { d: 'M-100,0 L0,0 L-32,-88 Z M0,0 L72,-96 L100,0 M-32,-88 L72,-96', stroke: c.bike, 'stroke-width': 10, fill: 'none', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, g);
+  el('path', { d: 'M-58,-98 L-14,-98', stroke: '#2b2d42', 'stroke-width': 12, 'stroke-linecap': 'round' }, g);
+  el('path', { d: 'M72,-96 L80,-118 L104,-116', stroke: '#2b2d42', 'stroke-width': 9, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+  const crank = el('line', { x1: 0, y1: 0, stroke: '#2b2d42', 'stroke-width': 8, 'stroke-linecap': 'round' }, g);
+  el('line', { x1: -32, y1: -112, x2: 22, y2: -196, stroke: c.shirt, 'stroke-width': 48, 'stroke-linecap': 'round' }, g);
+  const head = el('g', { transform: 'translate(44,-246)' }, g);
+  el('circle', { r: 40, fill: c.skin }, head);
+  el('path', { d: 'M-46,-4 C-48,-62 48,-64 48,-6 Z', fill: c.helmet }, head);
+  el('path', { d: 'M-46,-4 L52,-4', stroke: c.helmet, 'stroke-width': 8, 'stroke-linecap': 'round' }, head);
+  el('circle', { cx: 18, cy: 8, r: 5.5, fill: '#1b1b2f' }, head);
+  el('path', { d: 'M12,24 Q22,32 32,22', stroke: '#1b1b2f', 'stroke-width': 4.5, fill: 'none', 'stroke-linecap': 'round' }, head);
+  el('ellipse', { cx: 34, cy: 20, rx: 8, ry: 5, fill: '#ff8fa3', opacity: .6 }, head);
+  el('path', { d: 'M22,-190 Q70,-170 100,-118', stroke: c.skin, 'stroke-width': 16, fill: 'none', 'stroke-linecap': 'round' }, g);
+  el('path', { d: 'M22,-190 Q68,-175 96,-128', stroke: c.shirt, 'stroke-width': 19, fill: 'none', 'stroke-linecap': 'round', 'stroke-dasharray': '45 200' }, g);
+  const legFront = el('path', { stroke: c.pants, 'stroke-width': 24, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+  const shoeF = el('ellipse', { rx: 19, ry: 10, fill: '#2b2d42' }, g);
+  const HIP = [-32, -110], L = 76;
+  function ik(F) {
+    let dx = F[0] - HIP[0], dy = F[1] - HIP[1], d = Math.min(Math.hypot(dx, dy), 2 * L - 1);
+    const base = Math.atan2(dy, dx), off = Math.acos(d / 2 / L);
+    return [HIP[0] + L * Math.cos(base - off), HIP[1] + L * Math.sin(base - off)];
+  }
+  return {
+    g,
+    update(o) {
+      set(g, { transform: `translate(${fmt(o.x)},${fmt(o.y)}) scale(${o.s ?? 1})` });
+      const rot = o.dist / 56;
+      spokes.forEach(sp => sp.setAttribute('transform', `rotate(${fmt(rot * 180 / Math.PI)})`));
+      const a = rot * .8;
+      const F1 = [30 * Math.cos(a), 30 * Math.sin(a)], F2 = [30 * Math.cos(a + Math.PI), 30 * Math.sin(a + Math.PI)];
+      set(crank, { x1: fmt(F2[0]), y1: fmt(F2[1]), x2: fmt(F1[0]), y2: fmt(F1[1]) });
+      const K1 = ik(F1), K2 = ik(F2);
+      legFront.setAttribute('d', `M${HIP} L${K1.map(fmt)} L${F1.map(fmt)}`);
+      legBack.setAttribute('d', `M${HIP} L${K2.map(fmt)} L${F2.map(fmt)}`);
+      set(shoeF, { cx: fmt(F1[0] + 8), cy: fmt(F1[1] + 4) }); set(shoeB, { cx: fmt(F2[0] + 8), cy: fmt(F2[1] + 4) });
+    }
+  };
+}
+
+// --- Ours polaire ----------------------------------------------------------
+function makeBear(parent) {
+  const g = el('g', {}, parent);
+  const st = { fill: '#f7fbff', stroke: '#c5d4e6', 'stroke-width': 5 };
+  [[-70, 0], [-30, 0], [40, 0], [78, 0]].forEach(([x], i) => el('rect', { x: x - 20, y: -60, width: 40, height: 62, rx: 18, ...st, fill: i % 2 ? '#e9f1f9' : '#f7fbff' }, g));
+  el('ellipse', { cx: 0, cy: -78, rx: 118, ry: 72, ...st }, g);
+  el('circle', { cx: -118, cy: -92, r: 16, ...st }, g);
+  const head = el('g', {}, g);
+  [[-30, -42], [30, -44]].forEach(([x, y]) => { el('circle', { cx: x, cy: y, r: 17, ...st }, head); el('circle', { cx: x, cy: y, r: 8, fill: '#ffc2cf' }, head); });
+  el('circle', { r: 56, ...st }, head);
+  el('ellipse', { cx: 14, cy: 18, rx: 28, ry: 21, fill: '#e6eef7' }, head);
+  el('ellipse', { cx: 18, cy: 8, rx: 12, ry: 8.5, fill: '#1b1b2f' }, head);
+  const eyes = el('g', {}, head);
+  el('circle', { cx: -16, cy: -12, r: 6.5, fill: '#1b1b2f' }, eyes);
+  el('circle', { cx: 30, cy: -14, r: 6.5, fill: '#1b1b2f' }, eyes);
+  el('path', { d: 'M-27,-23 L-8,-32 M40,-24 L22,-33', stroke: '#1b1b2f', 'stroke-width': 4.5, 'stroke-linecap': 'round' }, head);
+  el('path', { d: 'M6,34 Q17,26 28,34', stroke: '#1b1b2f', 'stroke-width': 4.5, fill: 'none', 'stroke-linecap': 'round' }, head);
+  const tear = el('path', { d: 'M0,-14 C8,-2 9,4 0,9 C-9,4 -8,-2 0,-14Z', fill: '#8fd8ff' }, head);
+  return {
+    g,
+    update(o) {
+      const t = o.t || 0;
+      set(g, { transform: `translate(${fmt(o.x)},${fmt(o.y)}) scale(${o.s ?? 1})` });
+      head.setAttribute('transform', `translate(108,-138) rotate(${o.headRot || 0})`);
+      eyes.setAttribute('transform', `scale(1,${1 - blink(t, .7, 2.9) * .9})`);
+      const ph = (t * .7) % 1;
+      set(tear, { transform: `translate(-18,${-2 + ph * 40})`, opacity: (o.sad || 0) * Math.sin(ph * Math.PI) });
+    }
+  };
+}
+
+// --- Décors ----------------------------------------------------------------
+function makeTree(parent, x, y, sc = 1) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -13, y: -95, width: 26, height: 95, rx: 8, fill: '#8b5e3c' }, g);
+  const fol = el('g', { transform: 'translate(0,-120)' }, g);
+  [[0, -25, 62, '#34b26a'], [-45, 10, 48, '#3fbf6f'], [45, 10, 48, '#3fbf6f'], [0, 15, 52, '#46c97a'], [-14, -42, 22, '#7be0a0']].forEach(([cx, cy, r, f]) => el('circle', { cx, cy, r, fill: f }, fol));
+  return { update(k, t) { set(g, { transform: `translate(${x},${y}) scale(${(sc * k).toFixed(3)})` }); fol.setAttribute('transform', `translate(0,-120) rotate(${Math.sin(t * 1.5 + x) * 2})`); g.setAttribute('display', k < .002 ? 'none' : ''); } };
+}
+function makeTurbine(parent, x, y, sc) {
+  const g = el('g', { transform: `translate(${x},${y}) scale(${sc})` }, parent);
+  el('path', { d: 'M-10,0 L-4,-300 L4,-300 L10,0Z', fill: '#f4f8ff', stroke: '#cbd8ea', 'stroke-width': 3 }, g);
+  const bl = el('g', { transform: 'translate(0,-300)' }, g);
+  for (let i = 0; i < 3; i++) el('path', { d: 'M0,0 C10,-30 8,-125 0,-160 C-7,-125 -5,-30 0,0Z', fill: '#fff', stroke: '#cbd8ea', 'stroke-width': 3, transform: `rotate(${i * 120})` }, bl);
+  el('circle', { cy: -300, r: 12, fill: '#dfe8f5', stroke: '#b7c6dc', 'stroke-width': 3 }, g);
+  return { g, update(t, sp = 1) { bl.setAttribute('transform', `translate(0,-300) rotate(${t * 110 * sp + x})`); } };
+}
+function makePanel(parent, x, y) {
+  const g = el('g', { transform: `translate(${x},${y})` }, parent);
+  el('path', { d: 'M-50,0 L-40,-55 M50,0 L40,-70', stroke: '#8d99ae', 'stroke-width': 8, 'stroke-linecap': 'round' }, g);
+  const id = 'pc' + (uid++);
+  const cp = el('clipPath', { id }, defs);
+  el('path', { d: 'M-100,-40 L90,-40 L120,-125 L-70,-125Z' }, cp);
+  el('path', { d: 'M-100,-40 L90,-40 L120,-125 L-70,-125Z', fill: '#2c4a8a', stroke: '#dfe9ff', 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  const grid = el('g', { stroke: '#7fa4e6', 'stroke-width': 2.5, 'clip-path': `url(#${id})` }, g);
+  for (let i = 1; i < 4; i++) el('line', { x1: -100 + i * 47.5, y1: -40, x2: -70 + i * 47.5, y2: -125 }, grid);
+  el('line', { x1: -90, y1: -82, x2: 110, y2: -82 }, grid);
+  const glint = el('rect', { x: -60, y: -140, width: 34, height: 120, fill: '#fff', opacity: .35, transform: 'skewX(-20)' }, el('g', { 'clip-path': `url(#${id})` }, g));
+  return { g, update(t) { glint.setAttribute('x', -200 + ((t * 160 + x) % 420)); } };
+}
+function makeStars(parent, n, seed) {
+  const R = rng(seed), stars = [];
+  for (let i = 0; i < n; i++) stars.push({ e: el('circle', { cx: R() * W, cy: R() * H, r: .8 + R() * 2.4, fill: '#fff' }, parent), sp: 1 + R() * 3, ph: R() * 6 });
+  return { update(t) { for (const s of stars) s.e.setAttribute('opacity', (.25 + .75 * Math.abs(Math.sin(t * s.sp * .6 + s.ph))).toFixed(2)); } };
+}
+function makeLabel(parent, text, opt = {}) {
+  const g = el('g', {}, parent);
+  const inner = el('g', {}, g);
+  const bg = el('rect', { rx: opt.rx ?? 30, fill: opt.bg || '#fff' }, inner);
+  const tx = el('text', { 'text-anchor': 'middle', 'font-size': opt.size || 36, 'font-weight': 800, fill: opt.color || '#1b3576', y: (opt.size || 36) * .35 }, inner);
+  tx.textContent = text;
+  const w = tx.getComputedTextLength(), h = (opt.size || 36) * 1.7, pad = (opt.size || 36) * .8;
+  set(bg, { x: -w / 2 - pad, y: -h / 2, width: w + pad * 2, height: h });
+  return {
+    g, update(x, y, k, rot = 0) {
+      g.setAttribute('display', k <= .001 ? 'none' : '');
+      set(g, { transform: `translate(${fmt(x)},${fmt(y)}) rotate(${rot})` });
+      set(inner, { transform: `scale(${Math.max(k, .001).toFixed(3)})` });
+    }
+  };
+}
+function makePuffs(parent, n, col) {
+  const ps = []; for (let i = 0; i < n; i++) ps.push(el('circle', { fill: col }, parent));
+  return ps;
+}
+function wavePath(y, amp, len, ph, x0 = -40, x1 = W + 40, bottom = H + 10) {
+  let d = `M${x0},${bottom} L${x0},${fmt(y)}`;
+  for (let x = x0; x <= x1; x += 30) d += ` L${x},${fmt(y + Math.sin(x / len + ph) * amp)}`;
+  return d + ` L${x1},${bottom}Z`;
+}
+
+// ---------------------------------------------------------------------------
+// Scènes
+// ---------------------------------------------------------------------------
+const sceneLayer = el('g', {}, svg);
+const scenes = [];
+function S(a, b, build, zoom = .045) {
+  const root = el('g', {}, sceneLayer), cam = el('g', {}, root);
+  const upd = build(root, cam);
+  scenes.push({ a, b, root, upd: t => { const z = 1 + zoom * p(t, a, b, E.lin); cam.setAttribute('transform', `translate(960,540) scale(${z.toFixed(4)}) translate(-960,-540)`); upd(t); } });
+}
+
+// ====== 1. INTRO (0 – 7 s) ==================================================
+S(0, 7, (root, cam) => {
+  el('rect', { width: W, height: H, fill: 'url(#gSpace)' }, cam);
+  const stars = makeStars(cam, 150, 7);
+  const back = el('g', {}, cam), mid = el('g', {}, cam), front = el('g', {}, cam);
+  const earth = makeEarth(mid);
+  const moon = el('g', {}, cam);
+  el('circle', { r: 40, fill: '#dfe3ee' }, moon);
+  el('circle', { cx: -14, cy: -14, r: 9, fill: '#c3c9d9' }, moon); el('circle', { cx: 16, cy: 12, r: 6, fill: '#c3c9d9' }, moon);
+  el('circle', { cx: -8, cy: 4, r: 4, fill: '#1b1b2f' }, moon); el('circle', { cx: 10, cy: 4, r: 4, fill: '#1b1b2f' }, moon);
+  el('path', { d: 'M-5,14 Q1,19 7,14', stroke: '#1b1b2f', 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' }, moon);
+  const title = el('g', {}, cam);
+  const tt = el('text', { x: 960, y: 0, 'text-anchor': 'middle', 'font-size': 108, 'font-weight': 900, fill: '#fff', 'letter-spacing': -2 }, title);
+  const w1 = el('tspan', {}, tt); w1.textContent = 'Le réchauffement ';
+  const w2 = el('tspan', { fill: '#ffb547' }, tt); w2.textContent = 'climatique';
+  const sub = makeLabel(cam, 'expliqué en 1 minute', { bg: '#5fd38d', color: '#0b3d2a', size: 40 });
+  return t => {
+    stars.update(t);
+    const s = .001 + E.elastic(clamp((t - .2) / 1.5));
+    const wave = p(t, 2.2, 2.6) * (1 - p(t, 5.0, 5.5));
+    earth.update({ t, x: 960, y: 650 + Math.sin(t * 1.6) * 12, s, spin: t * 45, mood: 1, open: .35 + wave * .25, blink: blink(t, 1.2),
+      armR: lerp(70, -20 + Math.sin(t * 9) * 30, wave), armL: lerp(70, 55, wave), look: [Math.sin(t * .8) * 4, -3] });
+    const a = t * .9 + 2.2, behind = Math.sin(a) < 0;
+    const ms = (behind ? .75 : 1.05) * p(t, .9, 1.6, E.back);
+    moon.setAttribute('transform', `translate(${960 + Math.cos(a) * 380},${650 + Math.sin(a) * 110}) scale(${Math.max(ms, .001)})`);
+    (behind ? back : front).appendChild(moon);
+    const k = p(t, .9, 1.7, E.out);
+    set(title, { transform: `translate(0,${175 + (1 - k) * -60})`, opacity: k });
+    w2.setAttribute('fill', t > 1.5 ? '#ffb547' : '#fff');
+    sub.update(960, 275, p(t, 1.7, 2.3, E.back));
+  };
+});
+
+// ====== 2 & 4. ESPACE : équilibre puis effet de serre =======================
+function spaceScene(a, b, hot) {
+  S(a, b, (root, cam) => {
+    el('rect', { width: W, height: H, fill: 'url(#gSpace)' }, cam);
+    const stars = makeStars(cam, 150, hot ? 11 : 5);
+    const EC = [690, 650], SC = [1610, 245];
+    const atmo = el('circle', { cx: EC[0], cy: EC[1], r: 330, fill: 'url(#gAtmo)' }, cam);
+    const atmoHot = el('circle', { cx: EC[0], cy: EC[1], r: 330, fill: 'url(#gAtmoHot)', opacity: 0 }, cam);
+    const ring = el('circle', { cx: EC[0], cy: EC[1], r: 300, fill: 'none', stroke: '#9fdcff', 'stroke-width': 4, 'stroke-dasharray': '4 16', 'stroke-linecap': 'round', opacity: .6 }, cam);
+    const rayLayer = el('g', {}, cam);
+    const sun = makeSun(cam);
+    // rayons entrants (lumière)
+    const inRays = [-50, -24, 2].map(deg => {
+      const ang = rad(deg), Ep = [EC[0] + 222 * Math.cos(ang), EC[1] + 222 * Math.sin(ang)];
+      const v = [Ep[0] - SC[0], Ep[1] - SC[1]], l = Math.hypot(...v), u = [v[0] / l, v[1] / l];
+      const Sp = [SC[0] + u[0] * 150, SC[1] + u[1] * 150];
+      const g = el('g', {}, rayLayer);
+      const path = el('path', { d: `M${Sp.map(fmt)} L${(Ep[0] - u[0] * 18).toFixed(1)},${(Ep[1] - u[1] * 18).toFixed(1)}`, stroke: '#ffd23f', 'stroke-width': 12, 'stroke-linecap': 'round', 'stroke-dasharray': '30 22', fill: 'none' }, g);
+      el('path', { d: 'M0,0 L-34,-18 L-34,18Z', fill: '#ffd23f', transform: `translate(${Ep.map(fmt)}) rotate(${Math.atan2(u[1], u[0]) * 180 / Math.PI})`, 'stroke-linejoin': 'round', stroke: '#ffd23f', 'stroke-width': 6 }, g);
+      return { g, path };
+    });
+    // rayons sortants (chaleur)
+    const outAngles = hot ? [-168, -140, -112, 150, 122] : [-165, -132, -100, 155];
+    const outRays = outAngles.map((deg, i) => {
+      const ang = rad(deg), P0 = [EC[0] + 215 * Math.cos(ang), EC[1] + 215 * Math.sin(ang)];
+      let d, tip, tipDir;
+      if (!hot) {
+        const P1 = [EC[0] + 820 * Math.cos(ang), EC[1] + 820 * Math.sin(ang)];
+        d = wavy(P0, P1, 14, 70); tip = null;
+      } else {
+        const a2 = ang + rad(13), a3 = ang + rad(26);
+        const P1 = [EC[0] + 292 * Math.cos(a2), EC[1] + 292 * Math.sin(a2)];
+        const P2 = [EC[0] + 225 * Math.cos(a3), EC[1] + 225 * Math.sin(a3)];
+        d = wavy(P0, P1, 9, 40) + wavy(P1, P2, 9, 40).replace('M', 'L');
+        tip = P2; tipDir = Math.atan2(P2[1] - P1[1], P2[0] - P1[0]) * 180 / Math.PI;
+      }
+      const g = el('g', {}, rayLayer);
+      const path = el('path', { d, stroke: hot ? '#ff5a4e' : '#ff8a5c', 'stroke-width': 10, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-dasharray': '26 18' }, g);
+      if (tip) el('path', { d: 'M0,0 L-26,-14 L-26,14Z', fill: '#ff5a4e', transform: `translate(${tip.map(fmt)}) rotate(${tipDir})` }, g);
+      return { g, path };
+    });
+    let escape = null;
+    if (hot) {
+      const ang = rad(-85), P0 = [EC[0] + 215 * Math.cos(ang), EC[1] + 215 * Math.sin(ang)], P1 = [EC[0] + 820 * Math.cos(ang), EC[1] + 820 * Math.sin(ang)];
+      escape = el('path', { d: wavy(P0, P1, 10, 60), stroke: '#ff8a5c', 'stroke-width': 6, fill: 'none', 'stroke-dasharray': '18 22', 'stroke-linecap': 'round' }, rayLayer);
+    }
+    const earth = makeEarth(cam);
+    // molécules piégées dans l'atmosphère
+    const mols = [];
+    if (hot) for (let i = 0; i < 18; i++) mols.push({ m: makeCO2(cam), a0: i / 18 * Math.PI * 2 + .1, ts: 26.3 + i * .12, r: 300 + (i % 3 - 1) * 16 });
+    // étiquettes
+    const labels = hot
+      ? [[makeLabel(cam, 'EFFET DE SERRE', { bg: '#ff5a4e', color: '#fff', size: 44 }), 690, 255, 27.6]]
+      : [[makeLabel(cam, 'Lumière du Soleil', { bg: '#ffd23f', color: '#5a3b00', size: 32 }), 1240, 580, 8.9],
+         [makeLabel(cam, 'Atmosphère', { bg: '#9fdcff', color: '#0b2a5c', size: 32 }), 690, 290, 9.8],
+         [makeLabel(cam, 'Chaleur renvoyée', { bg: '#ff8a5c', color: '#fff', size: 32 }), 250, 220, 12.3]];
+    // thermomètre
+    let thermo = null;
+    if (hot) {
+      const g = el('g', {}, cam);
+      el('rect', { x: -34, y: -300, width: 68, height: 330, rx: 34, fill: '#fff', stroke: '#c9d6ef', 'stroke-width': 6 }, g);
+      el('circle', { cy: 60, r: 58, fill: '#fff', stroke: '#c9d6ef', 'stroke-width': 6 }, g);
+      el('rect', { x: -28, y: 0, width: 56, height: 40, fill: '#fff' }, g);
+      for (let i = 0; i < 6; i++) el('line', { x1: 12, x2: 28, y1: -250 + i * 45, y2: -250 + i * 45, stroke: '#c9d6ef', 'stroke-width': 5, 'stroke-linecap': 'round' }, g);
+      const merc = el('rect', { x: -16, width: 32, rx: 16, fill: '#ff4b3a' }, g);
+      el('circle', { cy: 60, r: 42, fill: '#ff4b3a' }, g);
+      el('circle', { cx: -14, cy: 52, r: 6, fill: '#fff' }, g); el('circle', { cx: 14, cy: 52, r: 6, fill: '#fff' }, g);
+      el('path', { d: 'M-12,74 Q0,66 12,74', stroke: '#fff', 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round' }, g);
+      const val = el('text', { x: 70, y: 0, 'font-size': 92, 'font-weight': 900, fill: '#ffb547' }, g);
+      const since = el('text', { x: 74, y: 52, 'font-size': 36, 'font-weight': 600, fill: '#cfe0ff' }, g);
+      since.textContent = 'depuis 1850';
+      thermo = { g, merc, val, since };
+    }
+    return t => {
+      stars.update(t);
+      const sk = hot ? 1 : p(t, a, a + 1, E.back);
+      sun.update({ t, x: SC[0] + (1 - sk) * 400, y: SC[1] - (1 - sk) * 400, s: .78, mood: hot ? .3 : 1 });
+      inRays.forEach((r, i) => { const k = hot ? 1 : p(t, 8.1 + i * .25, 8.6 + i * .25); r.g.setAttribute('opacity', k); r.path.setAttribute('stroke-dashoffset', fmt(-t * 150)); });
+      outRays.forEach((r, i) => { const k = hot ? p(t, 27.4 + i * .3, 28 + i * .3) : p(t, 11.5 + i * .3, 12 + i * .3); r.g.setAttribute('opacity', k); r.path.setAttribute('stroke-dashoffset', fmt(-t * 120)); });
+      if (escape) { escape.setAttribute('stroke-dashoffset', fmt(-t * 120)); escape.setAttribute('opacity', .55 * p(t, 28.6, 29.2)); }
+      const heat = hot ? p(t, 27.3, 33.5) * .85 : 0;
+      const hk = hot ? p(t, 26.3, 28.5) : 0;
+      atmoHot.setAttribute('opacity', hk);
+      atmo.setAttribute('opacity', 1 - hk * .6);
+      set(ring, { 'stroke-width': 4 + hk * 10, stroke: hk > .5 ? '#ffb38a' : '#9fdcff', 'stroke-dashoffset': fmt(t * 8) });
+      const mood = hot ? lerp(.6, -.8, p(t, 28, 31)) : 1;
+      const lookSun = [10, -8];
+      earth.update({ t, x: EC[0], y: EC[1] + Math.sin(t * 1.5) * 8, s: 1, spin: t * 45, heat, mood,
+        open: hot ? .2 + p(t, 29.5, 31) * (.45 + .15 * Math.sin(t * 10)) : .3, blink: blink(t, .4), ice: 1 - heat * .5,
+        look: hot ? [Math.sin(t * 1.3) * 6, -6] : lookSun,
+        armR: hot ? lerp(70, -60 + Math.sin(t * 7) * 15, p(t, 31, 31.6)) : 70, armL: hot ? lerp(70, -60 + Math.sin(t * 7 + 1) * 15, p(t, 31, 31.6)) : 70 });
+      mols.forEach((o, i) => {
+        const k = E.back(clamp((t - o.ts) / .45));
+        const ang = o.a0 + t * .12;
+        o.m.update(EC[0] + Math.cos(ang) * o.r, EC[1] + Math.sin(ang) * o.r + Math.sin(t * 3 + i) * 5, k * .85, Math.sin(t * 2 + i) * 12);
+      });
+      labels.forEach(([l, x, y, t0]) => { const k = p(t, t0, t0 + .45, E.back) * (1 - p(t, b - .9, b - .5)); l.update(x, y + Math.sin(t * 2) * 4, k); });
+      if (thermo) {
+        const k = p(t, 30.4, 31.1, E.back), v = p(t, 30.9, 33.2, E.out);
+        set(thermo.g, { transform: `translate(${1390 + (1 - k) * 600},${780})` });
+        const h = 40 + v * 250;
+        set(thermo.merc, { y: 30 - h, height: h + 20 });
+        thermo.val.textContent = '+' + (1.3 * v).toFixed(1).replace('.', ',') + ' °C';
+        set(thermo.val, { y: 50 - h + 10 });
+        set(thermo.since, { y: 100 - h + 10, opacity: p(t, 32.6, 33.2) });
+      }
+    };
+  });
+}
+spaceScene(7, 15, false);
+
+// ====== 3. LA VILLE & LE CO2 (15 – 26 s) ====================================
+S(15, 26, (root, cam) => {
+  el('rect', { width: W, height: H, fill: 'url(#gSkyCity)' }, cam);
+  const smog = el('rect', { width: W, height: 700, fill: 'url(#gSmog)', opacity: 0 }, cam);
+  const R = rng(99);
+  const far = el('g', {}, cam);
+  for (let x = -20; x < W; x += 110 + R() * 40) {
+    const h = 180 + R() * 260, w = 90 + R() * 60;
+    el('rect', { x, y: 870 - h, width: w, height: h, rx: 6, fill: '#a7c1e2' }, far);
+    for (let wy = 870 - h + 25; wy < 840; wy += 42) for (let wx = x + 16; wx < x + w - 20; wx += 30) el('rect', { x: wx, y: wy, width: 14, height: 20, rx: 3, fill: '#c9dcf2' }, far);
+  }
+  // usine
+  const fac = el('g', {}, cam);
+  const chimX = [1330, 1480, 1630];
+  chimX.forEach(x => { el('rect', { x: x - 30, y: 400, width: 60, height: 300, fill: '#8d5a4a' }, fac); el('rect', { x: x - 34, y: 400, width: 68, height: 22, rx: 4, fill: '#6b4033' }, fac); el('rect', { x: x - 30, y: 460, width: 60, height: 22, fill: '#f4f1ea' }, fac); });
+  el('path', { d: 'M1220,870 L1220,640 L1320,580 L1320,640 L1420,580 L1420,640 L1520,580 L1520,640 L1620,580 L1620,640 L1720,580 L1720,870Z', fill: '#d9694f' }, fac);
+  for (let i = 0; i < 5; i++) el('rect', { x: 1250 + i * 92, y: 700, width: 56, height: 70, rx: 6, fill: '#ffd88a' }, fac);
+  el('rect', { x: 1600, y: 780, width: 80, height: 90, rx: 6, fill: '#8d5a4a' }, fac);
+  const smoke = el('g', {}, cam);
+  const chPuffs = chimX.map(() => makePuffs(smoke, 7, '#7f7a86'));
+  // sol
+  el('rect', { x: 0, y: 870, width: W, height: 26, fill: '#b9c1d3' }, cam);
+  el('rect', { x: 0, y: 896, width: W, height: 200, fill: '#4f566b' }, cam);
+  for (let x = 20; x < W; x += 160) el('rect', { x, y: 980, width: 90, height: 12, rx: 6, fill: '#e8ecf5' }, cam);
+  const person = makePerson(cam, { skin: '#f2c39b', shirt: '#5fd38d', shirtDark: '#3fae6b', pants: '#3a4a7a', pantsDark: '#2c385e', hair: 'short', hairCol: '#4a2c1d' });
+  // voiture
+  const car = el('g', {}, cam);
+  const carPuffs = makePuffs(cam, 6, '#6e6a75');
+  el('path', { d: 'M-160,-28 Q-162,-72 -118,-78 L-62,-80 Q-38,-132 14,-134 L64,-134 Q100,-134 122,-84 L148,-78 Q170,-72 170,-34 L170,-22 L-160,-22Z', fill: '#ffb547' }, car);
+  el('path', { d: 'M-46,-82 Q-28,-122 10,-122 L30,-122 L30,-82Z', fill: '#bfe6ff' }, car);
+  el('path', { d: 'M42,-122 L62,-122 Q90,-122 106,-82 L42,-82Z', fill: '#bfe6ff' }, car);
+  el('circle', { cx: 6, cy: -98, r: 17, fill: '#c98b62' }, car);
+  el('path', { d: 'M-12,-104 C-12,-124 24,-124 24,-104 Z', fill: '#1b1b2f' }, car);
+  el('rect', { x: 150, y: -70, width: 22, height: 14, rx: 5, fill: '#fff3b0' }, car);
+  el('rect', { x: -164, y: -66, width: 14, height: 16, rx: 4, fill: '#ff5a4e' }, car);
+  const carWheels = [-95, 102].map(x => { const w = el('g', {}, car); el('circle', { cx: 0, cy: 0, r: 32, fill: '#2b2d42' }, w); el('circle', { r: 14, fill: '#cfd6e6' }, w); el('rect', { x: -3, y: -14, width: 6, height: 28, fill: '#8d99ae' }, w); return [w, x]; });
+  const carX = t => lerp(-380, 2350, (t - 16.2) / 8.2);
+  // molécules
+  const R2 = rng(1234);
+  const mols = [];
+  for (let i = 0; i < 26; i++) {
+    const src = i % 4 === 3 ? 'car' : i % 4;
+    const ts = 17 + i * .3;
+    let sx, sy;
+    if (src === 'car') { sx = carX(ts) - 170; sy = 900; } else { sx = chimX[src]; sy = 390; }
+    mols.push({ m: makeCO2(cam), ts, sx, sy, tx: 120 + R2() * 1680, ty: 80 + R2() * 230, ph: R2() * 6 });
+  }
+  const co2Label = makeLabel(cam, 'CO₂', { bg: '#3d405b', color: '#fff', size: 64, rx: 40 });
+  return t => {
+    const sm = p(t, 17, 25);
+    smog.setAttribute('opacity', sm);
+    // fumée des cheminées
+    chPuffs.forEach((ps, ci) => ps.forEach((c, j) => {
+      const ph = (t * .45 + j / ps.length + ci * .13) % 1;
+      const on = p(t, 15.2, 16.2);
+      set(c, { cx: fmt(chimX[ci] + ph * 90 + Math.sin(t * 2 + j) * 8), cy: fmt(395 - ph * 300), r: fmt(16 + ph * 52), opacity: ((1 - ph) * .75 * on).toFixed(2) });
+    }));
+    // personnage
+    const px = lerp(-140, 380, p(t, 15.2, 17.8, E.lin));
+    const walking = t < 17.8;
+    const cough = p(t, 21.3, 21.7) * (1 - p(t, 24.6, 25));
+    person.update({ t, x: px, y: 870 + (cough ? Math.sin(t * 22) * 2 * cough : 0), s: 1.05, walk: walking ? px / 26 : undefined,
+      armF: [lerp(-8, -82, cough), lerp(-10, -112, cough)], mood: lerp(1, -1, p(t, 19.5, 20.5)),
+      headRot: lerp(0, -12, p(t, 18.5, 19.3)) * (1 - cough) + cough * Math.sin(t * 6) * 6, blink: blink(t, .3) });
+    // voiture
+    const cx = carX(t);
+    set(car, { transform: `translate(${fmt(cx)},${905 + Math.sin(t * 18) * 1.5})` });
+    carWheels.forEach(([w, x]) => w.setAttribute('transform', `translate(${x},-22) rotate(${fmt((cx / 32) * 57.3)})`));
+    carPuffs.forEach((c, j) => { const ph = (t * 1.6 + j / 6) % 1; set(c, { cx: fmt(cx - 170 - ph * 110), cy: fmt(880 - ph * 50), r: fmt(8 + ph * 24), opacity: ((1 - ph) * .7).toFixed(2) }); });
+    // CO2 qui monte
+    mols.forEach((o, i) => {
+      if (t < o.ts) { o.m.update(0, 0, 0); return; }
+      const u = p(t, o.ts, o.ts + 3.4, E.out);
+      const x = lerp(o.sx, o.tx, u) + Math.sin(t * 2.2 + o.ph) * 14 * u;
+      const y = lerp(o.sy, o.ty, u) + Math.sin(t * 3 + o.ph) * 6;
+      o.m.update(x, y, E.back(clamp((t - o.ts) / .45)) * .95, Math.sin(t * 2 + o.ph) * 15);
+    });
+    co2Label.update(960, 380, p(t, 22.2, 22.7, E.back) * (1 - p(t, 25.3, 25.7)), Math.sin(t * 3) * 3);
+  };
+});
+
+spaceScene(26, 35, true);
+
+// ====== 5. CONSÉQUENCES (35 – 46 s) =========================================
+S(35, 46, (root, cam) => {
+  el('rect', { width: W, height: H, fill: 'url(#gSkyArctic)' }, cam);
+  const sun = makeSun(cam);
+  const bergs = el('g', {}, cam);
+  [[180, 1.0], [420, .6], [1560, .8], [1760, 1.1]].forEach(([x, s]) => el('path', { d: `M${x - 120 * s},0 L${x - 40 * s},${-120 * s} L${x},${-80 * s} L${x + 50 * s},${-150 * s} L${x + 130 * s},0Z`, fill: '#f2fbff', stroke: '#cfe6f5', 'stroke-width': 4 }, bergs));
+  const seaBack = el('path', { fill: '#5bb4ff', opacity: .9 }, cam);
+  const floe = el('g', {}, cam);
+  el('path', { d: 'M-460,0 Q0,-16 460,0 L420,110 Q0,130 -430,110Z', fill: '#cfe9f8' }, floe);
+  el('path', { d: 'M-460,0 Q0,-16 460,0 L455,16 Q0,4 -455,16Z', fill: '#ffffff' }, floe);
+  const chunks = [0, 1, 2, 3].map(() => { const c = el('path', { d: 'M-50,0 L50,0 L40,45 L-45,40Z', fill: '#e6f4fc', stroke: '#cfe9f8', 'stroke-width': 4 }, cam); return c; });
+  const bear = makeBear(cam);
+  const seaFront = el('path', { fill: 'url(#gSea)', opacity: .92 }, cam);
+  const drips = makePuffs(cam, 6, '#8fd8ff');
+  // Panneau "et ce n'est pas tout"
+  const panel = el('g', {}, cam);
+  el('rect', { width: W, height: H + 200, fill: 'url(#gWarm)' }, panel);
+  const head = el('text', { x: 960, y: 210, 'text-anchor': 'middle', 'font-size': 72, 'font-weight': 900, fill: '#fff' }, panel);
+  head.textContent = 'Et ce n\'est pas tout…';
+  const badges = [];
+  const mkBadge = (x, label, bgc, draw) => {
+    const g = el('g', {}, panel); const inner = el('g', {}, g);
+    const id = 'bc' + (uid++); const cp = el('clipPath', { id }, defs); el('circle', { r: 150 }, cp);
+    el('circle', { r: 162, fill: '#fff', opacity: .35 }, inner);
+    el('circle', { r: 150, fill: bgc }, inner);
+    const content = el('g', { 'clip-path': `url(#${id})` }, inner);
+    const upd = draw(content);
+    const lt = el('text', { y: 230, 'text-anchor': 'middle', 'font-size': 38, 'font-weight': 800, fill: '#fff' }, inner);
+    lt.textContent = label;
+    badges.push({ g, inner, upd, x });
+  };
+  mkBadge(400, 'Montée des eaux', '#dff3ff', c => {
+    const house = el('g', { transform: 'translate(0,40)' }, c);
+    el('rect', { x: -60, y: -60, width: 120, height: 90, fill: '#ffb547' }, house);
+    el('path', { d: 'M-78,-58 L0,-125 L78,-58Z', fill: '#d9694f' }, house);
+    el('rect', { x: -18, y: -10, width: 36, height: 40, fill: '#8b5e3c' }, house);
+    el('rect', { x: -45, y: -45, width: 26, height: 24, fill: '#bfe6ff' }, house);
+    const water = el('path', { fill: '#3aa0ff', opacity: .85 }, c);
+    return t => water.setAttribute('d', wavePath(lerp(150, 10, p(t, 41.8, 45, E.out)), 8, 25, t * 4, -160, 160, 170));
+  });
+  mkBadge(960, 'Canicules & incendies', '#fff1d6', c => {
+    const fl = el('g', { transform: 'translate(0,60)' }, c);
+    const outer = el('path', { d: 'M0,-150 C50,-80 95,-30 75,35 C60,90 -60,90 -75,35 C-92,-25 -30,-60 -20,-110 C-5,-80 5,-70 0,-150Z', fill: '#ff6a3d' }, fl);
+    const innerF = el('path', { d: 'M0,-70 C25,-35 48,-5 38,30 C30,60 -30,60 -38,30 C-46,0 -15,-20 0,-70Z', fill: '#ffd54a' }, fl);
+    return t => { outer.setAttribute('transform', `scale(${1 + Math.sin(t * 13) * .04},${1 + Math.sin(t * 9) * .07})`); innerF.setAttribute('transform', `scale(1,${1 + Math.sin(t * 15 + 1) * .1})`); };
+  });
+  mkBadge(1520, 'Tempêtes & sécheresses', '#e3e7f5', c => {
+    const rain = el('g', {}, c);
+    const drops = []; for (let i = 0; i < 9; i++) drops.push(el('line', { stroke: '#5b8def', 'stroke-width': 6, 'stroke-linecap': 'round' }, rain));
+    const bolt = el('path', { d: 'M10,-20 L-30,50 L0,50 L-20,120 L40,30 L10,30 L30,-20Z', fill: '#ffd23f', stroke: '#e6a400', 'stroke-width': 4, 'stroke-linejoin': 'round' }, c);
+    const cloud = el('g', { transform: 'translate(0,-40)' }, c);
+    [[-55, 10, 48], [0, -15, 62], [55, 10, 48], [0, 25, 50]].forEach(([x, y, r]) => el('circle', { cx: x, cy: y, r, fill: '#7d86a8' }, cloud));
+    return t => {
+      drops.forEach((d, i) => { const ph = (t * 1.6 + i * .37) % 1, x = -100 + i * 25 - ph * 20; set(d, { x1: x, y1: 0 + ph * 160, x2: x - 8, y2: 22 + ph * 160 }); });
+      const f = (t * 1.3) % 1; bolt.setAttribute('opacity', f < .12 || (f > .2 && f < .26) ? 1 : 0);
+      cloud.setAttribute('transform', `translate(${Math.sin(t * 2) * 6},-40)`);
+    };
+  });
+  return t => {
+    const sea = lerp(780, 712, p(t, 35.3, 40.8));
+    sun.update({ t, x: 330, y: 210, s: .82, mood: -.2 });
+    bergs.setAttribute('transform', `translate(0,${sea + 6 + p(t, 35, 41) * 40})`);
+    seaBack.setAttribute('d', wavePath(sea - 14, 10, 80, t * 1.4));
+    // la banquise fond par morceaux
+    const breaks = [36.3, 37.7, 39.1, 40.3];
+    let kf = 1; breaks.forEach(bt => { kf -= .155 * p(t, bt, bt + .5, E.back); });
+    const fy = sea - 46 + Math.sin(t * 1.6) * 4;
+    set(floe, { transform: `translate(960,${fmt(fy)}) scale(${kf.toFixed(3)},1)` });
+    chunks.forEach((c, i) => {
+      const bt = breaks[i], side = i % 2 ? 1 : -1, u = clamp((t - bt) / 2.2);
+      const edge = 960 + side * 460 * (1 - .155 * i);
+      if (t < bt) { c.setAttribute('opacity', 0); return; }
+      set(c, { transform: `translate(${fmt(edge + side * (30 + u * 160))},${fmt(fy + u * 60)}) rotate(${side * u * 25})`, opacity: (1 - u).toFixed(2) });
+    });
+    bear.update({ t, x: 945, y: fy - 4 + Math.sin(t * 1.6) * 1, s: 1.15, sad: p(t, 36.5, 37.2), headRot: lerp(-5, 18, p(t, 36.2, 37)) + Math.sin(t * 1.4) * 3 });
+    seaFront.setAttribute('d', wavePath(sea, 12, 95, t * 2));
+    drips.forEach((d, i) => { const ph = (t * .8 + i / 6) % 1; set(d, { cx: 960 + (i - 2.5) * 130 * kf, cy: fy + 30 + ph * 50, r: 7, opacity: (1 - ph) * .8 }); });
+    // panneau des autres conséquences
+    const pk = p(t, 40.7, 41.4);
+    panel.setAttribute('transform', `translate(0,${fmt((1 - pk) * (H + 200))})`);
+    head.setAttribute('opacity', p(t, 41.3, 41.8));
+    badges.forEach((b, i) => {
+      const k = p(t, 41.6 + i * .35, 42.2 + i * .35, E.back);
+      set(b.g, { transform: `translate(${b.x},${500 + Math.sin(t * 2 + i) * 6})` });
+      set(b.inner, { transform: `scale(${Math.max(k, .001).toFixed(3)})` });
+      b.upd(t);
+    });
+  };
+});
+
+// ====== 6. SOLUTIONS (46 – 56 s) ============================================
+S(46, 56, (root, cam) => {
+  el('rect', { width: W, height: H, fill: 'url(#gSkySol)' }, cam);
+  const greySky = el('rect', { width: W, height: H, fill: '#9a9a9a' }, cam);
+  const sun = makeSun(cam);
+  const clouds = el('g', {}, cam);
+  [[500, 170, 1], [1150, 120, .8], [1700, 220, .9]].forEach(([x, y, s]) => { const c = el('g', { transform: `translate(${x},${y}) scale(${s})` }, clouds); [[-60, 10, 45], [0, -10, 60], [60, 10, 45]].forEach(([cx, cy, r]) => el('circle', { cx, cy, r, fill: '#fff', opacity: .9 }, c)); });
+  el('path', { d: 'M-50,700 C300,520 600,560 900,640 C1200,720 1500,520 1980,600 L1980,1100 L-50,1100Z', fill: '#9be3a3' }, cam);
+  const turbines = [[1250, 640, .9], [1480, 590, 1.05], [1720, 600, .95]].map(([x, y, s]) => makeTurbine(cam, x, y, s));
+  el('path', { d: 'M-50,820 C400,740 800,760 1100,800 C1400,840 1700,760 1980,790 L1980,1100 L-50,1100Z', fill: '#5fcf7a' }, cam);
+  const panels = [190, 410, 630].map(x => makePanel(cam, x, 860));
+  const trees = [[870, 885, .9, 49.3], [1010, 900, 1.15, 49.7], [1790, 900, 1.1, 50.2], [1150, 905, .8, 50.6]].map(([x, y, s, t0]) => ({ tr: makeTree(cam, x, y, s), t0 }));
+  el('rect', { x: 0, y: 950, width: W, height: 140, fill: '#7a8296' }, cam);
+  el('rect', { x: 0, y: 942, width: W, height: 14, fill: '#b9c1d3' }, cam);
+  for (let x = 20; x < W; x += 160) el('rect', { x, y: 1010, width: 90, height: 10, rx: 5, fill: '#e8ecf5' }, cam);
+  const gardener = makePerson(cam, { skin: '#8d5a3b', shirt: '#ff7b9c', shirtDark: '#d95a7d', pants: '#2f4e8a', pantsDark: '#243d6c', hair: 'bun', hairCol: '#1b1b2f' });
+  const cyclist = makeCyclist(cam, { skin: '#f2c39b', shirt: '#3aa0ff', pants: '#2b3a67', pantsDark: '#1f2b4f', bike: '#ff5a4e', helmet: '#ffd23f' });
+  // CO2 restant qui s'en va
+  const R = rng(77), mols = [];
+  for (let i = 0; i < 12; i++) mols.push({ m: makeCO2(cam), x: 100 + R() * 1720, y: 70 + R() * 200, ph: R() * 6, tp: 46.6 + i * .3 });
+  const labels = [
+    [makeLabel(cam, 'Solaire', { bg: '#ffd23f', color: '#5a3b00', size: 34 }), 410, 640, 48.2],
+    [makeLabel(cam, 'Éolien', { bg: '#fff', color: '#1b3576', size: 34 }), 1480, 200, 48.7],
+    [makeLabel(cam, 'Arbres', { bg: '#3fbf6f', color: '#fff', size: 34 }), 1010, 640, 50.4],
+    [makeLabel(cam, 'Vélo', { bg: '#3aa0ff', color: '#fff', size: 34 }), 0, 0, 51.2],
+  ];
+  return t => {
+    greySky.setAttribute('opacity', .55 * (1 - p(t, 46.2, 48)));
+    sun.update({ t, x: 230, y: 190, s: .7 * p(t, 46.6, 47.4, E.back) + .001, mood: 1 });
+    clouds.setAttribute('transform', `translate(${(t - 46) * 12},0)`);
+    turbines.forEach((tb, i) => tb.update(t, 1 + i * .15));
+    panels.forEach(pn => pn.update(t));
+    trees.forEach(o => o.tr.update(E.elastic(clamp((t - o.t0) / 1.2)), t));
+    mols.forEach((o, i) => {
+      const u = p(t, o.tp, o.tp + 1.4, E.in);
+      o.m.update(o.x + u * (o.x > 960 ? 300 : -300), o.y - u * 200, (1 - p(t, o.tp + .9, o.tp + 1.5)) * .85, Math.sin(t * 3 + o.ph) * 15);
+    });
+    const jump = t > 52.4 ? Math.abs(Math.sin((t - 52.4) * 6)) * 30 * (1 - p(t, 54.8, 55.4)) : 0;
+    gardener.update({ t, x: 1620, y: 948 - jump, s: 1, flip: true, armF: [lerp(-8, -170, p(t, 50.5, 51)) + Math.sin(t * 9) * 12 * p(t, 50.5, 51), -20], armB: jump ? [150, 10] : [8, -10], mood: 1, blink: blink(t, .9) });
+    const cd = (t - 47.2) * 330, cx = -260 + cd;
+    cyclist.update({ x: cx, y: 950 - 58, s: 1, dist: Math.max(cd, 0) });
+    labels.forEach(([l, x, y, t0], i) => {
+      const k = p(t, t0, t0 + .45, E.back);
+      if (i === 3) l.update(cx + 20, 950 - 360, k * (cx < 2000 ? 1 : 0)); else l.update(x, y + Math.sin(t * 2 + i) * 5, k);
+    });
+  };
+});
+
+// ====== 7. OUTRO (56 – 61 s) ================================================
+S(56, 61, (root, cam) => {
+  el('rect', { width: W, height: H, fill: 'url(#gOutro)' }, cam);
+  const rays = el('g', { transform: 'translate(960,600)', opacity: .12 }, cam);
+  for (let i = 0; i < 16; i++) el('path', { d: 'M0,0 L-90,-1200 L90,-1200Z', fill: '#fff', transform: `rotate(${i * 22.5})` }, rays);
+  const earth = makeEarth(cam);
+  const R = rng(5), conf = [];
+  const cols = ['#ffb547', '#ff6b6b', '#5fd38d', '#3aa0ff', '#ffd23f', '#ff8fa3'];
+  for (let i = 0; i < 80; i++) conf.push({ e: el('rect', { x: -7, y: -12, width: 14, height: 24, rx: 3, fill: cols[i % cols.length] }, cam), x: R() * W, y0: -40 - R() * 700, sp: 240 + R() * 260, r: R() * 360, rs: 120 + R() * 300, ph: R() * 6 });
+  const title = el('text', { x: 960, y: 175, 'text-anchor': 'middle', 'font-size': 112, 'font-weight': 900, fill: '#fff', 'letter-spacing': -2 }, cam);
+  title.textContent = 'Chaque geste compte !';
+  const sub = makeLabel(cam, 'Ensemble, prenons soin de notre planète', { bg: '#ffb547', color: '#3d2300', size: 44 });
+  return t => {
+    rays.setAttribute('transform', `translate(960,620) rotate(${t * 8})`);
+    const s = .001 + E.elastic(clamp((t - 56.05) / 1.3)) * 1.05;
+    earth.update({ t, x: 960, y: 620 + Math.sin(t * 2) * 10, s, spin: t * 45, mood: 1, open: .55, blink: blink(t, .2),
+      armR: -25 + Math.sin(t * 9) * 30, armL: -25 + Math.sin(t * 9 + Math.PI) * 30, look: [0, -2] });
+    conf.forEach(c => set(c.e, { transform: `translate(${fmt(c.x + Math.sin(t * 2 + c.ph) * 40)},${fmt(c.y0 + (t - 56) * c.sp)}) rotate(${fmt(c.r + t * c.rs)}) scale(${Math.cos(t * 4 + c.ph).toFixed(2)},1)` }));
+    const k = p(t, 56.4, 57.2, E.out);
+    set(title, { opacity: k, transform: `translate(0,${(1 - k) * -50})` });
+    sub.update(960, 960, p(t, 57.2, 57.8, E.back));
+  };
+});
+
+// ---------------------------------------------------------------------------
+// Sous-titres
+// ---------------------------------------------------------------------------
+const CAPS = [
+  [7.5, 11.2, 'Le *Soleil* chauffe notre planète.'],
+  [11.4, 14.6, 'Une partie de cette *chaleur* repart ensuite vers l\'espace.'],
+  [15.5, 20.3, 'Mais pour rouler, produire et nous chauffer…'],
+  [20.5, 25.6, '… on brûle *pétrole*, *charbon* et *gaz*, qui rejettent du *CO₂*.'],
+  [26.5, 30.4, 'Ces gaz *piègent la chaleur* : c\'est l\'effet de serre.'],
+  [30.6, 34.6, 'Résultat : la Terre s\'est déjà réchauffée d\'environ *1,3 °C*.'],
+  [35.5, 40.5, 'Les *glaces fondent* et les ours polaires perdent leur maison.'],
+  [41.5, 45.6, 'Le climat se dérègle partout sur la planète.'],
+  [46.5, 50.6, 'Bonne nouvelle : *on peut agir !*'],
+  [50.8, 55.6, '*Énergies renouvelables*, *vélo*, *arbres*, moins de gaspillage…'],
+];
+const capLayer = el('g', {}, svg);
+const caps = CAPS.map(([a, b, txt]) => {
+  const g = el('g', {}, capLayer);
+  const bg = el('rect', { rx: 44, fill: '#0b1028', opacity: .8 }, g);
+  const tx = el('text', { x: 0, y: 16, 'text-anchor': 'middle', 'font-size': 46, 'font-weight': 700, fill: '#fff' }, g);
+  const words = txt.split(' ').map((w, i) => {
+    const hi = w.includes('*'); const s = el('tspan', hi ? { fill: '#ffcf5a' } : {}, tx);
+    s.textContent = (i ? ' ' : '') + w.replace(/\*/g, ''); return s;
+  });
+  const wd = tx.getComputedTextLength();
+  set(bg, { x: -wd / 2 - 46, y: -44, width: wd + 92, height: 88 });
+  return { a, b, g, words };
+});
+
+// ---------------------------------------------------------------------------
+// Transitions (double cercle) + fondu final
+// ---------------------------------------------------------------------------
+const BOUNDS = [7, 15, 26, 35, 46, 56];
+const TCOL = [['#ffb547', '#ff6b6b'], ['#5fd38d', '#3aa0ff'], ['#ff6b6b', '#ffb547'], ['#3aa0ff', '#ffd23f'], ['#5fd38d', '#ffd23f'], ['#3aa0ff', '#5fd38d']];
+const trLayer = el('g', {}, svg);
+const c1 = el('circle', { cx: 960, cy: 540, r: 0 }, trLayer), c2 = el('circle', { cx: 960, cy: 540, r: 0 }, trLayer);
+const fade = el('rect', { width: W, height: H, fill: '#000', opacity: 0 }, svg);
+
+function renderAt(t) {
+  t = clamp(t, 0, DUR - 1e-6);
+  for (const s of scenes) {
+    const vis = t >= s.a && t < s.b;
+    s.root.setAttribute('display', vis ? '' : 'none');
+    if (vis) s.upd(t);
+  }
+  for (const c of caps) {
+    if (t < c.a || t > c.b) { c.g.setAttribute('display', 'none'); continue; }
+    c.g.removeAttribute('display');
+    const k = p(t, c.a, c.a + .45, E.back), out = p(t, c.b - .35, c.b, E.in);
+    set(c.g, { transform: `translate(960,${fmt(990 + (1 - k) * 50 + out * 30)}) scale(${(.85 + .15 * k).toFixed(3)})`, opacity: (Math.min(p(t, c.a, c.a + .2), 1 - out)).toFixed(3) });
+    c.words.forEach((w, i) => w.setAttribute('opacity', p(t, c.a + .1 + i * .055, c.a + .3 + i * .055).toFixed(3)));
+  }
+  let r1 = 0, r2 = 0, col = TCOL[0];
+  BOUNDS.forEach((b, i) => {
+    const d = t - b;
+    if (Math.abs(d) < .55) {
+      col = TCOL[i];
+      r1 = d < 0 ? E.in(clamp((d + .5) / .45)) : 1 - E.out(clamp((d - .08) / .45));
+      r2 = d < 0 ? E.in(clamp((d + .36) / .34)) : 1 - E.out(clamp(d / .4));
+    }
+  });
+  set(c1, { r: fmt(r1 * 1150), fill: col[0] }); set(c2, { r: fmt(r2 * 1150), fill: col[1] });
+  fade.setAttribute('opacity', p(t, 60.2, 61).toFixed(3));
+}
+window.renderAt = renderAt;
+window.DURATION = DUR;
+window.ready = true;
+
+// ---------------------------------------------------------------------------
+// Lecteur (aperçu navigateur)
+// ---------------------------------------------------------------------------
+if (!RENDER) {
+  const btn = document.getElementById('play'), seek = document.getElementById('seek'), tl = document.getElementById('time');
+  let playing = true, t0 = performance.now(), cur = 0;
+  btn.onclick = () => { playing = !playing; btn.textContent = playing ? 'Pause' : 'Lecture'; t0 = performance.now() - cur * 1000; };
+  seek.oninput = () => { cur = +seek.value; t0 = performance.now() - cur * 1000; renderAt(cur); };
+  (function loop(now) {
+    if (playing) { cur = ((now - t0) / 1000) % DUR; seek.value = cur; renderAt(cur); tl.textContent = cur.toFixed(1) + 's'; }
+    requestAnimationFrame(loop);
+  })(performance.now());
+} else renderAt(0);
+</script>
+</body>
+</html>
