@@ -73,12 +73,9 @@ Une vidéo verticale de 54 s (1080×1920, 30 i/s, H.264) en flat design, calée 
 
 ## Synchronisation sur la voix
 
-Chaque animation est déclenchée par un mot de la voix-off (fonction `Wt('mot')` dans `pourboire.html`). Les horodatages viennent de `assets/pourboire_words.json` :
+Chaque animation est déclenchée par un mot de la voix-off (fonction `Wt('mot')` dans `pourboire.html`). Les horodatages sont dans `assets/pourboire_words.js`, le texte dans `scripts/pourboire.txt`.
 
-1. Deux modèles de reconnaissance vocale `sherpa-onnx` tournent en local : Whisper « small » pour le texte, zipformer FR pour l'horodatage de chaque mot.
-2. `tools/align_words.py` aligne le texte de référence sur les mots reconnus, puis compense le retard du modèle phrase par phrase, en se calant sur les silences.
-
-Si la voix change : relancez la transcription, puis `python3 tools/align_words.py result.json assets/pourboire_words.json assets/pourboire_words.js`. Les animations se recalent toutes seules.
+Si la voix change : `node tools/voix.mjs pourboire --audio nouvelle_voix.mp3` (ou sans `--audio` pour la générer avec ElevenLabs), voir `docs/MODELE.md`, section « Voix-off ». Les animations se recalent toutes seules.
 
 ## Rendu
 

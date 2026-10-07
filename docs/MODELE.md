@@ -11,18 +11,18 @@ C'est la direction artistique de « Pourboire : qui a raison ? ». Le moteur l'a
 - **Couleurs :** vert dollar `#2ECC71`, rouge `#E74C3C`, crème `#FFF4E0`, noir `#1A1A1A`. Le vert sert au positif et au mot prononcé, le rouge au négatif et à l'alerte, le crème au fond.
 - **Police :** Montserrat Black, en capitales.
 - **Transitions :** rapides (glissement de 0,16 s avec une bande oblique verte ou rouge).
-- **Sous-titres :** mot à mot, en bas du tiers central, synchronisés sur la voix-off fournie.
+- **Sous-titres :** mot à mot, en bas du tiers central, synchronisés sur la voix-off (générée par ElevenLabs depuis le texte, ou fournie).
 - **Zones de sécurité TikTok :** pas de texte important dans les 250 px du bas ni sur les 120 px de droite.
 - **Procédés récurrents :** accroche choc dans les premières secondes (gros chiffre qui claque avec un tremblement, puis question en zoom), étiquette de section en haut, objets du quotidien stylisés (ticket, fiche de paie, terminal), personnages simples, écran coupé rouge / vert pour opposer deux camps, fin sur « DIS-LE EN COMMENTAIRE 👇 » avec une bulle 💬 qui pulse.
 
 ## Brief type pour une nouvelle vidéo
 
-À copier et compléter, avec le fichier audio de la voix-off :
+À copier et compléter. La voix-off est soit le texte (généré par ElevenLabs), soit un fichier audio joint :
 
 ```
 Nouvelle vidéo Motion, avec la charte habituelle (docs/MODELE.md).
 Sujet : …
-Voix-off : fichier joint
+Voix-off : texte ci-dessous (ou fichier joint)
 Durée : ~55 s
 
 SCÈNE 1 — ACCROCHE (0–6 s)
@@ -38,11 +38,27 @@ SCÈNE N — CALL TO ACTION (dernières 7 s)
 ## Démarrer une nouvelle vidéo
 
 1. Copier `modele.html` en `<nom>.html`.
-2. Voix-off : déposer `assets/voix_<nom>.mp3`, produire `assets/<nom>_words.js` avec `tools/align_words.py` (texte de référence dans `SCRIPT`), charger ce fichier dans la page et supprimer la liste de démo `window.WORDS`.
+2. Voix-off : écrire le texte dans `scripts/<nom>.txt` puis lancer `node tools/voix.mjs <nom>` (voir « Voix-off » plus bas). Charger `assets/<nom>_words.js` dans la page et supprimer la liste de démo `window.WORDS`.
 3. Régler `setup({ duration, audio, emojis })`.
 4. Écrire les scènes, puis vérifier quelques images clés :
    `PAGE=<nom>.html node tools/render.mjs stills --stills 1,5,12`
 5. Rendu complet (voir plus bas).
+
+## Voix-off (ElevenLabs)
+
+`tools/voix.mjs` produit la voix et l'horodatage de chaque mot en une commande, sans reconnaissance vocale. Il faut Node 18 ou plus et la clé ElevenLabs dans une variable d'environnement (jamais dans un fichier du dépôt) :
+
+```bash
+export ELEVENLABS_API_KEY=…                     # une fois par terminal, ou dans ~/.zshrc
+node tools/voix.mjs <nom>                       # texte → assets/voix_<nom>.mp3 + assets/<nom>_words.js
+node tools/voix.mjs <nom> --audio ma_voix.mp3   # voix déjà faite dans ElevenLabs : horodatage seul
+```
+
+- **Texte** (`scripts/<nom>.txt`) : une phrase par ligne, les lignes en `#` sont ignorées. `mot[forme parlée]` affiche `mot` en sous-titre et fait prononcer la forme parlée, utile pour les chiffres et symboles : `20_%[vingt pourcent]`, `1987,[mille neuf cent quatre-vingt-sept]`. Un `_` dans le mot affiché devient une espace (`Alors_?` → « Alors ? »). Exemple complet : `scripts/pourboire.txt`.
+- **Réglages** (`voix.config.json`) : `voice_id` (identifiant de la voix, visible dans la bibliothèque de voix ElevenLabs), `model_id`, `output_format`, et si besoin `voice_settings` (`stability`, `similarity_boost`, `style`, `speed`) et `language_code`. `--voice <id>` ou `ELEVENLABS_VOICE_ID` remplacent la voix pour une vidéo.
+- **Crédits** : si le texte, la voix et les réglages n'ont pas changé, la commande ne refait rien. `--force` régénère quand même (pour une autre prise de la même voix).
+- **Mode `--audio`** : l'API d'alignement forcé cale le texte sur un MP3 existant ; le fichier n'est pas modifié, à copier soi-même en `assets/voix_<nom>.mp3`.
+- Le texte est envoyé en une seule requête, ce qui couvre largement 60 s de voix.
 
 ## Format
 
