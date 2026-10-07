@@ -1,0 +1,20 @@
+# Voix-off de pourboire.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+Aux États-Unis, ne pas laisser 20_%[vingt pourcent] de pourboire, c'est presque une insulte.
+Au Japon, en laisser un peut vexer.
+Alors_? Qui a raison_?
+En France, depuis 1987,[mille neuf cent quatre vingt sept] le service est déjà inclus dans le prix.
+Le pourboire, c'est un bonus.
+Aux États-Unis, c'est l'inverse.
+Certains serveurs touchent à peine 2_$[deux dollars] de l'heure.
+Sans pourboire, ils ne vivent pas.
+Et depuis quelques années, ça dérape.
+Un café à emporter_? Pourboire suggéré.
+Une caisse automatique_? Pourboire suggéré.
+15,[quinze] 20,[vingt] 25_%.[vingt cinq pourcent]
+On appelle ça la tipflation.
+Pour certains, il faut tout arrêter.
+C'est au patron de bien payer ses employés, pas aux clients de culpabiliser.
+Pour d'autres, le pourboire récompense un vrai bon service.
+Et le supprimer du jour au lendemain, ce sont les serveurs qui trinqueraient.
+Alors toi, tu laisses un pourboire ou pas_?
+Dis-le en commentaire.
