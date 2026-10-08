@@ -1,0 +1,16 @@
+# Voix-off de loyer.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Chiffres : Insee Focus n° 349 (mars 2025), écart de salaire femmes-hommes dans le privé en 2023.
+Elle gagne 1_500_€.[mille cinq cents euros.] Il gagne 4_000_€.[quatre mille euros.] Et ils paient le loyer moitié-moitié.
+En France, les femmes gagnent en moyenne 22_%[vingt-deux pourcent] de moins que les hommes.
+Alors en couple, on fait comment_?
+Camp numéro un_: moitié-moitié.
+Un_: c'est simple. Pas de calculs, pas de disputes.
+Deux_: chacun reste indépendant. Le salaire de l'autre, ce n'est pas son problème.
+Trois_: à poste égal, l'écart tombe sous les 4_%.[quatre pourcent.] Le reste vient surtout des métiers et du temps partiel.
+Camp numéro deux_: chacun selon son salaire.
+Un_: à moitié-moitié, elle laisse 40_%[quarante pourcent] de son salaire dans le loyer. Lui, 15_%.[quinze pourcent.]
+Deux_: au prorata, chacun y met 22_%[vingt-deux pourcent] de son salaire. Le même effort pour les deux.
+Trois_: quand les enfants arrivent, c'est plus souvent elle qui passe à temps partiel. Un couple, c'est une équipe.
+Et toi_? Loyer moitié-moitié, ou au prorata_?
+Dis-le en commentaire.
+Abonne-toi_: un nouveau débat chaque jour.
