@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loyer en couple : 50/50 ou au prorata ?</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Loyer en couple : 50/50 ou au prorata ? », série « Qui a raison ? » (charte : docs/MODELE.md).
+     Voix-off : scripts/loyer.txt → node tools/voix.mjs loyer
+     Chiffres : Insee Focus n° 349 (mars 2025), écart de salaire femmes-hommes dans le secteur privé en 2023 :
+     revenu salarial −22,2 %, à emploi comparable −3,8 %. -->
+<script src="lib/motion.js"></script>
+<script src="assets/loyer_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, bubble, emoji, burst, sparkles, bg, newId } = Motion;
+await setup({
+  duration: 69,
+  words: window.WORDS,
+  audio: 'assets/voix_loyer.mp3',
+  emojis: '🏠👨👩🧮💥🔒👷⏱️👶🤝💶📊💬👇👆✅',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', SKIN = '#F2C49B';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+function bankCard(parent, fill) {
+  const g = el('g', {}, parent);
+  card(g, -200, -125, 400, 250, fill, 26, 12, 7);
+  el('rect', { x: -200, y: -70, width: 400, height: 50, fill: INK }, g);
+  card(g, -150, 0, 80, 60, YELLOW, 10, 0, 5);
+  [0, 1, 2, 3].forEach(i => el('rect', { x: -40 + i * 52, y: 72, width: 40, height: 14, rx: 7, fill: CREAM }, g));
+  return g;
+}
+// Étiquette d'argument : emoji + texte dans une carte, qui arrive en pop.
+function arg(parent, emo, str, fill = CREAM, color = INK, size = 52) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  const w = t.w + 190, h = size * 2;
+  card(inner, -w / 2, -h / 2, w, h, fill, h / 2, 10, 7);
+  inner.appendChild(t.g);
+  t.g.setAttribute('transform', `translate(${fmt(45)},${fmt(size * .36)})`);
+  const e = el('g', {}, inner); emoji(e, emo, size * 1.35); tf(e, -w / 2 + 70, 0);
+  return { g, update(x, y, k, r = 0) { show(g, k > .001); tf(g, x, y, 1, r); tf(inner, 0, 0, k); } };
+}
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 110) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);   // impulsion pour addShake
+// Personnage en buste, de face, centré sur le cou ; ~300 px de large, de y = -175 (cheveux) à 260 (bas du buste).
+function person(parent, shirt, hair, long) {
+  const g = el('g', {}, parent);
+  if (long) el('path', { d: 'M-104,-80 Q-130,60 -92,120 L92,120 Q130,60 104,-80 Z', fill: hair, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round', transform: 'translate(0,-70)' }, g);
+  const body = 'M-150,260 L-150,150 Q-150,60 -60,50 L60,50 Q150,60 150,150 L150,260 Z';
+  el('path', { d: body, fill: INK, transform: 'translate(10,10)' }, g);
+  el('path', { d: body, fill: shirt, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  el('rect', { x: -28, y: 0, width: 56, height: 56, fill: SKIN, stroke: INK, 'stroke-width': 6 }, g);
+  const head = el('g', { transform: 'translate(0,-70)' }, g);
+  el('circle', { r: 95, fill: SKIN, stroke: INK, 'stroke-width': 7 }, head);
+  el('path', { d: long ? 'M-100,-5 Q-104,-108 0,-106 Q104,-108 100,-5 Q70,-75 0,-68 Q-50,-64 -100,-5 Z' : 'M-97,-25 Q-100,-108 0,-106 Q100,-108 97,-25 Q78,-62 40,-60 Q0,-78 -40,-60 Q-78,-62 -97,-25 Z', fill: hair, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, head);
+  const pupils = [-35, 35].map(x => { el('circle', { cx: x, cy: 0, r: 21, fill: WHITE, stroke: INK, 'stroke-width': 5 }, head); return el('circle', { r: 10, fill: INK }, head); });
+  [-58, 58].forEach(x => el('circle', { cx: x, cy: 34, r: 14, fill: RED, opacity: .35 }, head));
+  const mouth = el('path', { fill: 'none', stroke: INK, 'stroke-width': 7, 'stroke-linecap': 'round' }, head);
+  const sweat = el('path', { d: 'M0,-26 Q18,0 0,12 Q-18,0 0,-26 Z', fill: '#7FD3FF', stroke: INK, 'stroke-width': 4 }, head);
+  const MOUTH = { smile: 'M-30,40 Q0,66 30,40', flat: 'M-24,50 H24', o: 'M-12,50 a12,14 0 1,0 24,0 a12,14 0 1,0 -24,0' };
+  return {
+    g,
+    // look : -1 (gauche) à 1 (droite), down : 0 à 1 ; mouth : smile | flat | o ; sw : goutte de sueur 0→1
+    update(x, y, s = 1, o = {}) {
+      tf(g, x, y + (o.bob || 0), s, o.r || 0);
+      pupils.forEach((e, i) => set(e, { cx: fmt((i ? 35 : -35) + 9 * (o.look || 0)), cy: fmt(7 * (o.down || 0)) }));
+      set(mouth, { d: MOUTH[o.mouth || 'smile'], fill: o.mouth === 'o' ? INK : 'none' });
+      show(sweat, (o.sw || 0) > .01); tf(sweat, 92, -40 + 30 * (o.sw || 0), o.sw || 0);
+    },
+  };
+}
+// Table de restaurant vue de face (nappe, bougie, verres), bord supérieur en (0,0).
+// Barre verticale qui pousse vers le haut depuis la ligne de base (y = 0 du parent).
+function bar(parent, x, w, fill) {
+  const sh = el('rect', { x: x + 12, width: w, rx: 18, fill: INK }, parent);
+  const r = el('rect', { x, width: w, rx: 18, fill, stroke: INK, 'stroke-width': 8 }, parent);
+  return h => { set(sh, { y: fmt(-h + 12), height: fmt(Math.max(h - 12, 1)) }); set(r, { y: fmt(-h), height: fmt(Math.max(h, 1)) }); show(r, h > 2); show(sh, h > 2); };
+}
+// Fiche de paie : bandeau de couleur avec ELLE / LUI, salaire net mensuel.
+function payslip(parent, who, amount, color) {
+  const g = el('g', {}, parent);
+  card(g, -170, -150, 340, 300, WHITE, 18, 12, 7);
+  el('path', { d: 'M-170,-132 Q-170,-150 -152,-150 H152 Q170,-150 170,-132 V-70 H-170 Z', fill: color, stroke: INK, 'stroke-width': 7 }, g);
+  txt(g, who, { size: 54, fill: CREAM, sw: 10 }).g.setAttribute('transform', 'translate(0,-92)');
+  txt(g, amount, { size: 76 }).g.setAttribute('transform', 'translate(0,30)');
+  txt(g, 'NET PAR MOIS', { size: 30, fill: '#777' }).g.setAttribute('transform', 'translate(0,95)');
+  return g;
+}
+// Loyer de 1 200 € coupé en deux parts (ratio = part d'elle, à gauche). k : écartement 0→1.
+function rent(parent, left, right, ratio, tags = true, tagFill = null) {
+  const g = el('g', {}, parent), w = 700, h = 190, wl = w * ratio;
+  const parts = [[left, -w / 2, wl, RED, 'ELLE'], [right, -w / 2 + wl, w - wl, GREEN, 'LUI']].map(([s, x, ww, c, who]) => {
+    const pg = el('g', {}, g);
+    card(pg, x, -h / 2, ww, h, CREAM, 18, 10, 7);
+    const v = txt(pg, s, { size: ww < 300 ? 56 : 70, fill: c, sw: 8 }); v.g.setAttribute('transform', `translate(${fmt(x + ww / 2)},${ww < 300 ? 20 : 24})`);
+    const tg = el('g', {}, pg); if (tags) { txt(tg, who, { size: 40, fill: tagFill || c, sw: tagFill ? 10 : 0 }); tf(tg, x + ww / 2, h / 2 + 60); }
+    return pg;
+  });
+  const whole = el('g', {}, g);
+  card(whole, -w / 2, -h / 2, w, h, CREAM, 18, 10, 7);
+  const e = el('g', {}, whole); emoji(e, '🏠', 90); tf(e, -200, 0);
+  txt(whole, 'LOYER', { size: 44 }).g.setAttribute('transform', 'translate(40,-25)');
+  txt(whole, '1 200 €', { size: 76, fill: RED, sw: 8 }).g.setAttribute('transform', 'translate(40,55)');
+  return { g, update(x, y, s, k) { tf(g, x, y, s); show(whole, k < .5); parts.forEach((pg, i) => { show(pg, k >= .5); tf(pg, (i ? 1 : -1) * 50 * k, 0, 1, (i ? 1 : -1) * 4 * k); }); } };
+}
+// Anneau de pourcentage (part du salaire), avec le nombre au centre.
+function donut(parent, color = RED) {
+  const g = el('g', {}, parent), R = 150, Ri = R - 40, C = 2 * Math.PI * Ri;
+  el('circle', { r: R + 6, cx: 12, cy: 12, fill: INK }, g);
+  el('circle', { r: R, fill: CREAM, stroke: INK, 'stroke-width': 8 }, g);
+  const arc = el('circle', { r: Ri, fill: 'none', stroke: color, 'stroke-width': 80, transform: 'rotate(-90)', 'stroke-dasharray': `0 ${C}` }, g);
+  el('circle', { r: R - 80, fill: CREAM, stroke: INK, 'stroke-width': 8 }, g);
+  const n = el('text', { 'text-anchor': 'middle', 'font-size': 50, y: 18, fill: INK }, g);
+  return { g, set(v) { arc.setAttribute('stroke-dasharray', `${fmt(C * v / 100)} ${fmt(C)}`); n.textContent = Math.round(v) + ' %'; } };
+}
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  stat: Wt('En') - .25, c1: Wt('Camp') - .25, a11: Wt('Un', 1, 15) - .25, a12: Wt('Deux') - .25, a13: Wt('Trois') - .25,
+  c2: Wt('Camp', 2) - .25, a21: Wt('Un', 1, 37) - .25, a22: Wt('Deux', 1, 45) - .25, a23: Wt('Trois', 2) - .25,
+  cta: Wt('Et', 1, 59) - .25, end: Wt('Abonne-toi') - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : 1 500 € contre 4 000 €, et le loyer à 50/50 =====================
+// La question est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.stat, (cam) => {
+  const tIl = Wt('Il'), tLoy = Wt('loyer'), tMoi = Wt('moitié-moitié.');
+  bg(cam);
+  const tag = chip(cam, 'LOYER EN COUPLE 🏠', RED, CREAM, 46);
+  const head = title(cam, ['MOITIÉ-MOITIÉ', ['NORMAL ?', RED]], { size: 88 });
+  const her = payslip(cam, 'ELLE', '1 500 €', RED), him = payslip(cam, 'LUI', '4 000 €', GREEN);
+  const r = rent(cam, '600 €', '600 €', .5, false);
+  const st = stamp(cam, '50 / 50', RED, 80);
+  return t => {
+    tag.update(CX, 200, 1, -2);
+    at(head, CX, 400, lerp(1.1, 1, p(t, 0, .35, E.out)), -2);
+    at(her, CX - 200, 720, 1, -4);
+    at(him, CX + 200, 720, pop(t, tIl - .1), 4);
+    r.update(CX, 1040, pop(t, tLoy - .25), p(t, tMoi, tMoi + .3, E.back));
+    st.update(CX + 260, 940, t, tMoi + .45, 10);
+    shock(t, tMoi + .45, .3, .6);
+  };
+});
+
+// ====== 2. LE CHIFFRE : −22 % (Insee 2023) ==============================================
+S(T.stat, T.c1, (cam, a) => {
+  const t22 = Wt('22 %'), tFem = Wt('femmes'), tAlors = Wt('Alors');
+  bg(cam);
+  const tag = chip(cam, 'EN FRANCE · INSEE 2023', INK, CREAM, 44);
+  const num = el('g', {}, cam);
+  const nT = el('text', { 'text-anchor': 'middle', 'font-size': 210, y: 75, fill: RED, stroke: INK, 'stroke-width': 18, 'paint-order': 'stroke' }, num);
+  const note = el('g', {}, cam); txt(note, 'SALAIRE DES FEMMES · SECTEUR PRIVÉ', { size: 32, fill: '#666' });
+  const base = el('g', {}, cam);
+  el('line', { x1: 170, x2: 850, y1: 0, y2: 0, stroke: INK, 'stroke-width': 10, 'stroke-linecap': 'round' }, base);
+  const bH = bar(base, CX - 260, 200, GREEN), bF = bar(base, CX + 60, 200, RED);
+  const lH = el('g', {}, cam); txt(lH, 'HOMMES', { size: 42 });
+  const lF = el('g', {}, cam); txt(lF, 'FEMMES', { size: 42 });
+  const eH = el('g', {}, cam); emoji(eH, '👨', 100);
+  const eF = el('g', {}, cam); emoji(eF, '👩', 100);
+  const st = stamp(cam, 'ET EN COUPLE ?', RED, 70);
+  return t => {
+    tag.update(CX, 210, pop(t, a + .05), -2);
+    const k = p(t, t22 - .2, t22 + .5, E.out);
+    at(num, CX, 400, pop(t, t22 - .25, .4), -3);
+    nT.textContent = '−' + Math.round(22 * k) + ' %';
+    at(note, CX, 530, pop(t, t22 + .3));
+    const Y = 1060; tf(base, 0, Y);
+    const hh = 380 * pop(t, tFem - .3, .5), hf = hh * lerp(1, .78, k);
+    bH(hh); bF(hf);
+    at(lH, CX - 160, Y + 55, pop(t, tFem - .3)); at(lF, CX + 160, Y + 55, pop(t, tFem - .3));
+    at(eH, CX - 160, Y - hh - 70, pop(t, tFem - .2)); at(eF, CX + 160, Y - hf - 70, pop(t, tFem - .1));
+    st.update(CX, 820, t, tAlors + .3, -6);
+    shock(t, t22 + .4, .3, .5); shock(t, tAlors + .3, .3, .4);
+  };
+}, { swipe: RED });
+
+// ====== 3. CAMP 1 : moitié-moitié ======================================================
+S(T.c1, T.a11, (cam, a) => {
+  const tMoi = Wt('moitié-moitié.', 2);
+  bg(cam);
+  const tag = chip(cam, 'CAMP 1', RED, CREAM, 56);
+  const head = title(cam, [['50 / 50', RED]], { size: 210 });
+  const r = rent(cam, '600 €', '600 €', .5);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -3);
+    at(head, CX, 470, pop(t, tMoi - .3, .4), -3);
+    r.update(CX, 820, pop(t, a + .2), p(t, tMoi, tMoi + .3, E.back));
+    shock(t, tMoi + .1, .25, .5);
+  };
+}, { swipe: RED });
+
+// --- scène d'argument : étiquette « CAMP n · ARGUMENT k/3 », titre, visuel ----------
+function argScene(a, b, o) {
+  const green = o.camp === 2;
+  S(a, b, cam => {
+    bg(cam, green ? GREEN : CREAM, !green);
+    const tag = chip(cam, `CAMP ${o.camp} · ARGUMENT ${o.n}/3`, green ? INK : RED, CREAM, 42);
+    const head = title(cam, o.lines, { size: o.size || 96 });
+    const upd = o.build(cam, a);
+    return t => {
+      tag.update(CX, 220, pop(t, a + .05), o.n % 2 ? -2 : 2);
+      at(head, CX, 400, pop(t, a + .25, .4), o.n % 2 ? -2 : 2);
+      upd(t);
+    };
+  }, { swipe: green ? GREEN : RED });
+}
+
+
+// ====== 4. Camp 1, argument 1 : c'est simple ===========================================
+argScene(T.a11, T.a12, { camp: 1, n: 1, lines: ["C'EST", ['SIMPLE', RED]], size: 120, build: (cam, a) => {
+  const tSim = Wt('simple.'), tCal = Wt('calculs,'), tDis2 = Wt('disputes.');
+  const ok = el('g', {}, cam);
+  el('circle', { r: 130, cx: 12, cy: 12, fill: INK }, ok); el('circle', { r: 130, fill: GREEN, stroke: INK, 'stroke-width': 8 }, ok);
+  el('path', { d: 'M-60,0 L-15,45 L65,-45', stroke: CREAM, 'stroke-width': 30, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, ok);
+  const a1 = arg(cam, '🧮', 'PAS DE CALCULS'), a2 = arg(cam, '💥', 'PAS DE DISPUTES');
+  return t => {
+    at(ok, CX, 700, pop(t, tSim - .15, .4), Math.sin(t * 3) * 3);
+    a1.update(CX, 960, pop(t, tCal - .25), -2); a2.update(CX, 1090, pop(t, tDis2 - .25), 2);
+    shock(t, tSim, .25, .3);
+  };
+} });
+
+// ====== 5. Camp 1, argument 2 : chacun reste indépendant ================================
+argScene(T.a12, T.a13, { camp: 1, n: 2, lines: ['CHACUN', ['INDÉPENDANT', RED]], build: (cam, a) => {
+  const tInd = Wt('indépendant.'), tSal = Wt('salaire'), tPro = Wt('problème.');
+  const cards = [RED, GREEN].map(f => { const g = el('g', {}, cam); bankCard(g, f); const l = el('g', {}, g); emoji(l, '🔒', 120); tf(l, 150, -110); return g; });
+  const wall = el('line', { x1: CX, x2: CX, y1: 560, y2: 900, stroke: INK, 'stroke-width': 10, 'stroke-dasharray': '24 16', 'stroke-linecap': 'round' }, cam);
+  const ch = chip(cam, 'PAS SON PROBLÈME', INK, CREAM, 56);
+  return t => {
+    const k = p(t, tInd - .2, tInd + .3, E.back);
+    cards.forEach((g, i) => at(g, CX + (i ? 1 : -1) * lerp(110, 250, k), 730, .55 * pop(t, a + .4 + i * .1), (i ? 1 : -1) * 6));
+    show(wall, k > .3); wall.setAttribute('opacity', fmt(k));
+    ch.update(CX, 1060, pop(t, tPro - .3), -2);
+    shock(t, tInd + .1, .25, .3);
+  };
+} });
+
+// ====== 6. Camp 1, argument 3 : à poste égal, l'écart tombe sous 4 % =====================
+argScene(T.a13, T.c2, { camp: 1, n: 3, lines: ['À POSTE', ['ÉGAL', RED]], size: 110, build: (cam, a) => {
+  const tEg = Wt('égal,'), t4 = Wt('4 %.'), tMet = Wt('métiers'), tPar = Wt('partiel.');
+  const box = el('g', {}, cam);
+  card(box, -330, -150, 660, 300, CREAM, 30, 12, 8);
+  const n = el('text', { 'text-anchor': 'middle', 'font-size': 170, y: 40, fill: RED, stroke: INK, 'stroke-width': 14, 'paint-order': 'stroke' }, box);
+  txt(box, 'MÊME POSTE · MÊME ENTREPRISE', { size: 30, fill: '#666' }).g.setAttribute('transform', 'translate(0,115)');
+  const a1 = arg(cam, '👷', 'LES MÉTIERS'), a2 = arg(cam, '⏱️', 'LE TEMPS PARTIEL');
+  return t => {
+    at(box, CX, 700, pop(t, tEg - .2, .4), -2);
+    const k = p(t, t4 - .6, t4 + .1, E.inOut);
+    n.textContent = t < t4 - .05 ? '−' + Math.round(lerp(22, 4, k)) + ' %' : '< 4 %';
+    n.setAttribute('fill', t < t4 - .05 ? RED : GREEN);
+    a1.update(CX, 960, pop(t, tMet - .2), -2); a2.update(CX, 1090, pop(t, tPar - .3), 2);
+    shock(t, t4, .3, .5);
+  };
+} });
+
+// ====== 7. CAMP 2 : chacun selon son salaire ==============================================
+S(T.c2, T.a21, (cam, a) => {
+  const tSal = Wt('salaire.', 1, a);
+  bg(cam, GREEN, false);
+  const tag = chip(cam, 'CAMP 2', INK, CREAM, 56);
+  const head = title(cam, [['AU', CREAM], ['PRORATA', CREAM]], { size: 140 });
+  const r = rent(cam, '327 €', '873 €', .36, true, CREAM);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), 3);
+    at(head, CX, 460, pop(t, a + .3, .4), 2);
+    r.update(CX, 860, pop(t, a + .4), p(t, tSal - .1, tSal + .2, E.back));
+    shock(t, tSal + .1, .25, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. Camp 2, argument 1 : 40 % de son salaire contre 15 % =============================
+function twoDonuts(cam) {
+  const ds = [0, 1].map(() => donut(cam, RED));
+  const tags = ['ELLE', 'LUI'].map((s, i) => { const g = el('g', {}, cam); txt(g, s, { size: 54, fill: CREAM, sw: 10, shadow: 8 }); return g; });
+  return { ds, tags, place(t, a, y = 730) { ds.forEach((d, i) => at(d.g, CX + (i ? 230 : -230), y, pop(t, a + .35 + i * .1))); tags.forEach((g, i) => at(g, CX + (i ? 230 : -230), y + 220, pop(t, a + .4 + i * .1))); } };
+}
+argScene(T.a21, T.a22, { camp: 2, n: 1, lines: [['À 50 / 50', CREAM]], size: 130, build: (cam, a) => {
+  const t40 = Wt('40 %'), t15 = Wt('15 %.');
+  const dd = twoDonuts(cam);
+  const sub = chip(cam, 'DU SALAIRE DANS LE LOYER', INK, CREAM, 40);
+  return t => {
+    dd.place(t, a);
+    dd.ds[0].set(40 * p(t, t40 - .3, t40 + .3, E.out)); dd.ds[1].set(15 * p(t, t15 - .3, t15 + .3, E.out));
+    sub.update(CX, 1110, pop(t, t40 + .5), -2);
+    shock(t, t40 + .2, .25, .4);
+  };
+} });
+
+// ====== 9. Camp 2, argument 2 : 22 % chacun, le même effort =================================
+argScene(T.a22, T.a23, { camp: 2, n: 2, lines: [['LE MÊME', CREAM], ['EFFORT', CREAM]], build: (cam, a) => {
+  const t22 = Wt('22 %', 2), tEff = Wt('effort');
+  const dd = twoDonuts(cam);
+  const amts = ['327 €', '873 €'].map(s => chip(cam, s, CREAM, INK, 50));
+  return t => {
+    dd.place(t, a, 700);
+    const k = p(t, t22 - .3, t22 + .3, E.out);
+    dd.ds.forEach(d => d.set(22 * k));
+    amts.forEach((c, i) => c.update(CX + (i ? 230 : -230), 1030, pop(t, t22 + .4 + i * .1), i ? 3 : -3));
+    shock(t, tEff, .25, .4);
+  };
+} });
+
+// ====== 10. Camp 2, argument 3 : le temps partiel, un couple c'est une équipe ===============
+argScene(T.a23, T.cta, { camp: 2, n: 3, lines: [['UNE', CREAM], ['ÉQUIPE', CREAM]], size: 120, build: (cam, a) => {
+  const tEnf = Wt('enfants'), tPar = Wt('partiel.', 2), tEq = Wt('équipe.');
+  const her = person(cam, RED, '#2B1A10', true), him = person(cam, GREEN, '#5A3A22', false);
+  const baby = el('g', {}, cam); emoji(baby, '👶', 130);
+  const pt = chip(cam, '⏱️ TEMPS PARTIEL', INK, CREAM, 48);
+  const hs = el('g', {}, cam); emoji(hs, '🤝', 150);
+  return t => {
+    const k = p(t, tEq - .3, tEq + .1, E.out5);
+    her.update(lerp(CX, CX + 180, k), 860, .8, { look: k > .5 ? -1 : 0, mouth: t > tPar && k < .5 ? 'flat' : 'smile' });
+    him.update(lerp(-300, CX - 180, k), 860, .8, { look: 1, mouth: 'smile' });
+    at(baby, CX + lerp(150, 330, k), 1000, pop(t, tEnf - .1), Math.sin(t * 4) * 8);
+    pt.update(CX - 140, 620, pop(t, tPar - .2) * (1 - k), -4);
+    at(hs, CX, 640, pop(t, tEq - .05), Math.sin(t * 5) * 6);
+    shock(t, tEq, .25, .4);
+  };
+} });
+
+// ====== 11. LE DÉBAT : 50/50 ou au prorata ? ==============================================
+S(T.cta, T.end, (cam, a) => {
+  const tToi = Wt('toi ?'), tMoi = Wt('moitié-moitié,'), tOu = Wt('ou', 1, a), tPro = Wt('prorata ?'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const L = el('rect', { x: 0, width: 540, height: H, fill: RED }, cam);
+  const R = el('rect', { x: 540, width: 540, height: H, fill: GREEN }, cam);
+  el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+  const q = title(cam, [['ET TOI ?', CREAM]], { size: 120 });
+  const no = el('g', {}, cam), yes = el('g', {}, cam);
+  const nE = el('g', {}, no); emoji(nE, '💶', 170);
+  const yE = el('g', {}, yes); emoji(yE, '📊', 170);
+  const nTx = el('g', {}, no), yTx = el('g', {}, yes);
+  txt(nTx, '50 / 50', { size: 72, fill: CREAM, sw: 14, shadow: 10 });
+  txt(yTx, 'PRORATA', { size: 58, fill: CREAM, sw: 14, shadow: 10 });
+  const vs = el('g', {}, cam); el('circle', { r: 66, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'OU', { size: 56, fill: CREAM }).t.setAttribute('y', 20);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 200);
+  const ring = el('circle', { fill: 'none', stroke: CREAM, 'stroke-width': 10 }, cam);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    const kIn = p(t, a - .05, a + .35, E.out5);
+    set(L, { y: fmt(-H * (1 - kIn)) }); set(R, { y: fmt(H * (1 - kIn)) });
+    at(q, 540, 270, pop(t, tToi - .2), -2);
+    tf(no, 270, 600, 1, 0); tf(yes, 780, 600, 1, 0);
+    tf(nE, 0, -150, pop(t, tMoi - .15), Math.sin(t * 5) * 8); tf(yE, 0, -150, pop(t, tPro - .15), Math.sin(t * 5 + 1) * 8);
+    tf(nTx, 0, 50, pop(t, tMoi - .1), -4); tf(yTx, 0, 50, pop(t, tPro - .1), 4);
+    tf(vs, 540, 620, pop(t, tOu - .05), 0);
+    const kb = pop(t, tDis - .3, .4);
+    tf(bub, 540, 1000, kb * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    const rp = ((t - tDis) * .9) % 1;
+    set(ring, { cx: 540, cy: 990, r: fmt(90 + rp * 130), opacity: fmt(t > tDis ? (1 - rp) * .8 : 0) });
+    tf(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+    shock(t, tPro, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 12. ABONNE-TOI : un nouveau débat chaque jour ======================================
+S(T.end, M.DUR, (cam, a) => {
+  const tAbo = Wt('Abonne-toi :'), tDeb = Wt('débat');
+  bg(cam);
+  const ser = chip(cam, 'QUI A RAISON ?', INK, CREAM, 50);
+  const head = title(cam, ['UN DÉBAT', ['CHAQUE JOUR', GREEN]], { size: 104 });
+  const btn = el('g', {}, cam), btnIn = el('g', {}, btn);
+  card(btnIn, -330, -75, 660, 150, RED, 75, 12, 8);
+  const plus = el('g', {}, btnIn); el('circle', { r: 46, fill: CREAM, stroke: INK, 'stroke-width': 6 }, plus); txt(plus, '+', { size: 90, fill: RED }).t.setAttribute('y', 31);
+  tf(plus, -262, 0);
+  txt(btnIn, 'ABONNE-TOI', { size: 76, fill: CREAM, sw: 12 }).g.setAttribute('transform', 'translate(52,27)');
+  const hand = el('g', {}, cam); emoji(hand, '👆', 130);
+  const ring = el('rect', { fill: 'none', stroke: RED, 'stroke-width': 10 }, cam);
+  const remind = chip(cam, '💬 50/50 OU PRORATA ?', GREEN, INK, 48);
+  return t => {
+    ser.update(CX, 260, pop(t, a + .1), -2);
+    at(head, CX, 520, pop(t, tDeb - .4, .4), -2);
+    at(btn, CX, 820, pop(t, a + .15, .4), 0); tf(btnIn, 0, 0, 1 + .05 * Math.sin(t * 8) * (t > tAbo + .4 ? 1 : 0));
+    const tap = t > tAbo + .5 ? Math.abs(Math.sin((t - tAbo - .5) * 4)) : 0;
+    at(hand, CX + 250, 930 + tap * 30, pop(t, tAbo + .3), -15);
+    const rp = ((t - tAbo - .5) * .8) % 1, on = t > tAbo + .5;
+    set(ring, { x: fmt(CX - 330 - rp * 50), y: fmt(820 - 75 - rp * 50), width: fmt(660 + rp * 100), height: fmt(150 + rp * 100), rx: fmt(75 + rp * 50), opacity: fmt(on ? (1 - rp) * .8 : 0) });
+    remind.update(CX, 1110, pop(t, tAbo + .8), -2);
+    shock(t, tAbo, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à « Dis-le en commentaire » : ensuite les cartes disent la même chose que la voix
+captions({ until: tDis, active: t => t >= T.c2 + .1 && t < T.cta ? YELLOW : GREEN });   // jaune sur les fonds verts
+start();
+})();
+</script>
+</body>
+</html>

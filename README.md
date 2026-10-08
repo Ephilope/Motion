@@ -135,3 +135,14 @@ Même épisode, recentré sur le couple (un homme et une femme à table, project
 
 - **Vidéo :** `rendezvous_couple_tiktok.mp4`
 - **Source :** `rendezvous_couple.html`, voix-off `scripts/rendezvous_couple.txt`, bruitages `tools/sfx_rendezvous_couple.py`. Mêmes commandes que ci-dessus en remplaçant `rendezvous` par `rendezvous_couple` et 27 par 57.
+
+---
+
+# Loyer en couple : 50/50 ou au prorata ? (TikTok, 9:16)
+
+69 s, série « Qui a raison ? ». Elle gagne 1 500 €, lui 4 000 €, et ils paient le loyer moitié-moitié. Le chiffre de l'Insee (les femmes gagnent en moyenne 22 % de moins dans le privé), puis trois arguments par camp. Camp 1, « 50/50 » : c'est simple, chacun reste indépendant, à poste égal l'écart tombe sous 4 %. Camp 2, « au prorata » : 40 % de son salaire contre 15 %, 22 % chacun pour le même effort, le temps partiel quand les enfants arrivent.
+
+Chiffres : [Insee Focus n° 349](https://www.insee.fr/fr/statistiques/8381248) (mars 2025), secteur privé en 2023 : revenu salarial −22,2 %, à temps de travail égal −14,2 %, à emploi comparable −3,8 %.
+
+- **Vidéo :** `loyer_tiktok.mp4`
+- **Source :** `loyer.html`, voix-off `scripts/loyer.txt`, bruitages `tools/sfx_loyer.py`. Mêmes commandes que pour `rendezvous`, avec une durée de 69 s.
