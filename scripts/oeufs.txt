@@ -7,6 +7,7 @@
 #   bio : 6 poules/m² en bâtiment, 3 000 poules max par bâtiment, aliment bio (règlement (UE) 2018/848) ;
 # arrêté du 17 octobre 2025 : risque influenza aviaire « élevé », confinement des volailles du 22 octobre 2025 au 27 avril 2026 ;
 # Thøfner et al., PLOS ONE 2021 : ~4 800 poules de 40 élevages danois, 85 % avec fracture du bréchet, en cage comme en bio plein air ;
+#   chaque coquille mobilise du calcium pris dans l'os médullaire de la poule ;
 #   une poule pondeuse moderne ~300 à 320 œufs/an contre ~20 pour une poule sauvage (Futura-Sciences, 2021).
 Sur chaque œuf, un chiffre te dit comment la poule a vécu.
 3,[Trois,] la cage. À peine une feuille A4[A quatre] par poule.
@@ -15,10 +16,10 @@ Sur chaque œuf, un chiffre te dit comment la poule a vécu.
 0,[Zéro,] bio. Plein air, et nourriture bio.
 Mais ce chiffre ne concerne même pas la moitié des œufs que tu manges.
 Les autres sont cachés dans les gâteaux, les pâtes, la mayo, au resto. Sans aucun chiffre.
-En rayon, 18_%[dix-huit pour cent] d'œufs cage. Mais la cage, c'est 28_%[vingt-huit pour cent] de la production. Devine où passe le reste.
-Même «_plein_air_» a ses petites lignes. Avec la grippe aviaire, les poules peuvent rester enfermées 16_semaines,[seize semaines,] et l'œuf reste «_plein_air_».
-L'hiver dernier, les volailles françaises ont été confinées six mois.
-Et quel que soit le chiffre, une poule pond 300[trois cents] œufs par an. Une poule sauvage, une vingtaine.
-Au Danemark, 85_%[quatre-vingt-cinq pour cent] des poules examinées avaient un os fracturé. En cage comme en bio.
-Tu savais que la plupart de tes œufs n'avaient pas de chiffre_?
+Et c'est là que finissent les œufs de cage. En rayon, il n'y en a plus que 18_%.[dix-huit pour cent.] Mais la cage, c'est encore 28_%[vingt-huit pour cent] de la production.
+Et même sur la boîte, le chiffre dit où vit la poule. Pas ce que son corps endure.
+Une poule sauvage pond une vingtaine d'œufs par an. Celles qu'on élève en pondent 300.[trois cents.]
+Et chaque coquille puise du calcium dans ses os.
+Sur 4_800[quatre mille huit cents] poules examinées au Danemark, 85_%[quatre-vingt-cinq pour cent] avaient un os fracturé. En cage comme en bio.
+Tu savais tout ça_?
 Dis-le en commentaire.

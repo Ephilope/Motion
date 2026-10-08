@@ -15,7 +15,7 @@
 (async () => {
 const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, sparkles, bg, rng } = Motion;
 await setup({
-  duration: 67.3,
+  duration: 62.2,
   words: window.WORDS,
   audio: 'assets/voix_oeufs.mp3',
   emojis: '🥚🐔🍰🍝🍽️🔒☀️🏠💬👇📦🇩🇰',
@@ -70,9 +70,8 @@ function hen(parent) {
 
 // --- débuts de scène, calés sur la voix ------------------------------------------
 const T = {
-  codes: Wt('3') - .2, count: Wt('Mais') - .25, hidden: Wt('Les') - .25, shelf: Wt('En', 1, 19) - .25,
-  free: Wt('Même', 1, 26) - .25, winter: Wt("L'hiver") - .25, lay: Wt('Et', 1, 40) - .25, dk: Wt('Au', 1, 47) - .25,
-  cta: Wt('Tu', 1, 62) - .25,
+  codes: Wt('3') - .2, count: Wt('Mais') - .25, hidden: Wt('Les') - .25, shelf: Wt('Et', 1, 28.5) - .25,
+  lay: Wt('Et', 1, 37.5) - .25, dk: Wt('Sur', 1, 50) - .25, cta: Wt('Tu', 1, 58.5) - .25,
 };
 const tDis = Wt('Dis-le');
 
@@ -179,9 +178,9 @@ S(T.hidden, T.shelf, (cam, a) => {
   };
 }, { swipe: RED });
 
-// ====== 5. EN RAYON 18 %, PRODUCTION 28 % : la différence part dans l'industrie ====================
-S(T.shelf, T.free, (cam, a) => {
-  const t18 = Wt('18 %'), t28 = Wt('28 %'), tDev = Wt('Devine');
+// ====== 5. C'est là que finissent les œufs de cage : 18 % en rayon, 28 % de la production =======
+S(T.shelf, T.lay, (cam, a) => {
+  const t18 = Wt('18 %'), t28 = Wt('28 %'), tFin = Wt('finissent');
   bg(cam);
   const tag = chip(cam, 'ŒUFS DE CAGE (CODE 3)', RED, CREAM, 46);
   const bars = [['EN RAYON', 18, t18], ['PRODUCTION', 28, t28]].map(([lab, v, t0], i) => {
@@ -192,14 +191,13 @@ S(T.shelf, T.free, (cam, a) => {
     const n = bigNum(g, 80, CREAM); n.t.setAttribute('y', 44);
     return { g, fill, n, v, t0 };
   });
-  const gap = el('rect', { y: 700, height: 110, fill: YELLOW, stroke: INK, 'stroke-width': 7, 'stroke-dasharray': '18 10' }, cam);
-  const q = el('g', {}, cam); txt(q, 'DEVINE OÙ ÇA PASSE…', { size: 66, fill: YELLOW, sw: 12 });
+  const gap = el('rect', { y: 970, height: 110, fill: YELLOW, stroke: INK, 'stroke-width': 7, 'stroke-dasharray': '18 10' }, cam);
   const hid = [['🍰', -260], ['🍝', 0], ['🍽️', 260]].map(([e, dx]) => { const g = el('g', {}, cam); emoji(g, e, 120); return { g, dx }; });
   const SC = 800 / 40;    // 40 % = toute la barre
   return t => {
-    tag.update(CX, 220, pop(t, a + .05), -2);
+    tag.update(CX, 230, pop(t, a + .05), -2);
     bars.forEach((b, i) => {
-      at(b.g, CX, 470 + i * 270, pop(t, b.t0 - .5, .35));
+      at(b.g, CX, 740 + i * 270, pop(t, b.t0 - .5, .35));
       const k = p(t, b.t0 - .1, b.t0 + .5, E.out);
       set(b.fill, { width: fmt(Math.max(1, b.v * SC * k)) }); show(b.fill, k > 0);
       b.n.set(Math.round(b.v * k) + ' %'); b.n.t.setAttribute('x', fmt(-400 + b.v * SC * k + 110));
@@ -207,90 +205,19 @@ S(T.shelf, T.free, (cam, a) => {
     });
     const kg = p(t, t28 + .6, t28 + 1, E.out);
     set(gap, { x: fmt(CX - 400 + 18 * SC), width: fmt(10 * SC * kg) }); show(gap, kg > 0);
-    at(q, CX, 920, pop(t, tDev - .1));
-    hid.forEach((h, i) => at(h.g, CX + h.dx, 1060 + Math.sin(t * 5 + i) * 10, pop(t, tDev + .3 + i * .12), Math.sin(t * 3 + i) * 8));
+    hid.forEach((h, i) => at(h.g, CX + h.dx, 420 + Math.sin(t * 5 + i) * 10, pop(t, tFin - .2 + i * .12), Math.sin(t * 3 + i) * 8));
     shock(t, t28 + .3, .3, .5);
   };
 }, { swipe: GREEN });
 
-// ====== 6. « PLEIN AIR »… enfermées 16 semaines =================================================
-S(T.free, T.winter, (cam, a) => {
-  const tPet = Wt('lignes.'), tGri = Wt('grippe'), tEnf = Wt('enfermées'), t16 = Wt('16 semaines,'), tRes = Wt('pleinair', 2);
-  bg(cam);
-  const boxG = el('g', {}, cam);
-  card(boxG, -330, -120, 660, 240, CREAM, 30, 12, 7);
-  const sun = el('g', {}, boxG); emoji(sun, '☀️', 110); tf(sun, -220, 0);
-  txt(boxG, 'PLEIN AIR', { size: 88, fill: GREEN, sw: 12 }).g.setAttribute('transform', 'translate(60,32)');
-  const small = el('g', {}, cam); txt(small, '*VOIR LES PETITES LIGNES', { size: 34, fill: '#777' });
-  const shed = el('g', {}, cam);
-  el('path', { d: 'M-300,-60 L0,-200 L300,-60 V180 H-300 Z', fill: INK, transform: 'translate(12,12)' }, shed);
-  el('path', { d: 'M-300,-60 L0,-200 L300,-60 V180 H-300 Z', fill: '#D9CBB5', stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, shed);
-  const door = el('rect', { x: -90, y: 20, width: 180, height: 160, fill: INK }, shed);
-  const doorC = el('rect', { x: -90, y: 20, height: 160, fill: RED, stroke: INK, 'stroke-width': 6 }, shed);
-  const lock = el('g', {}, shed); emoji(lock, '🔒', 80);
-  const hens = [0, 1, 2].map(() => hen(cam));
-  const cnt = el('g', {}, cam); card(cnt, -340, -80, 680, 160, CREAM, 30, 12, 7);
-  const cS = bigNum(cnt, 76, RED);
-  const ok = el('g', {}, cam); el('circle', { r: 60, fill: GREEN, stroke: INK, 'stroke-width': 7 }, ok);
-  el('path', { d: 'M-26,2 L-6,24 L30,-22', fill: 'none', stroke: CREAM, 'stroke-width': 14, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, ok);
-  return t => {
-    at(boxG, CX, 300, pop(t, a + .05, .4) * (1 + .06 * hit(t, tRes + .2, .3)), -2);
-    at(small, CX + 120, 450, pop(t, tPet - .3), -2);
-    at(shed, CX, 760, pop(t, tGri - .3, .4));
-    const kd = p(t, tEnf - .1, tEnf + .3, E.out);
-    set(doorC, { width: fmt(Math.max(1, 180 * kd)) }); show(doorC, kd > 0);
-    tf(lock, 0, 100, pop(t, tEnf + .25));
-    hens.forEach((h, i) => {
-      const inside = p(t, tEnf - .4, tEnf, E.inOut);
-      const x0 = CX - 300 + i * 300, y0 = 1010;
-      at(h.g, lerp(x0, CX - 40 + i * 40, inside), lerp(y0, 860, inside) - Math.abs(Math.sin(t * 7 + i)) * 12 * (1 - inside), pop(t, tGri - .2 + i * .08) * (1 - inside * .6));
-      show(h.g, inside < .99);
-    });
-    const kc = p(t, t16 - .1, t16 + .8, E.out);
-    at(cnt, CX, 1050, pop(t, t16 - .3), 2); cS.set(Math.round(16 * kc) + ' SEMAINES');
-    at(ok, CX + 320, 185, pop(t, tRes), 0);
-    shock(t, tEnf + .3, .25, .5); shock(t, tRes + .2, .25, .4);
-  };
-}, { swipe: RED });
-
-// ====== 7. L'HIVER DERNIER : six mois de confinement ===========================================
-S(T.winter, T.lay, (cam, a) => {
-  const tFr = Wt('françaises'), tConf = Wt('confinées'), tSix = Wt('six');
-  bg(cam);
-  const tag = chip(cam, "L'HIVER DERNIER EN FRANCE", INK, CREAM, 44);
-  const months = ['OCT', 'NOV', 'DÉC', 'JAN', 'FÉV', 'MARS', 'AVR'];
-  const cells = months.map((m, i) => {
-    const g = el('g', {}, cam);
-    const bgc = card(g, -62, -80, 124, 160, CREAM, 18, 8, 6);
-    txt(g, m, { size: 34 }).g.setAttribute('transform', 'translate(0,-30)');
-    const l = el('g', {}, g); emoji(l, '🔒', 56); tf(l, 0, 30);
-    return { g, bgc, l };
-  });
-  const n = el('g', {}, cam), nS = bigNum(n, 220, RED); nS.set('6 MOIS');
-  const sub = el('g', {}, cam); txt(sub, 'VOLAILLES CONFINÉES', { size: 60 });
-  const dates = chip(cam, '22 OCT. 2025 → 27 AVR. 2026', INK, CREAM, 40);
-  return t => {
-    tag.update(CX, 220, pop(t, a + .05), -2);
-    cells.forEach((c, i) => {
-      at(c.g, CX - 3 * 135 + i * 135, 470, pop(t, a + .2 + i * .05, .3), (i % 2 ? 2 : -2));
-      const on = t > tConf - .2 + i * .08;
-      set(c.bgc, { fill: on ? RED : CREAM }); tf(c.l, 0, 30, on ? pop(t, tConf - .2 + i * .08, .25) : .001);
-    });
-    at(sub, CX, 640, pop(t, tFr - .2), -1);
-    at(n, CX, 850, pop(t, tSix - .15, .35), -3);
-    dates.update(CX, 1070, pop(t, tSix + .3), 2);
-    shock(t, tSix + .1, .3, .6);
-  };
-}, { swipe: GREEN });
-
-// ====== 8. 300 œufs par an, contre une vingtaine ================================================
+// ====== 8. Ce que le chiffre ne dit pas : 20 œufs par an à l'état sauvage, 300 en élevage ========
 S(T.lay, T.dk, (cam, a) => {
-  const tChi = Wt('chiffre,', 1, a), t300 = Wt('300'), tSau = Wt('sauvage,'), tVin = Wt('vingtaine.');
+  const tVit = Wt('vit'), tCor = Wt('corps'), tEnd = Wt('endure.'), tSau = Wt('sauvage'), tVin = Wt('vingtaine'), t300 = Wt('300.'), tCal = Wt('calcium'), tOs = Wt('os.');
   bg(cam);
-  const head = title(cam, ['QUEL QUE SOIT', ['LE CHIFFRE', RED]], { size: 90, shadow: 0, sw: 12 });
+  const head = title(cam, ['CE QUE LE CHIFFRE', ['NE DIT PAS', RED]], { size: 86, shadow: 0, sw: 12 });
   const R = rng(9), rain = [];
   for (let i = 0; i < 18; i++) { const g = el('g', {}, cam); egg(g, 24, null, SHELL, false); rain.push({ g, x: R() * 300 - 150, ph: R() }); }
-  const cols = [['AUJOURD\'HUI', 300, RED, t300], ['POULE SAUVAGE', 20, GREEN, tVin]].map(([lab, v, c, t0], i) => {
+  const cols = [['POULE SAUVAGE', 20, GREEN, tVin], ['POULE D\'ÉLEVAGE', 300, RED, t300]].map(([lab, v, c, t0], i) => {
     const g = el('g', {}, cam);
     const hn = hen(g); tf(hn.g, 0, -40, 1.5);
     txt(g, lab, { size: 38 }).g.setAttribute('transform', 'translate(0,90)');
@@ -300,19 +227,24 @@ S(T.lay, T.dk, (cam, a) => {
     return { g, n, v, t0 };
   });
   const vs = el('g', {}, cam); el('circle', { r: 60, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'VS', { size: 50, fill: CREAM }).t.setAttribute('y', 18);
+  const cal = chip(cam, '🦴 CALCIUM PRIS DANS SES OS', RED, CREAM, 44);
+  const yes = chip(cam, 'OÙ ELLE VIT ✓', GREEN, CREAM, 64), no = chip(cam, 'CE QU\'ELLE ENDURE ✗', RED, CREAM, 64);
   return t => {
-    at(head, CX, 290, pop(t, a + .1, .4), -2);
+    at(head, CX, 290, pop(t, a + .1, .4) * (1 + .05 * hit(t, tEnd + .2, .3)), -2);
     cols.forEach((c, i) => {
-      at(c.g, CX + (i ? 250 : -250), 640, pop(t, i ? tSau - .3 : t300 - .5, .35), i ? 2 : -2);
+      at(c.g, CX + (i ? 250 : -250), 680, pop(t, i ? t300 - 1 : tSau - .3, .35), i ? 2 : -2);
       const k = p(t, c.t0 - .2, c.t0 + .5, E.out); c.n.set(String(Math.round(c.v * k)));
     });
     rain.forEach((r, i) => {
       const u = ((t - t300) * .9 + r.ph) % 1;
-      at(r.g, CX - 250 + r.x, lerp(400, 560, u), t > t300 - .1 ? 1 : .001, u * 200 + i * 20);
+      at(r.g, CX + 250 + r.x, lerp(450, 590, u), t > t300 - .1 ? 1 : .001, u * 200 + i * 20);
       r.g.setAttribute('opacity', fmt(Math.min(1, (1 - u) * 3, u * 6)));
     });
-    at(vs, CX, 870, pop(t, tSau - .1), 0);
-    shock(t, t300 + .2, .3, .5); shock(t, tVin + .2, .25, .3);
+    at(vs, CX, 910, pop(t, t300 - .9), 0);
+    cal.update(CX, 1100, pop(t, tCal - .2), -2);
+    const off = 1 - p(t, tSau - .5, tSau - .3);
+    yes.update(CX, 600, pop(t, tVit - .2) * off, -3); no.update(CX, 800, pop(t, tCor - .2) * off, 2);
+    shock(t, t300 + .2, .3, .5); shock(t, tOs, .25, .4);
   };
 }, { swipe: RED });
 
@@ -320,7 +252,7 @@ S(T.lay, T.dk, (cam, a) => {
 S(T.dk, T.cta, (cam, a) => {
   const t85 = Wt('85 %'), tFra = Wt('fracturé.'), tCage = Wt('cage', 1, a), tBio = Wt('bio.', 1, a);
   bg(cam);
-  const tag = chip(cam, '🇩🇰 ÉTUDE : 4 800 POULES', INK, CREAM, 44);
+  const tag = chip(cam, '4 800 POULES EXAMINÉES AU DANEMARK', INK, CREAM, 40);
   const n = el('g', {}, cam), nS = bigNum(n, 220, RED);
   const lab = el('g', {}, cam); txt(lab, 'AVEC UN OS FRACTURÉ', { size: 58 });
   const hens = []; for (let i = 0; i < 20; i++) hens.push(hen(cam));
@@ -344,12 +276,11 @@ S(T.dk, T.cta, (cam, a) => {
 
 // ====== 10. Tu savais ? Dis-le en commentaire =================================================
 S(T.cta, M.DUR, (cam, a) => {
-  const tSav = Wt('savais'), tPas = Wt('pas', 1, a), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const tSav = Wt('savais'), tPas = Wt('ça ?'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
   bg(cam, GREEN, false);
-  const q = title(cam, [['LA PLUPART', CREAM], ['DE TES ŒUFS', CREAM]], { size: 96 });
+  const q = title(cam, [['TU SAVAIS', CREAM], ['TOUT ÇA ?', CREAM]], { size: 110 });
   const R = rng(4), eggs = [];
   for (let i = 0; i < 5; i++) { const g = el('g', {}, cam); egg(g, 70, null, SHELL); const qm = el('g', {}, g); txt(qm, '?', { size: 80, fill: RED, sw: 10 }).t.setAttribute('y', 30); eggs.push({ g, ph: R() * 6 }); }
-  const st = stamp(cam, 'SANS CHIFFRE', RED, 80);
   const bub = el('g', {}, cam); emoji(bub, '💬', 170);
   const cta = el('g', {}, cam);
   card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
@@ -359,9 +290,8 @@ S(T.cta, M.DUR, (cam, a) => {
   w3.g.setAttribute('transform', 'translate(-40,84)');
   const point = el('g', {}, cta); emoji(point, '👇', 90);
   return t => {
-    at(q, CX, 300, pop(t, a + .1, .4), -2);
-    eggs.forEach((o, i) => at(o.g, CX - 2 * 180 + i * 180, 560 + Math.sin(t * 4 + o.ph) * 12, pop(t, tSav - .2 + i * .07, .3), Math.sin(t * 3 + o.ph) * 8));
-    st.update(CX, 740, t, tPas, -5);
+    at(q, CX, 330, pop(t, a + .1, .4), -2);
+    eggs.forEach((o, i) => at(o.g, CX - 2 * 180 + i * 180, 620 + Math.sin(t * 4 + o.ph) * 12, pop(t, tSav - .2 + i * .07, .3), Math.sin(t * 3 + o.ph) * 8));
     at(bub, CX + 300, 1200, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
     at(cta, CX, 1000, pop(t, tDis - .1, .35), -2);
     w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
