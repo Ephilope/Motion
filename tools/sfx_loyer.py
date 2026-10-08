@@ -2,7 +2,7 @@
 import json, sys, wave, unicodedata, re
 import numpy as np
 
-SR, DUR = 44100, 69
+SR, DUR = 44100, 66.5
 N = int(SR * DUR)
 out = np.zeros(N)
 rng = np.random.default_rng(11)
@@ -49,7 +49,7 @@ def slide(t, f0, f1, d, g=.2, vib=0):
 
 # transitions entre scènes (mêmes instants que loyer.html)
 for b in (Wt('En') - .25, Wt('Camp') - .25, Wt('Un', 1, 15) - .25, Wt('Deux') - .25, Wt('Trois') - .25, Wt('Camp', 2) - .25,
-          Wt('Un', 1, 37) - .25, Wt('Deux', 1, 45) - .25, Wt('Trois', 2) - .25, Wt('Et', 1, 59) - .25, Wt('Abonne-toi') - .25):
+          Wt('Un', 1, 37) - .25, Wt('Deux', 1, 45) - .25, Wt('Trois', 2) - .25, Wt('Et', 1, 59) - .25):
     whoosh(b, .34, .4)
 # 1. accroche
 pop(.05, 600, .3); pop(Wt('Il') - .1, 700, .3); pop(Wt('loyer') - .25, 500, .3)
@@ -73,8 +73,6 @@ pop(Wt('enfants') - .1, 700, .3); pop(Wt('partiel.', 2) - .2, 500, .3); thud(Wt(
 # débat
 pop(Wt('toi ?') - .2, 600, .3); pop(Wt('moitié-moitié,') - .15, 500, .3); pop(Wt('ou', 1, 62) - .05, 450, .25); pop(Wt('prorata ?') - .15, 700, .3)
 tDis = Wt('Dis-le'); pop(tDis - .1, 700, .35); ding(Wt('commentaire.') + .3, 1046, .2)
-# abonne-toi
-thud(Wt('Abonne-toi'), .4); ding(Wt('Abonne-toi') + .05, 1320, .22); pop(Wt('débat') - .4, 600, .3)
 
 peak = np.abs(out).max(); out = out / peak * .7
 data = (np.stack([out, out], 1) * 32767).astype(np.int16)
