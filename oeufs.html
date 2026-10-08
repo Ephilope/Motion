@@ -15,10 +15,10 @@
 (async () => {
 const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, sparkles, bg, rng } = Motion;
 await setup({
-  duration: 62.5,
+  duration: 67.3,
   words: window.WORDS,
   audio: 'assets/voix_oeufs.mp3',
-  emojis: '🥚🐔🍰🍝🍽️🔒☀️🏠✅😇💬👇📦🦴🌿',
+  emojis: '🥚🐔🍰🍝🍽️🔒☀️🏠💬👇📦🇩🇰',
 });
 const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
 const YELLOW = '#FFD23F', SHELL = '#F3D9B1', GREY = '#BDB3A3';
@@ -72,54 +72,59 @@ function hen(parent) {
 const T = {
   codes: Wt('3') - .2, count: Wt('Mais') - .25, hidden: Wt('Les') - .25, shelf: Wt('En', 1, 19) - .25,
   free: Wt('Même', 1, 26) - .25, winter: Wt("L'hiver") - .25, lay: Wt('Et', 1, 40) - .25, dk: Wt('Au', 1, 47) - .25,
-  cta: Wt('Alors,') - .25,
+  cta: Wt('Tu', 1, 62) - .25,
 };
 const tDis = Wt('Dis-le');
 
-// ====== 1. ACCROCHE : le chiffre sur tes œufs ==================================================
+// ====== 1. ACCROCHE : un chiffre sur chaque œuf =================================================
 // Le texte est à l'écran dès la première image (beaucoup regardent sans le son).
 S(0, T.codes, (cam) => {
-  const tMoit = Wt('moitié'), tMan = Wt('manges.');
+  const tChi = Wt('chiffre'), tVec = Wt('vécu.');
   bg(cam);
-  const head = title(cam, ['LE CHIFFRE', ['SUR TES ŒUFS', RED]], { size: 112, shadow: 0, sw: 12 });
+  const head = title(cam, ['UN CHIFFRE', ['SUR CHAQUE ŒUF', RED]], { size: 88, shadow: 0, sw: 12 });
   const e = egg(cam, 250, '3FR XYZ 01');
   const ring = el('ellipse', { rx: 62, ry: 54, fill: 'none', stroke: RED, 'stroke-width': 12 }, cam);
-  const st = stamp(cam, 'MOINS DE LA MOITIÉ', RED, 66);
+  const st = stamp(cam, 'LA VIE DE LA POULE', GREEN, 64);
   return t => {
     at(head, CX, 330, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
     at(e.g, CX, 790, 1 + .03 * Math.sin(t * 4), Math.sin(t * 2.5) * 4);
-    const kr = p(t, .5, 1.1, E.out);
+    const kr = p(t, tChi - .1, tChi + .5, E.out);
     set(ring, { cx: CX - 100, cy: 858, 'stroke-dasharray': '1000', 'stroke-dashoffset': fmt(1000 * (1 - kr)) });
     show(ring, kr > 0);
-    st.update(CX, 1080, t, tMoit + .05, -5);
-    shock(t, tMoit + .15, .3, .6); shock(t, tMan, .2, .3);
+    st.update(CX, 1080, t, tVec - .3, -5);
+    shock(t, tChi + .2, .25, .4); shock(t, tVec, .25, .4);
   };
 });
 
 // ====== 2. LES CODES : 3 cage, 2 sol, 1 plein air, 0 bio ========================================
 S(T.codes, T.count, (cam, a) => {
   const ts = [Wt('3'), Wt('2,'), Wt('1,'), Wt('0,')];
-  const items = [['3', 'CAGE', RED], ['2', 'AU SOL', '#F39C12'], ['1', 'PLEIN AIR', '#9BCB3C'], ['0', 'BIO', GREEN]];
+  const items = [['3', 'CAGE', RED, '≈ UNE FEUILLE A4 PAR POULE', Wt('A4')], ['2', 'AU SOL', '#F39C12', 'ENFERMÉES EN BÂTIMENT', Wt('Enfermées')],
+    ['1', 'PLEIN AIR', '#9BCB3C', 'AVEC UN ACCÈS DEHORS', Wt('accès')], ['0', 'BIO', GREEN, 'PLEIN AIR + NOURRITURE BIO', Wt('nourriture')]];
   bg(cam);
   const tag = chip(cam, 'LE 1ER CHIFFRE DU CODE', INK, CREAM, 44);
-  const rows = items.map(([d, lab, c]) => {
+  const rows = items.map(([d, lab, c, det, td]) => {
     const g = el('g', {}, cam);
     card(g, -400, -85, 800, 170, CREAM, 40, 12, 7);
     const eg = el('g', {}, g); egg(eg, 66, null, SHELL, false); tf(eg, -300, 0);
     const n = bigNum(g, 120, c); n.set(d); n.t.setAttribute('x', -300); n.t.setAttribute('y', 44);
-    txt(g, lab, { size: 72, anchor: 'start', fill: c, sw: 10 }).g.setAttribute('transform', 'translate(-180,26)');
-    return g;
+    txt(g, lab, { size: 68, anchor: 'start', fill: c, sw: 10 }).g.setAttribute('transform', 'translate(-200,0)');
+    const dg = el('g', {}, g); txt(dg, det, { size: 32, anchor: 'start', fill: '#555' }); tf(dg, -200, 52);
+    return { g, dg, td };
   });
   return t => {
     tag.update(CX, 220, pop(t, a + .05), -2);
-    rows.forEach((g, i) => { at(g, CX + (i % 2 ? 14 : -14), 420 + i * 200, pop(t, ts[i] - .2), i % 2 ? 1.5 : -1.5); show(g, t > ts[i] - .21); });
+    rows.forEach((r, i) => {
+      at(r.g, CX + (i % 2 ? 14 : -14), 420 + i * 200, pop(t, ts[i] - .2), i % 2 ? 1.5 : -1.5); show(r.g, t > ts[i] - .21);
+      r.dg.setAttribute('opacity', fmt(p(t, r.td - .2, r.td + .1)));
+    });
     ts.forEach(t0 => shock(t, t0 + .1, .2, .3));
   };
 }, { swipe: GREEN });
 
 // ====== 3. 228 ŒUFS PAR AN, moins de la moitié en boîte =========================================
 S(T.count, T.hidden, (cam, a) => {
-  const t228 = Wt('228'), tMoit = Wt('moitié', 1, a), tBoi = Wt('boîte.');
+  const t228 = a + .2, tMoit = Wt('moitié', 1, a), tBoi = Wt('manges.');
   bg(cam);
   const n = el('g', {}, cam), nS = bigNum(n, 150, INK);
   const lab = el('g', {}, cam); txt(lab, 'ŒUFS PAR AN ET PAR FRANÇAIS', { size: 44 });
@@ -337,22 +342,15 @@ S(T.dk, T.cta, (cam, a) => {
   };
 }, { swipe: RED });
 
-// ====== 10. Vraie info ou bonne conscience ? ====================================================
+// ====== 10. Tu savais ? Dis-le en commentaire =================================================
 S(T.cta, M.DUR, (cam, a) => {
-  const tChi = Wt('chiffre', 1, a), tVra = Wt('vraie'), tBon = Wt('bonne'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
-  const L = el('rect', { x: 0, width: 540, height: H, fill: GREEN }, cam);
-  const R = el('rect', { x: 540, width: 540, height: H, fill: RED }, cam);
-  el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
-  const q = title(cam, [['LE CHIFFRE', CREAM], ['SUR LA BOÎTE ?', CREAM]], { size: 84 });
-  const yes = el('g', {}, cam), no = el('g', {}, cam);
-  const yE = el('g', {}, yes); emoji(yE, '✅', 150);
-  const nE = el('g', {}, no); emoji(nE, '😇', 150);
-  const yT = el('g', {}, yes), nT = el('g', {}, no);
-  title(yT, [['VRAIE', CREAM], ['INFO', CREAM]], { size: 76, shadow: 10 });
-  title(nT, [['BONNE', CREAM], ['CONSCIENCE', CREAM]], { size: 58, shadow: 10 });
-  const vs = el('g', {}, cam); el('circle', { r: 66, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'OU', { size: 56, fill: CREAM }).t.setAttribute('y', 20);
-  const bub = el('g', {}, cam); emoji(bub, '💬', 200);
-  const ring = el('circle', { fill: 'none', stroke: CREAM, 'stroke-width': 10 }, cam);
+  const tSav = Wt('savais'), tPas = Wt('pas', 1, a), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  bg(cam, GREEN, false);
+  const q = title(cam, [['LA PLUPART', CREAM], ['DE TES ŒUFS', CREAM]], { size: 96 });
+  const R = rng(4), eggs = [];
+  for (let i = 0; i < 5; i++) { const g = el('g', {}, cam); egg(g, 70, null, SHELL); const qm = el('g', {}, g); txt(qm, '?', { size: 80, fill: RED, sw: 10 }).t.setAttribute('y', 30); eggs.push({ g, ph: R() * 6 }); }
+  const st = stamp(cam, 'SANS CHIFFRE', RED, 80);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 170);
   const cta = el('g', {}, cam);
   card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
   const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
@@ -361,26 +359,19 @@ S(T.cta, M.DUR, (cam, a) => {
   w3.g.setAttribute('transform', 'translate(-40,84)');
   const point = el('g', {}, cta); emoji(point, '👇', 90);
   return t => {
-    const kIn = p(t, a - .05, a + .35, E.out5);
-    set(L, { y: fmt(-H * (1 - kIn)) }); set(R, { y: fmt(H * (1 - kIn)) });
-    at(q, 540, 300, pop(t, tChi - .3), -2);
-    tf(yes, 270, 640); tf(no, 790, 640);
-    tf(yE, 0, -120, pop(t, tVra - .15), Math.sin(t * 5) * 8); tf(nE, 0, -120, pop(t, tBon - .15), Math.sin(t * 5 + 1) * 8);
-    tf(yT, 0, 100, pop(t, tVra - .1), -4); tf(nT, 0, 100, pop(t, tBon - .1), 4);
-    at(vs, 540, 640, pop(t, tVra + .2), 0);
-    const kb = pop(t, tDis - .3, .4);
-    at(bub, 540, 1000, kb * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
-    const rp = ((t - tDis) * .9) % 1;
-    set(ring, { cx: 540, cy: 990, r: fmt(90 + rp * 130), opacity: fmt(t > tDis ? (1 - rp) * .8 : 0) });
-    at(cta, CX, 1310, pop(t, tDis - .1, .35), -2);
+    at(q, CX, 300, pop(t, a + .1, .4), -2);
+    eggs.forEach((o, i) => at(o.g, CX - 2 * 180 + i * 180, 560 + Math.sin(t * 4 + o.ph) * 12, pop(t, tSav - .2 + i * .07, .3), Math.sin(t * 3 + o.ph) * 8));
+    st.update(CX, 740, t, tPas, -5);
+    at(bub, CX + 300, 1200, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    at(cta, CX, 1000, pop(t, tDis - .1, .35), -2);
     w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
     tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
-    shock(t, tBon + .3, .25, .4);
+    shock(t, tPas + .1, .25, .5);
   };
-}, { swipe: RED });
+}, { swipe: GREEN });
 
 // Sous-titres jusqu'à « Dis-le en commentaire »
-captions({ until: tDis });
+captions({ until: tDis, active: t => t >= T.cta + .1 ? YELLOW : GREEN });
 start();
 })();
 </script>
