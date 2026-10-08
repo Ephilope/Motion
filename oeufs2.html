@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Œufs plein air : jamais sortie ?</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Œufs plein air : la poule n'est peut-être jamais sortie » (charte : docs/MODELE.md).
+     Voix-off : scripts/oeufs2.txt → node tools/voix.mjs oeufs2
+     Chiffres et sources : en tête de scripts/oeufs2.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/oeufs2_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, sparkles, bg, rng } = Motion;
+await setup({
+  duration: 56.6,
+  words: window.WORDS,
+  audio: 'assets/voix_oeufs2.mp3',
+  emojis: '🥚🐔☀️🔒🌿🇦🇺📋🔍💬👇🦠',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', SHELL = '#F3D9B1', GREY = '#BDB3A3';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Œuf dessiné (hauteur ≈ 2r), avec un code imprimé en rouge si fourni.
+const eggD = r => `M0,${-r} C${r * .62},${-r} ${r * .8},${r * .1} ${r * .8},${r * .3} C${r * .8},${r * .78} ${r * .42},${r} 0,${r} C${-r * .42},${r} ${-r * .8},${r * .78} ${-r * .8},${r * .3} C${-r * .8},${r * .1} ${-r * .62},${-r} 0,${-r} Z`;
+function egg(parent, r, code, fill = SHELL, shadow = true) {
+  const g = el('g', {}, parent);
+  if (shadow) el('path', { d: eggD(r), fill: INK, transform: `translate(${r * .1},${r * .1})` }, g);
+  const body = el('path', { d: eggD(r), fill, stroke: INK, 'stroke-width': Math.max(3, r * .06), 'stroke-linejoin': 'round' }, g);
+  el('ellipse', { cx: -r * .35, cy: -r * .35, rx: r * .12, ry: r * .22, fill: WHITE, opacity: .55, transform: `rotate(20 ${-r * .35} ${-r * .35})` }, g);
+  let codeT = null;
+  if (code) {
+    codeT = el('text', { 'text-anchor': 'middle', 'font-size': r * .21, y: r * .32, fill: RED, 'font-weight': 800, 'letter-spacing': 2 }, g);
+    codeT.textContent = code;
+  }
+  return { g, body, codeT };
+}
+// Poule stylisée (≈ 120 × 110), couleur du corps changeable.
+function hen(parent) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-48,10 Q-60,-30 -20,-34 Q-10,-62 18,-58 Q42,-54 40,-26 L58,-18 L40,-10 Q50,30 10,46 Q-40,52 -48,10 Z', fill: INK, transform: 'translate(7,7)' }, g);
+  const body = el('path', { d: 'M-48,10 Q-60,-30 -20,-34 Q-10,-62 18,-58 Q42,-54 40,-26 L58,-18 L40,-10 Q50,30 10,46 Q-40,52 -48,10 Z', fill: WHITE, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M8,-58 Q12,-76 20,-62 Q26,-78 30,-58', fill: RED, stroke: INK, 'stroke-width': 4, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M40,-26 L58,-18 L40,-10 Z', fill: YELLOW, stroke: INK, 'stroke-width': 4, 'stroke-linejoin': 'round' }, g);
+  el('circle', { cx: 24, cy: -34, r: 5, fill: INK }, g);
+  el('path', { d: 'M-6,46 V64 M14,44 V64', stroke: INK, 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+  return { g, color(c) { set(body, { fill: c }); } };
+}
+
+// Bâtiment (hangar) avec une porte que l'on peut fermer.
+function shed(parent, w = 300) {
+  const g = el('g', {}, parent);
+  const d = `M${-w},-60 L0,-200 L${w},-60 V180 H${-w} Z`;
+  el('path', { d, fill: INK, transform: 'translate(12,12)' }, g);
+  el('path', { d, fill: '#D9CBB5', stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Boîte d'œufs « plein air ».
+function eggBox(parent) {
+  const g = el('g', {}, parent);
+  card(g, -330, -120, 660, 240, CREAM, 30, 12, 7);
+  const sun = el('g', {}, g); emoji(sun, '☀️', 110); tf(sun, -220, 0);
+  txt(g, 'PLEIN AIR', { size: 88, fill: GREEN, sw: 12 }).g.setAttribute('transform', 'translate(60,32)');
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  code: Wt('pleinair', 2) - .25, shed: Wt('Mais') - .25, door: Wt('Pour', 1, 13.5) - .25, study: Wt('Résultat :') - .25,
+  flu: Wt('Et', 1, 27) - .25, winter: Wt("L'hiver") - .25, y2021: Wt('Et', 1, 41) - .25, cta: Wt('Toi,') - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : « plein air »… jamais sortie ? ==============================================
+// Le texte est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.code, (cam) => {
+  const tPour = Wt('Pourtant,'), tJam = Wt('jamais');
+  bg(cam);
+  const head = title(cam, ['SUR TA BOÎTE', ['D\'ŒUFS', RED]], { size: 110, shadow: 0, sw: 12 });
+  const box = eggBox(cam);
+  const h = hen(cam);
+  const st = stamp(cam, 'JAMAIS SORTIE ?', RED, 84);
+  return t => {
+    at(head, CX, 300, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
+    at(box, CX, 560, lerp(1.2, 1, p(t, 0, .3, E.out)) * (1 + .05 * hit(t, .9, .3)), -2);
+    at(h.g, CX, 830 + Math.abs(Math.sin(t * 6)) * -14, 1.6 * pop(t, tPour - .3), Math.sin(t * 3) * 5);
+    h.color(t > tJam ? GREY : WHITE);
+    st.update(CX, 1050, t, tJam - .05, -6);
+    shock(t, tJam + .2, .3, .6);
+  };
+});
+
+// ====== 2. LE CODE 1 ET LA RÈGLE : 4 m² d'herbe par poule =========================================
+S(T.code, T.shed, (cam, a) => {
+  const tChi = Wt('chiffre'), tReg = Wt('règle :'), t4 = Wt('4 mètres carrés');
+  bg(cam);
+  const tag = chip(cam, 'CODE 1 = PLEIN AIR', GREEN, CREAM, 50);
+  const e = egg(cam, 170, '1FR XYZ 01');
+  const ring = el('ellipse', { rx: 44, ry: 38, fill: 'none', stroke: RED, 'stroke-width': 10 }, cam);
+  const grass = el('g', {}, cam);
+  card(grass, -230, -150, 460, 300, GREEN, 20, 12, 7);
+  for (let i = 0; i < 14; i++) { const x = -200 + (i % 7) * 66, y = -110 + Math.floor(i / 7) * 60; el('path', { d: `M${x},${y + 20} l8,-22 l8,22 l8,-16 l6,16`, fill: 'none', stroke: '#1E9E55', 'stroke-width': 5, 'stroke-linejoin': 'round' }, grass); }
+  const gh = hen(grass); tf(gh.g, 0, 40, 1.2);
+  const lab = el('g', {}, cam); txt(lab, '4 M² DEHORS / POULE', { size: 60, fill: GREEN, sw: 10 });
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    const up = p(t, tReg - .3, tReg + .1, E.inOut);
+    at(e.g, CX, lerp(560, 500, up), lerp(1, .7, up) * pop(t, a + .1, .35), Math.sin(t * 2.5) * 4);
+    const kr = p(t, tChi, tChi + .4, E.out);
+    set(ring, { cx: fmt(CX - 68 * lerp(1, .7, up)), cy: fmt(lerp(560, 500, up) + 54 * lerp(1, .7, up)), rx: fmt(44 * lerp(1, .7, up)), ry: fmt(38 * lerp(1, .7, up)), 'stroke-dasharray': '400', 'stroke-dashoffset': fmt(400 * (1 - kr)) });
+    show(ring, kr > 0);
+    at(grass, CX, 860, pop(t, tReg - .1, .4), -2);
+    at(lab, CX, 1100, pop(t, t4 - .1), -2);
+    shock(t, t4 + .2, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. LE BÂTIMENT : elle dort et pond dedans, jusqu'à 9 poules par m² ========================
+S(T.shed, T.door, (cam, a) => {
+  const tBat = Wt('bâtiment,'), t9 = Wt('9');
+  bg(cam);
+  const tag = chip(cam, 'MAIS ELLE VIT ICI', RED, CREAM, 50);
+  const sh = shed(cam, 340);
+  const grid = el('g', {}, cam);
+  card(grid, -180, -180, 360, 360, CREAM, 10, 10, 7);
+  for (let i = 1; i < 3; i++) { el('line', { x1: -180 + i * 120, y1: -180, x2: -180 + i * 120, y2: 180, stroke: INK, 'stroke-width': 3, opacity: .3 }, grid); el('line', { x1: -180, y1: -180 + i * 120, x2: 180, y2: -180 + i * 120, stroke: INK, 'stroke-width': 3, opacity: .3 }, grid); }
+  const hens = []; for (let i = 0; i < 9; i++) { const h = hen(grid); hens.push(h); }
+  const lab = el('g', {}, cam); txt(lab, '9 POULES / M²', { size: 90, fill: RED, sw: 12 });
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    at(sh, CX, 450, .8 * pop(t, tBat - .4, .4), 0);
+    const kg = pop(t, t9 - .4, .35);
+    at(grid, CX, 790, kg, 1);
+    hens.forEach((h, i) => tf(h.g, -120 + (i % 3) * 120, -120 + Math.floor(i / 3) * 120 + 8, .82 * pop(t, t9 - .3 + i * .04, .25), Math.sin(t * 6 + i) * 4));
+    at(lab, CX, 1080, pop(t, t9 + .2), -2);
+    shock(t, t9 + .3, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 4. LES TRAPPES : 2 mètres de large… pour 1 000 poules ====================================
+S(T.door, T.study, (cam, a) => {
+  const tTra = Wt('trappes.'), t2 = Wt('2 mètres'), t1000 = Wt('1 000');
+  bg(cam);
+  const tag = chip(cam, 'POUR SORTIR : LES TRAPPES', INK, CREAM, 46);
+  const wall = el('g', {}, cam);
+  card(wall, -420, -160, 840, 320, '#D9CBB5', 10, 12, 8);
+  const doors = [-280, 0, 280].map(x => el('rect', { x: x - 45, y: 50, width: 90, height: 110, fill: INK }, wall));
+  const R = rng(3), crowd = [];
+  for (let i = 0; i < 36; i++) { const g = el('g', {}, cam); const h = hen(g); crowd.push({ g, x: (R() - .5) * 780, y: R() * 120, ph: R() * 6 }); }
+  const n1 = el('g', {}, cam), n1S = bigNum(n1, 110, GREEN); n1S.set('2 M');
+  const l1 = el('g', {}, cam); txt(l1, 'DE TRAPPES', { size: 46 });
+  const n2 = el('g', {}, cam), n2S = bigNum(n2, 120, RED); n2S.set('1 000');
+  const l2 = el('g', {}, cam); txt(l2, 'POULES', { size: 60 });
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    at(wall, CX, 470, pop(t, tTra - .5, .4), 0);
+    doors.forEach((d, i) => d.setAttribute('opacity', t > tTra - .2 + i * .1 ? 1 : 0));
+    at(n1, CX - 220, 770, pop(t, t2 - .2), -3); at(l1, CX - 220, 870, pop(t, t2), -2);
+    at(n2, CX + 220, 770, pop(t, t1000 - .2), 3); at(l2, CX + 220, 870, pop(t, t1000), 2);
+    crowd.forEach((c, i) => at(c.g, CX + c.x, 990 + c.y + Math.abs(Math.sin(t * 7 + c.ph)) * -8, .55 * pop(t, t1000 + i * .012, .25), Math.sin(t * 5 + c.ph) * 6));
+    shock(t, t1000 + .2, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. L'ÉTUDE AUSTRALIENNE : une sur dix jamais sortie ======================================
+S(T.study, T.flu, (cam, a) => {
+  const tPuce = Wt('puce'), tSept = Wt('sept'), tUne = Wt('Une', 1, a + 1), tJam = Wt('jamais', 1, a);
+  bg(cam);
+  const tag = chip(cam, '🇦🇺 ÉTUDE AVEC PUCES', INK, CREAM, 46);
+  const wk = chip(cam, '7 SEMAINES DE SUIVI', GREEN, CREAM, 44);
+  const hens = []; for (let i = 0; i < 10; i++) { const g = el('g', {}, cam); const h = hen(g); const chipD = el('circle', { cx: -10, cy: 50, r: 10, fill: YELLOW, stroke: INK, 'stroke-width': 4 }, g); hens.push({ g, h }); }
+  const n = el('g', {}, cam), nS = bigNum(n, 170, RED); nS.set('1 SUR 10');
+  const lab = el('g', {}, cam); txt(lab, 'JAMAIS SORTIE', { size: 76, fill: RED, sw: 12 });
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    wk.update(CX, 330, pop(t, tSept - .2), 2);
+    hens.forEach((o, i) => {
+      at(o.g, CX - 2 * 190 + (i % 5) * 190, 500 + Math.floor(i / 5) * 160 + Math.abs(Math.sin(t * 6 + i)) * -10 * (i === 9 ? 0 : 1), .95 * pop(t, tPuce - .4 + i * .04, .3));
+      o.h.color(i === 9 && t > tUne ? RED : WHITE);
+      o.g.setAttribute('opacity', i !== 9 && t > tUne ? .45 : 1);
+    });
+    at(n, CX, 870, pop(t, tUne - .1, .35), -3);
+    at(lab, CX, 1030, pop(t, tJam), -2);
+    shock(t, tUne + .2, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 6. GRIPPE AVIAIRE : porte fermée, l'étiquette reste 16 semaines ==========================
+S(T.flu, T.winter, (cam, a) => {
+  const tFer = Wt('fermée.'), tGri = Wt('grippe'), tEnf = Wt('enfermées.'), t16 = Wt('16 semaines,'), tEti = Wt('étiquette');
+  bg(cam);
+  const boxG = eggBox(cam);
+  const sh = shed(cam);
+  const doorC = el('rect', { x: -90, y: 20, height: 160, fill: RED, stroke: INK, 'stroke-width': 6 }, sh);
+  el('rect', { x: -90, y: 20, width: 180, height: 160, fill: INK }, sh).parentNode.insertBefore(sh.lastChild, doorC);
+  const lock = el('g', {}, sh); emoji(lock, '🔒', 80);
+  const virus = el('g', {}, cam); emoji(virus, '🦠', 110);
+  const cnt = el('g', {}, cam); card(cnt, -340, -80, 680, 160, CREAM, 30, 12, 7);
+  const cS = bigNum(cnt, 76, RED);
+  const ok = el('g', {}, cam); el('circle', { r: 60, fill: GREEN, stroke: INK, 'stroke-width': 7 }, ok);
+  el('path', { d: 'M-26,2 L-6,24 L30,-22', fill: 'none', stroke: CREAM, 'stroke-width': 14, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, ok);
+  return t => {
+    at(sh, CX, 470, pop(t, a + .05, .4));
+    const kd = p(t, tFer - .4, tFer, E.out);
+    set(doorC, { width: fmt(Math.max(1, 180 * kd)) }); show(doorC, kd > 0);
+    tf(lock, 0, 100, pop(t, tEnf));
+    at(virus, CX + 320, 260 + Math.sin(t * 4) * 12, pop(t, tGri - .1), t * 40);
+    const kc = p(t, t16 - .1, t16 + .8, E.out);
+    at(cnt, CX, 790, pop(t, t16 - .3), 2); cS.set(Math.round(16 * kc) + ' SEMAINES');
+    at(boxG, CX, 1010, .85 * pop(t, tEti - .5, .35), -2);
+    at(ok, CX + 290, 930, pop(t, tEti + .5), 0);
+    shock(t, tFer, .25, .5); shock(t, tEti + .6, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 7. L'HIVER DERNIER : six mois, bien plus que 16 semaines ================================
+S(T.winter, T.y2021, (cam, a) => {
+  const tConf = Wt('confinement'), tSix = Wt('six'), tBien = Wt('Bien');
+  bg(cam);
+  const tag = chip(cam, "L'HIVER DERNIER EN FRANCE", INK, CREAM, 44);
+  const months = ['OCT', 'NOV', 'DÉC', 'JAN', 'FÉV', 'MARS', 'AVR'];
+  const cells = months.map((m, i) => {
+    const g = el('g', {}, cam);
+    const bgc = card(g, -62, -80, 124, 160, CREAM, 18, 8, 6);
+    txt(g, m, { size: 34 }).g.setAttribute('transform', 'translate(0,-30)');
+    const l = el('g', {}, g); emoji(l, '🔒', 56); tf(l, 0, 30);
+    return { g, bgc, l };
+  });
+  // 16 semaines après le 22 octobre : mi-février (≈ 4,1 cases depuis le début d'octobre décalé)
+  const xLim = CX - 3 * 135 - 62 + 135 * 4.4;
+  const lim = el('g', {}, cam);
+  el('line', { x1: 0, y1: -130, x2: 0, y2: 120, stroke: INK, 'stroke-width': 10, 'stroke-dasharray': '18 12' }, lim);
+  const limL = el('g', {}, lim); txt(limL, 'LIMITE 16 SEM.', { size: 34, fill: CREAM, sw: 8 }); tf(limL, 0, -150);
+  const n = el('g', {}, cam), nS = bigNum(n, 220, RED); nS.set('6 MOIS');
+  const dates = chip(cam, '22 OCT. 2025 → 27 AVR. 2026', INK, CREAM, 40);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    cells.forEach((c, i) => {
+      at(c.g, CX - 3 * 135 + i * 135, 500, pop(t, a + .2 + i * .05, .3), 0);
+      const on = t > tConf - .2 + i * .1;
+      set(c.bgc, { fill: on ? (i >= 4 ? RED : '#F39C12') : CREAM }); tf(c.l, 0, 30, on ? pop(t, tConf - .2 + i * .1, .25) : .001);
+    });
+    at(lim, xLim, 500, pop(t, tBien - .2), 0);
+    at(n, CX, 820, pop(t, tSix - .15, .35), -3);
+    dates.update(CX, 1040, pop(t, tSix + .3), 2);
+    shock(t, tSix + .1, .3, .6); shock(t, tBien + .2, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. EN 2021 : délai dépassé, boîtes tolérées, panneau introuvable =======================
+S(T.y2021, T.cta, (cam, a) => {
+  const tDep = Wt('dépassé,'), tTol = Wt('toléré'), tRay = Wt('rayon.'), tPan = Wt('panneau'), t60 = Wt('60 Millions'), tTro = Wt('trouvé.');
+  bg(cam);
+  const tag = chip(cam, 'EN 2021', INK, CREAM, 56);
+  const box = eggBox(cam);
+  const st = stamp(cam, 'TOLÉRÉ', RED, 90);
+  const sign = el('g', {}, cam);
+  card(sign, -300, -110, 600, 220, WHITE, 16, 10, 7);
+  txt(sign, 'POULES CONFINÉES', { size: 50, fill: RED }).g.setAttribute('transform', 'translate(0,-20)');
+  txt(sign, 'À LA DEMANDE DES AUTORITÉS', { size: 30, fill: '#555' }).g.setAttribute('transform', 'translate(0,40)');
+  const mag = chip(cam, '60 MILLIONS DE CONSOMMATEURS', INK, CREAM, 38);
+  const loupe = el('g', {}, cam); emoji(loupe, '🔍', 140);
+  const q = el('g', {}, cam); el('circle', { r: 56, fill: RED, stroke: INK, 'stroke-width': 7 }, q); txt(q, '?', { size: 84, fill: CREAM }).t.setAttribute('y', 30);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    at(box, CX, 420, pop(t, tDep - .3, .35), -2);
+    st.update(CX + 180, 520, t, tTol, 8);
+    const fade = 1 - .7 * p(t, tTro - .2, tTro + .2);
+    at(sign, CX, 800, pop(t, tPan - .2, .35), 2); sign.setAttribute('opacity', fmt(fade));
+    mag.update(CX, 1000, pop(t, t60 - .2), -2);
+    at(loupe, CX - 230 + Math.sin(t * 3) * 120, 760 + Math.cos(t * 2.4) * 40, pop(t, t60), -15);
+    at(q, CX + 300, 700, pop(t, tTro), 0);
+    shock(t, tTol + .1, .25, .5); shock(t, tTro + .1, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 9. Toi, tu l'as déjà vu, ce panneau ? ===================================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tVu = Wt('vu,'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  bg(cam, GREEN, false);
+  const q = title(cam, [['TU L\'AS DÉJÀ VU,', CREAM], ['CE PANNEAU ?', CREAM]], { size: 90 });
+  const sign = el('g', {}, cam);
+  card(sign, -300, -110, 600, 220, WHITE, 16, 10, 7);
+  txt(sign, 'POULES CONFINÉES', { size: 50, fill: RED }).g.setAttribute('transform', 'translate(0,-20)');
+  txt(sign, 'À LA DEMANDE DES AUTORITÉS', { size: 30, fill: '#555' }).g.setAttribute('transform', 'translate(0,40)');
+  const bub = el('g', {}, cam); emoji(bub, '💬', 170);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 320, pop(t, a + .1, .4), -2);
+    at(sign, CX, 620, pop(t, tVu - .3, .35) * (1 + .03 * Math.sin(t * 5)), Math.sin(t * 2) * 3);
+    at(bub, CX + 300, 1200, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    at(cta, CX, 1000, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à « Dis-le en commentaire » ; mot prononcé en jaune sur le fond vert de la fin
+captions({ until: tDis, active: t => t >= T.cta + .1 ? YELLOW : GREEN });
+start();
+})();
+</script>
+</body>
+</html>
