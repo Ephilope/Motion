@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eau du robinet ou eau en bouteille ?</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Eau du robinet ou eau en bouteille ? » (charte : docs/MODELE.md).
+     Voix-off : scripts/eau.txt → node tools/voix.mjs eau
+     Chiffres et sources : en tête de scripts/eau.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/eau_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, sparkles, bg, rng } = Motion;
+await setup({
+  duration: 56.5,
+  words: window.WORDS,
+  audio: 'assets/voix_eau.mp3',
+  emojis: '🗑️💩👑🔬🧪🤫💬👇',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const BLUE = '#7FD3FF', BLUE_D = '#2E86DE', BLUE_L = '#D6F0FF', STEEL = '#B8C7D1';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Forme flat : ombre noire décalée + forme contourée.
+function shape(parent, tag, attrs, fill, sh = 10) {
+  el(tag, { ...attrs, fill: INK, transform: `translate(${sh},${sh})` }, parent);
+  return el(tag, { ...attrs, fill, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, parent);
+}
+// Bouteille d'eau, centrée en (0,0), de y = -270 (bouchon) à 250. dots(n) : particules de plastique visibles.
+function bottle(parent, label = 'EAU') {
+  const g = el('g', {}, parent);
+  shape(g, 'rect', { x: -45, y: -270, width: 90, height: 60, rx: 12 }, BLUE_D);
+  shape(g, 'path', { d: 'M-35,-212 H35 V-190 Q110,-150 110,-80 V220 Q110,250 80,250 H-80 Q-110,250 -110,220 V-80 Q-110,-150 -35,-190 Z' }, BLUE_L);
+  el('path', { d: 'M-102,-60 H102 V218 Q102,242 78,242 H-78 Q-102,242 -102,218 Z', fill: BLUE }, g);
+  el('path', { d: 'M-75,-140 Q-90,-110 -88,-70', stroke: WHITE, 'stroke-width': 12, fill: 'none', 'stroke-linecap': 'round', opacity: .8 }, g);
+  const pg = el('g', {}, g), R = rng(7), pts = [];
+  for (let i = 0; i < 90; i++) pts.push(el('circle', { cx: fmt(-90 + R() * 180), cy: fmt(-45 + R() * 275), r: fmt(5 + R() * 7), fill: [RED, INK, WHITE, '#FFD23F'][i % 4], stroke: INK, 'stroke-width': 2 }, pg));
+  shape(g, 'rect', { x: -110, y: 10, width: 220, height: 105 }, RED, 0);
+  txt(g, label, { size: 58, fill: CREAM }).g.setAttribute('transform', 'translate(0,84)');
+  return { g, dots(n, t = 0) { pts.forEach((c, i) => { show(c, i < n); if (i < n) set(c, { transform: `translate(${fmt(Math.sin(t * 2 + i) * 4)},${fmt(Math.cos(t * 1.7 + i * 1.3) * 4)})` }); }); } };
+}
+// Robinet, sortie du bec en (90, 60). drop(t) anime une goutte qui tombe.
+function faucet(parent) {
+  const g = el('g', {}, parent);
+  shape(g, 'rect', { x: -250, y: -130, width: 56, height: 150, rx: 12 }, STEEL);
+  shape(g, 'path', { d: 'M-200,-90 H40 Q125,-90 125,-5 V60 H55 V-5 Q55,-20 40,-20 H-200 Z' }, STEEL);
+  shape(g, 'rect', { x: -60, y: -150, width: 44, height: 64, rx: 8 }, STEEL, 6);
+  shape(g, 'rect', { x: -120, y: -185, width: 164, height: 40, rx: 20 }, BLUE_D, 6);
+  el('path', { d: 'M-170,-72 H30', stroke: WHITE, 'stroke-width': 10, 'stroke-linecap': 'round', opacity: .7 }, g);
+  const drop = el('path', { d: 'M0,-28 Q22,0 0,14 Q-22,0 0,-28 Z', fill: BLUE, stroke: INK, 'stroke-width': 5 }, g);
+  return { g, drop(t) { const u = (t * .9) % 1; tf(drop, 90, 80 + 260 * E.in(u), lerp(.4, 1, Math.min(1, u * 4))); drop.setAttribute('opacity', fmt(1 - Math.max(0, u - .8) * 5)); } };
+}
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return s => { t.textContent = s; };
+}
+const sp = n => Math.round(n).toLocaleString('fr-FR').replace(/\s/g, ' ');
+// Silhouette de personne (tête + buste), ~90 × 120, centrée.
+function figure(parent) {
+  const g = el('g', {}, parent);
+  const head = el('circle', { cy: -32, r: 26, stroke: INK, 'stroke-width': 6 }, g);
+  const body = el('path', { d: 'M-42,58 V30 Q-42,0 -12,0 H12 Q42,0 42,30 V58 Z', stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return { g, color(c) { set(head, { fill: c }); set(body, { fill: c }); } };
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  prix: Wt('Au') - .25, plast: Wt('Et') - .25, pure: Wt('Bon,') - .25, nestle: Wt('En', 2) - .25,
+  perrier: Wt('La', 1, 30) - .25, gagne: Wt('Alors') - .25, pest: Wt('En', 1, 40) - .25,
+  ctrl: Wt('Ça') - .25, cta: Wt('Et', 1, 51) - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : jusqu'à 100 fois plus cher… pour du plastique ====================
+// Le texte est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.prix, (cam) => {
+  const t100 = Wt('100 fois'), tPla = Wt('plastique.');
+  bg(cam);
+  const tag = chip(cam, 'EAU EN BOUTEILLE', BLUE_D, CREAM, 46);
+  const l1 = el('g', {}, cam); txt(l1, 'TON EAU', { size: 110 });
+  const n = el('g', {}, cam), nS = bigNum(n, 260); nS('×100');
+  const l3 = el('g', {}, cam); txt(l3, 'PLUS CHÈRE', { size: 110 });
+  const b = bottle(cam);
+  const st = stamp(cam, 'POUR DU PLASTIQUE ?', RED, 64);
+  return t => {
+    tag.update(CX, 200, 1, -2);
+    at(l1, CX, 360, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
+    at(n, CX, 500, lerp(1.15, 1, p(t, 0, .3, E.out)) * (1 + .12 * hit(t, t100, .25)), -3);
+    at(l3, CX, 735, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
+    at(b.g, CX, 1000, .62, Math.sin(t * 2) * 3);
+    b.dots(Math.round(90 * p(t, tPla - .1, tPla + .4, E.out)), t);
+    st.update(CX, 1040, t, tPla + .15, -6);
+    shock(t, t100 + .1, .25, .4); shock(t, tPla + .2, .3, .6);
+  };
+});
+
+// ====== 2. LE PRIX DU LITRE ================================================================
+function priceRow(parent, icon, name, price, color) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  card(inner, -380, -125, 760, 250, CREAM, 30, 12, 7);
+  inner.appendChild(icon.g); tf(icon.g, -250, 10, .42);
+  txt(inner, name, { size: 46, anchor: 'start' }).g.setAttribute('transform', 'translate(-110,-30)');
+  const pr = el('g', {}, inner); txt(pr, price, { size: 110, fill: color, sw: 12, anchor: 'start' }); tf(pr, -110, 80);
+  return { g, pr, update(x, y, k, r = 0) { show(g, k > .001); tf(g, x, y, 1, r); tf(inner, 0, 0, k); } };
+}
+S(T.prix, T.plast, (cam, a) => {
+  const tRob = Wt('robinet,'), tDemi = Wt('demi-centime.'), tBou = Wt('bouteille,'), t30 = Wt('30 centimes.');
+  bg(cam);
+  const tag = chip(cam, "LE PRIX D'UN LITRE", INK, CREAM, 46);
+  const f = faucet(cam), r1 = priceRow(cam, f, 'ROBINET', '0,005 €', GREEN);
+  const r2 = priceRow(cam, bottle(cam), 'BOUTEILLE', '0,30 €', RED);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    f.drop(t);
+    r1.update(CX, 540, pop(t, tRob - .2), -2);
+    tf(r1.pr, -110, 80, 1 + .15 * hit(t, tDemi + .2, .3));
+    r2.update(CX, 900, pop(t, tBou - .2), 2);
+    tf(r2.pr, -110, 80, pop(t, t30 - .1, .3) * (1 + .2 * hit(t, t30 + .2, .3)));
+    shock(t, t30 + .2, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 3. 240 000 PARTICULES DE PLASTIQUE PAR LITRE (PNAS 2024) =========================
+S(T.plast, T.pure, (cam, a) => {
+  const tCh = Wt('chercheurs'), t240 = Wt('240 000'), tPla = Wt('plastique.', 2);
+  bg(cam);
+  const tag = chip(cam, 'ÉTUDE COLUMBIA · 2024', INK, CREAM, 44);
+  const n = el('g', {}, cam), nS = bigNum(n, 170);
+  const lab = el('g', {}, cam); txt(lab, 'PARTICULES DE PLASTIQUE', { size: 44, fill: RED });
+  const lab2 = el('g', {}, cam); txt(lab2, 'DANS 1 LITRE', { size: 44 });
+  const b = bottle(cam);
+  const lens = el('g', {}, cam); emoji(lens, '🔬', 170);
+  return t => {
+    tag.update(CX, 210, pop(t, a + .05), -2);
+    const k = p(t, t240 - .5, t240 + .6, E.out);
+    at(n, CX, 380, pop(t, t240 - .5, .35), -2); nS(sp(240000 * k));
+    at(lab, CX, 500, pop(t, tPla - .2), -1); at(lab2, CX, 565, pop(t, tPla - .1), 1);
+    at(b.g, CX - 40, 870, .8 * pop(t, a + .2, .4), Math.sin(t * 2) * 3);
+    b.dots(Math.round(90 * k), t);
+    at(lens, CX + 240, 820 + Math.sin(t * 3) * 10, pop(t, tCh - .1), -10);
+    shock(t, t240 + .5, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 4. « AU MOINS C'EST DE L'EAU PURE ? » ============================================
+S(T.pure, T.nestle, (cam, a) => {
+  const tPure = Wt('pure,'), tNon = Wt('non ?');
+  bg(cam, BLUE_L, false);
+  const head = title(cam, ["DE L'EAU", ['PURE ?', BLUE_D]], { size: 150, shadow: 0, sw: 14 });
+  const b = bottle(cam, 'PURE');
+  const sk = sparkles(cam, 9, 3, 300);
+  return t => {
+    at(head, CX, 420, pop(t, tPure - .4, .4) * (1 + .06 * hit(t, tNon, .3)), -3);
+    at(b.g, CX, 900, .85 * pop(t, a + .15, .4), Math.sin(t * 3) * 4);
+    b.dots(0);
+    sk.update(CX, 880, pop(t, tPure - .1, .5), t);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. SCANDALE NESTLÉ : traitées en cachette, procédés interdits =====================
+S(T.nestle, T.perrier, (cam, a) => {
+  const t24 = Wt('2024,'), brands = ['Perrier,', 'Vittel,', 'Contrex', 'Hépar'].map(w => Wt(w)), tCach = Wt('cachette.'), tInt = Wt('interdits.');
+  bg(cam);
+  const tag = chip(cam, 'EAUX MINÉRALES · 2024', RED, CREAM, 46);
+  const cards = ['PERRIER', 'VITTEL', 'CONTREX', 'HÉPAR'].map(s => {
+    const g = el('g', {}, cam), inner = el('g', {}, g);
+    card(inner, -190, -80, 380, 160, WHITE, 24, 12, 7);
+    txt(inner, s, { size: 62 }).g.setAttribute('transform', 'translate(0,22)');
+    return { g, inner };
+  });
+  const ch = chip(cam, 'TRAITÉES EN CACHETTE 🤫', INK, CREAM, 50);
+  const st = stamp(cam, 'INTERDIT', RED, 120);
+  return t => {
+    tag.update(CX, 220, pop(t, t24 - .3), -2);
+    cards.forEach((c, i) => { at(c.g, CX + (i % 2 ? 205 : -205), 440 + Math.floor(i / 2) * 200, 1, (i % 2 ? 3 : -3)); tf(c.inner, 0, 0, pop(t, brands[i] - .15)); show(c.g, t > brands[i] - .16); });
+    ch.update(CX, 1060, pop(t, tCach - .3), -2);
+    st.update(CX, 860, t, tInt + .05, -8);
+    shock(t, tInt + .15, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 6. PERRIER : 2 millions de bouteilles à la poubelle =============================
+S(T.perrier, T.gagne, (cam, a) => {
+  const t2m = Wt('2 millions'), tPou = Wt('poubelle.'), tCon = Wt('Contamination'), tFec = Wt('fécale.');
+  bg(cam);
+  const tag = chip(cam, 'PERRIER · MARS 2024', INK, CREAM, 44);
+  const n = el('g', {}, cam), nS = bigNum(n, 160);
+  const lab = el('g', {}, cam); txt(lab, 'BOUTEILLES DÉTRUITES', { size: 48 });
+  const falls = [0, 1, 2, 3, 4].map(() => bottle(cam));
+  const bin = el('g', {}, cam); emoji(bin, '🗑️', 330);
+  const poo = el('g', {}, cam); emoji(poo, '💩', 190);
+  const st = stamp(cam, 'CONTAMINATION FÉCALE', RED, 58);
+  return t => {
+    tag.update(CX, 210, pop(t, a + .05), -2);
+    const k = p(t, t2m - .3, t2m + .6, E.out);
+    at(n, CX, 370, pop(t, t2m - .3, .35), -2); nS(sp(2000000 * k));
+    at(lab, CX, 480, pop(t, t2m + .2), -1);
+    at(bin, CX, 900, pop(t, t2m - .1, .4) * (1 + .06 * hit(t, tPou + .1, .2)), 0);
+    falls.forEach((b, i) => {
+      const u = ((t - t2m) * 1.3 + i / 5) % 1, on = t > t2m + .1;
+      show(b.g, on && u < .85); b.dots(0);
+      at(b.g, CX - 80 + i * 40, lerp(560, 860, E.in(u)), .22, (i % 2 ? 1 : -1) * 200 * u);
+    });
+    at(poo, CX + 230, 720 + Math.sin(t * 5) * 8, pop(t, tFec - .1, .4), 8);
+    st.update(CX - 10, 1090, t, tCon + .1, -5);
+    shock(t, tCon + .25, .3, .5); shock(t, tFec + .1, .25, .5);
+  };
+}, { swipe: RED });
+
+// ====== 7. ALORS LE ROBINET GAGNE ? PAS SI VITE ==========================================
+S(T.gagne, T.pest, (cam, a) => {
+  const tRob = Wt('robinet', 2), tGag = Wt('gagne ?'), tPas = Wt('Pas');
+  bg(cam);
+  const head = title(cam, ['LE ROBINET', ['GAGNE ?', GREEN]], { size: 130, shadow: 0, sw: 14 });
+  const f = faucet(cam);
+  const crown = el('g', {}, cam); emoji(crown, '👑', 170);
+  const st = stamp(cam, 'PAS SI VITE', RED, 110);
+  return t => {
+    at(head, CX, 400, pop(t, a + .1, .4), -2);
+    at(f.g, CX + 20, 860, .95 * pop(t, tRob - .2, .4), 0); f.drop(t);
+    const kc = pop(t, tGag - .1, .35), fly = p(t, tPas, tPas + .5, E.in);
+    at(crown, CX - 30 + 400 * fly, 650 - 300 * fly + 500 * fly * fly, kc, -10 + 200 * fly);
+    st.update(CX, 900, t, tPas + .05, -8);
+    shock(t, tPas + .15, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. 2021 : ~12 millions de Français, eau non conforme (pesticides) ================
+S(T.pest, T.ctrl, (cam, a) => {
+  const t21 = Wt('2021,'), t12 = Wt('12 millions'), tNon = Wt('non', 2), tRes = Wt('résidus');
+  bg(cam);
+  const tag = chip(cam, 'EN FRANCE · 2021', INK, CREAM, 46);
+  const n = el('g', {}, cam), nS = bigNum(n, 132);
+  const lab = el('g', {}, cam); txt(lab, 'DE FRANÇAIS', { size: 56 });
+  const figs = []; for (let i = 0; i < 20; i++) figs.push(figure(cam));
+  const RED_IDX = [2, 8, 11, 17];
+  const ch = chip(cam, '🧪 RÉSIDUS DE PESTICIDES', RED, CREAM, 46);
+  return t => {
+    tag.update(CX, 210, pop(t, t21 - .2), -2);
+    const k = p(t, t12 - .3, t12 + .4, E.out);
+    at(n, CX, 360, pop(t, t12 - .3, .35), -2); nS(Math.round(12 * k) + ' MILLIONS');
+    at(lab, CX, 495, pop(t, t12 + .2), -1);
+    figs.forEach((f, i) => {
+      const cx = CX + (i % 5 - 2) * 150, cy = 610 + Math.floor(i / 5) * 122;
+      const bad = RED_IDX.includes(i) && t > tNon;
+      at(f.g, cx, cy + (bad ? Math.sin(t * 20 + i) * 3 * hit(t, tNon + .2, .5) : 0), pop(t, a + .2 + i * .03, .3) * (bad ? 1.12 : 1));
+      f.color(bad ? RED : CREAM);
+    });
+    ch.update(CX, 1110, pop(t, tRes - .25), -2);
+    shock(t, tNon + .1, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 9. L'ALIMENT LE PLUS CONTRÔLÉ DE FRANCE… MAIS PAS PARFAIT =======================
+S(T.ctrl, T.cta, (cam, a) => {
+  const tCtl = Wt('contrôlé'), tPar = Wt('parfait.');
+  bg(cam);
+  const tag = chip(cam, 'EAU DU ROBINET', BLUE_D, CREAM, 46);
+  const head = title(cam, ["L'ALIMENT", ['LE PLUS', GREEN], ['CONTRÔLÉ', GREEN]], { size: 112, shadow: 0, sw: 14 });
+  const f = faucet(cam);
+  const lens = el('g', {}, cam); emoji(lens, '🔬', 150);
+  const st = stamp(cam, 'MAIS PAS PARFAIT', RED, 70);
+  return t => {
+    tag.update(CX, 210, pop(t, a + .05), -2);
+    at(head, CX, 450, pop(t, a + .2, .4) * (1 + .05 * hit(t, tCtl + .2, .3)), -2);
+    at(f.g, CX + 20, 860, .8 * pop(t, a + .3, .4), 0); f.drop(t);
+    at(lens, CX + 250, 760 + Math.sin(t * 3) * 8, pop(t, tCtl - .1), -12);
+    st.update(CX, 1090, t, tPar - .1, -5);
+    shock(t, tPar + .05, .25, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. ET TOI ? Robinet ou bouteille ================================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tToi = Wt('toi ?'), tRob = Wt('Robinet'), tOu = Wt('ou', 1, a), tBou = Wt('bouteille ?'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const L = el('rect', { x: 0, width: 540, height: H, fill: GREEN }, cam);
+  const R = el('rect', { x: 540, width: 540, height: H, fill: RED }, cam);
+  el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+  const q = title(cam, [['ET TOI ?', CREAM]], { size: 120 });
+  const f = faucet(cam), b = bottle(cam);
+  const lT = el('g', {}, cam), rT = el('g', {}, cam);
+  txt(lT, 'ROBINET', { size: 62, fill: CREAM, sw: 14, shadow: 10 });
+  txt(rT, 'BOUTEILLE', { size: 54, fill: CREAM, sw: 14, shadow: 10 });
+  const vs = el('g', {}, cam); el('circle', { r: 66, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'OU', { size: 56, fill: CREAM }).t.setAttribute('y', 20);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 200);
+  const ring = el('circle', { fill: 'none', stroke: CREAM, 'stroke-width': 10 }, cam);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    const kIn = p(t, a - .05, a + .35, E.out5);
+    set(L, { y: fmt(-H * (1 - kIn)) }); set(R, { y: fmt(H * (1 - kIn)) });
+    at(q, 540, 270, pop(t, tToi - .2), -2);
+    at(f.g, 300, 560, .55 * pop(t, tRob - .15), Math.sin(t * 4) * 3); f.drop(t);
+    at(b.g, 780, 560, .55 * pop(t, tBou - .15), Math.sin(t * 4 + 1) * 4); b.dots(0);
+    at(lT, 270, 800, pop(t, tRob - .1), -4); at(rT, 780, 800, pop(t, tBou - .1), 4);
+    at(vs, 540, 600, pop(t, tOu - .05), 0);
+    const kb = pop(t, tDis - .3, .4);
+    at(bub, 540, 1010, kb * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    const rp = ((t - tDis) * .9) % 1;
+    set(ring, { cx: 540, cy: 1000, r: fmt(90 + rp * 130), opacity: fmt(t > tDis ? (1 - rp) * .8 : 0) });
+    at(cta, CX, 1310, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+    shock(t, tBou, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à « Dis-le en commentaire » : ensuite la carte dit la même chose que la voix
+captions({ until: tDis });
+start();
+})();
+</script>
+</body>
+</html>
