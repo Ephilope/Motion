@@ -16,10 +16,10 @@
 (async () => {
 const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, bubble, emoji, burst, sparkles, bg, newId } = Motion;
 await setup({
-  duration: 69,
+  duration: 66.5,
   words: window.WORDS,
   audio: 'assets/voix_loyer.mp3',
-  emojis: '🏠👨👩🧮💥🔒👷⏱️👶🤝💶📊💬👇👆✅',
+  emojis: '🏠👨👩🧮💥🔒👷⏱️👶🤝💶📊💬👇',
 });
 const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
 const YELLOW = '#FFD23F', SKIN = '#F2C49B';
@@ -133,7 +133,7 @@ const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
 const T = {
   stat: Wt('En') - .25, c1: Wt('Camp') - .25, a11: Wt('Un', 1, 15) - .25, a12: Wt('Deux') - .25, a13: Wt('Trois') - .25,
   c2: Wt('Camp', 2) - .25, a21: Wt('Un', 1, 37) - .25, a22: Wt('Deux', 1, 45) - .25, a23: Wt('Trois', 2) - .25,
-  cta: Wt('Et', 1, 59) - .25, end: Wt('Abonne-toi') - .25,
+  cta: Wt('Et', 1, 59) - .25,
 };
 const tDis = Wt('Dis-le');
 
@@ -143,7 +143,7 @@ S(0, T.stat, (cam) => {
   const tIl = Wt('Il'), tLoy = Wt('loyer'), tMoi = Wt('moitié-moitié.');
   bg(cam);
   const tag = chip(cam, 'LOYER EN COUPLE 🏠', RED, CREAM, 46);
-  const head = title(cam, ['MOITIÉ-MOITIÉ', ['NORMAL ?', RED]], { size: 88 });
+  const head = title(cam, ['MOITIÉ-MOITIÉ', ['NORMAL ?', RED]], { size: 88, shadow: 0 });
   const her = payslip(cam, 'ELLE', '1 500 €', RED), him = payslip(cam, 'LUI', '4 000 €', GREEN);
   const r = rent(cam, '600 €', '600 €', .5, false);
   const st = stamp(cam, '50 / 50', RED, 80);
@@ -335,7 +335,7 @@ argScene(T.a23, T.cta, { camp: 2, n: 3, lines: [['UNE', CREAM], ['ÉQUIPE', CREA
 } });
 
 // ====== 11. LE DÉBAT : 50/50 ou au prorata ? ==============================================
-S(T.cta, T.end, (cam, a) => {
+S(T.cta, M.DUR, (cam, a) => {
   const tToi = Wt('toi ?'), tMoi = Wt('moitié-moitié,'), tOu = Wt('ou', 1, a), tPro = Wt('prorata ?'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
   const L = el('rect', { x: 0, width: 540, height: H, fill: RED }, cam);
   const R = el('rect', { x: 540, width: 540, height: H, fill: GREEN }, cam);
@@ -375,33 +375,6 @@ S(T.cta, T.end, (cam, a) => {
     shock(t, tPro, .25, .4);
   };
 }, { swipe: RED });
-
-// ====== 12. ABONNE-TOI : un nouveau débat chaque jour ======================================
-S(T.end, M.DUR, (cam, a) => {
-  const tAbo = Wt('Abonne-toi :'), tDeb = Wt('débat');
-  bg(cam);
-  const ser = chip(cam, 'QUI A RAISON ?', INK, CREAM, 50);
-  const head = title(cam, ['UN DÉBAT', ['CHAQUE JOUR', GREEN]], { size: 104 });
-  const btn = el('g', {}, cam), btnIn = el('g', {}, btn);
-  card(btnIn, -330, -75, 660, 150, RED, 75, 12, 8);
-  const plus = el('g', {}, btnIn); el('circle', { r: 46, fill: CREAM, stroke: INK, 'stroke-width': 6 }, plus); txt(plus, '+', { size: 90, fill: RED }).t.setAttribute('y', 31);
-  tf(plus, -262, 0);
-  txt(btnIn, 'ABONNE-TOI', { size: 76, fill: CREAM, sw: 12 }).g.setAttribute('transform', 'translate(52,27)');
-  const hand = el('g', {}, cam); emoji(hand, '👆', 130);
-  const ring = el('rect', { fill: 'none', stroke: RED, 'stroke-width': 10 }, cam);
-  const remind = chip(cam, '💬 50/50 OU PRORATA ?', GREEN, INK, 48);
-  return t => {
-    ser.update(CX, 260, pop(t, a + .1), -2);
-    at(head, CX, 520, pop(t, tDeb - .4, .4), -2);
-    at(btn, CX, 820, pop(t, a + .15, .4), 0); tf(btnIn, 0, 0, 1 + .05 * Math.sin(t * 8) * (t > tAbo + .4 ? 1 : 0));
-    const tap = t > tAbo + .5 ? Math.abs(Math.sin((t - tAbo - .5) * 4)) : 0;
-    at(hand, CX + 250, 930 + tap * 30, pop(t, tAbo + .3), -15);
-    const rp = ((t - tAbo - .5) * .8) % 1, on = t > tAbo + .5;
-    set(ring, { x: fmt(CX - 330 - rp * 50), y: fmt(820 - 75 - rp * 50), width: fmt(660 + rp * 100), height: fmt(150 + rp * 100), rx: fmt(75 + rp * 50), opacity: fmt(on ? (1 - rp) * .8 : 0) });
-    remind.update(CX, 1110, pop(t, tAbo + .8), -2);
-    shock(t, tAbo, .25, .4);
-  };
-}, { swipe: GREEN });
 
 // Sous-titres jusqu'à « Dis-le en commentaire » : ensuite les cartes disent la même chose que la voix
 captions({ until: tDis, active: t => t >= T.c2 + .1 && t < T.cta ? YELLOW : GREEN });   // jaune sur les fonds verts
