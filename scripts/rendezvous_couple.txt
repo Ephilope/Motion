@@ -1,0 +1,14 @@
+# Voix-off de rendezvous_couple.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+Premier rendez-vous. L'addition arrive… et tous les regards se tournent vers lui.
+Est-ce que c'est à l'homme de payer_?
+Camp numéro un_: oui, c'est à lui.
+Un_: c'est de la galanterie. Ça veut dire_: j'ai envie de te revoir.
+Deux_: c'est la tradition. Nos parents faisaient comme ça.
+Trois_: sortir la calculette dès le premier soir, ça casse la magie.
+Camp numéro deux_: non, on partage.
+Un_: elle gagne sa vie aussi. Un couple, ça commence d'égal à égal.
+Deux_: personne ne se sent redevable à la fin de la soirée.
+Trois_: c'est un premier test. Si on parle d'argent sans gêne dès le début, c'est bon signe.
+Et toi_? L'homme doit payer, ou on partage_?
+Dis-le en commentaire.
+Prochain épisode_: l'addition entre potes. Abonne-toi pour ne pas le rater.

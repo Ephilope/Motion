@@ -128,3 +128,10 @@ ffmpeg -i assets/voix_rendezvous.mp3 -i sfx.wav -filter_complex \
 ffmpeg -framerate 30 -i frames/f_%05d.jpg -i mix.wav -c:v libx264 -crf 20 -pix_fmt yuv420p \
   -c:a aac -b:a 192k -shortest rendezvous_tiktok.mp4
 ```
+
+## Version couple : l'homme doit-il payer ? (57 s)
+
+Même épisode, recentré sur le couple (un homme et une femme à table, projecteur sur lui quand l'addition arrive) et plus long : trois arguments par camp. Camp 1, « oui, c'est à lui » : galanterie, tradition, la calculette casse la magie. Camp 2, « non, on partage » : d'égal à égal, personne ne doit rien, un premier test pour parler d'argent.
+
+- **Vidéo :** `rendezvous_couple_tiktok.mp4`
+- **Source :** `rendezvous_couple.html`, voix-off `scripts/rendezvous_couple.txt`, bruitages `tools/sfx_rendezvous_couple.py`. Mêmes commandes que ci-dessus en remplaçant `rendezvous` par `rendezvous_couple` et 27 par 57.
