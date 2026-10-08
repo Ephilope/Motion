@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le chiffre sur tes œufs</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Le chiffre sur tes œufs » (charte : docs/MODELE.md).
+     Voix-off : scripts/oeufs.txt → node tools/voix.mjs oeufs
+     Chiffres et sources : en tête de scripts/oeufs.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/oeufs_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, sparkles, bg, rng } = Motion;
+await setup({
+  duration: 62.5,
+  words: window.WORDS,
+  audio: 'assets/voix_oeufs.mp3',
+  emojis: '🥚🐔🍰🍝🍽️🔒☀️🏠✅😇💬👇📦🦴🌿',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', SHELL = '#F3D9B1', GREY = '#BDB3A3';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Œuf dessiné (hauteur ≈ 2r), avec un code imprimé en rouge si fourni.
+const eggD = r => `M0,${-r} C${r * .62},${-r} ${r * .8},${r * .1} ${r * .8},${r * .3} C${r * .8},${r * .78} ${r * .42},${r} 0,${r} C${-r * .42},${r} ${-r * .8},${r * .78} ${-r * .8},${r * .3} C${-r * .8},${r * .1} ${-r * .62},${-r} 0,${-r} Z`;
+function egg(parent, r, code, fill = SHELL, shadow = true) {
+  const g = el('g', {}, parent);
+  if (shadow) el('path', { d: eggD(r), fill: INK, transform: `translate(${r * .1},${r * .1})` }, g);
+  const body = el('path', { d: eggD(r), fill, stroke: INK, 'stroke-width': Math.max(3, r * .06), 'stroke-linejoin': 'round' }, g);
+  el('ellipse', { cx: -r * .35, cy: -r * .35, rx: r * .12, ry: r * .22, fill: WHITE, opacity: .55, transform: `rotate(20 ${-r * .35} ${-r * .35})` }, g);
+  let codeT = null;
+  if (code) {
+    codeT = el('text', { 'text-anchor': 'middle', 'font-size': r * .21, y: r * .32, fill: RED, 'font-weight': 800, 'letter-spacing': 2 }, g);
+    codeT.textContent = code;
+  }
+  return { g, body, codeT };
+}
+// Poule stylisée (≈ 120 × 110), couleur du corps changeable.
+function hen(parent) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-48,10 Q-60,-30 -20,-34 Q-10,-62 18,-58 Q42,-54 40,-26 L58,-18 L40,-10 Q50,30 10,46 Q-40,52 -48,10 Z', fill: INK, transform: 'translate(7,7)' }, g);
+  const body = el('path', { d: 'M-48,10 Q-60,-30 -20,-34 Q-10,-62 18,-58 Q42,-54 40,-26 L58,-18 L40,-10 Q50,30 10,46 Q-40,52 -48,10 Z', fill: WHITE, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M8,-58 Q12,-76 20,-62 Q26,-78 30,-58', fill: RED, stroke: INK, 'stroke-width': 4, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M40,-26 L58,-18 L40,-10 Z', fill: YELLOW, stroke: INK, 'stroke-width': 4, 'stroke-linejoin': 'round' }, g);
+  el('circle', { cx: 24, cy: -34, r: 5, fill: INK }, g);
+  el('path', { d: 'M-6,46 V64 M14,44 V64', stroke: INK, 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+  return { g, color(c) { set(body, { fill: c }); } };
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  codes: Wt('3') - .2, count: Wt('Mais') - .25, hidden: Wt('Les') - .25, shelf: Wt('En', 1, 19) - .25,
+  free: Wt('Même', 1, 26) - .25, winter: Wt("L'hiver") - .25, lay: Wt('Et', 1, 40) - .25, dk: Wt('Au', 1, 47) - .25,
+  cta: Wt('Alors,') - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : le chiffre sur tes œufs ==================================================
+// Le texte est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.codes, (cam) => {
+  const tMoit = Wt('moitié'), tMan = Wt('manges.');
+  bg(cam);
+  const head = title(cam, ['LE CHIFFRE', ['SUR TES ŒUFS', RED]], { size: 112, shadow: 0, sw: 12 });
+  const e = egg(cam, 250, '3FR XYZ 01');
+  const ring = el('ellipse', { rx: 62, ry: 54, fill: 'none', stroke: RED, 'stroke-width': 12 }, cam);
+  const st = stamp(cam, 'MOINS DE LA MOITIÉ', RED, 66);
+  return t => {
+    at(head, CX, 330, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
+    at(e.g, CX, 790, 1 + .03 * Math.sin(t * 4), Math.sin(t * 2.5) * 4);
+    const kr = p(t, .5, 1.1, E.out);
+    set(ring, { cx: CX - 100, cy: 858, 'stroke-dasharray': '1000', 'stroke-dashoffset': fmt(1000 * (1 - kr)) });
+    show(ring, kr > 0);
+    st.update(CX, 1080, t, tMoit + .05, -5);
+    shock(t, tMoit + .15, .3, .6); shock(t, tMan, .2, .3);
+  };
+});
+
+// ====== 2. LES CODES : 3 cage, 2 sol, 1 plein air, 0 bio ========================================
+S(T.codes, T.count, (cam, a) => {
+  const ts = [Wt('3'), Wt('2,'), Wt('1,'), Wt('0,')];
+  const items = [['3', 'CAGE', RED], ['2', 'AU SOL', '#F39C12'], ['1', 'PLEIN AIR', '#9BCB3C'], ['0', 'BIO', GREEN]];
+  bg(cam);
+  const tag = chip(cam, 'LE 1ER CHIFFRE DU CODE', INK, CREAM, 44);
+  const rows = items.map(([d, lab, c]) => {
+    const g = el('g', {}, cam);
+    card(g, -400, -85, 800, 170, CREAM, 40, 12, 7);
+    const eg = el('g', {}, g); egg(eg, 66, null, SHELL, false); tf(eg, -300, 0);
+    const n = bigNum(g, 120, c); n.set(d); n.t.setAttribute('x', -300); n.t.setAttribute('y', 44);
+    txt(g, lab, { size: 72, anchor: 'start', fill: c, sw: 10 }).g.setAttribute('transform', 'translate(-180,26)');
+    return g;
+  });
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    rows.forEach((g, i) => { at(g, CX + (i % 2 ? 14 : -14), 420 + i * 200, pop(t, ts[i] - .2), i % 2 ? 1.5 : -1.5); show(g, t > ts[i] - .21); });
+    ts.forEach(t0 => shock(t, t0 + .1, .2, .3));
+  };
+}, { swipe: GREEN });
+
+// ====== 3. 228 ŒUFS PAR AN, moins de la moitié en boîte =========================================
+S(T.count, T.hidden, (cam, a) => {
+  const t228 = Wt('228'), tMoit = Wt('moitié', 1, a), tBoi = Wt('boîte.');
+  bg(cam);
+  const n = el('g', {}, cam), nS = bigNum(n, 150, INK);
+  const lab = el('g', {}, cam); txt(lab, 'ŒUFS PAR AN ET PAR FRANÇAIS', { size: 44 });
+  const grid = [];
+  for (let i = 0; i < 228; i++) { const g = el('g', {}, cam); const e = egg(g, 20, null, SHELL, false); grid.push({ g, e }); }
+  const box = chip(cam, '📦 EN BOÎTE : 45 %', GREEN, CREAM, 52);
+  return t => {
+    const k = p(t, t228 - .4, t228 + .5, E.out);
+    at(n, CX, 330, pop(t, t228 - .4, .35), -2); nS.set(String(Math.round(228 * k)));
+    at(lab, CX, 440, pop(t, t228), -1);
+    const green = t > tMoit;
+    grid.forEach((o, i) => {
+      const col = i % 19, row = Math.floor(i / 19);
+      at(o.g, CX - 9 * 44 + col * 44, 540 + row * 46, pop(t, t228 - .3 + i * .004, .25));
+      set(o.e.body, { fill: green && i < 103 ? GREEN : green ? GREY : SHELL });
+    });
+    box.update(CX, 1140, pop(t, tBoi - .3), -2);
+    shock(t, tMoit + .1, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 4. LES ŒUFS CACHÉS : gâteaux, pâtes, mayo, resto ========================================
+S(T.hidden, T.shelf, (cam, a) => {
+  const ts = [Wt('gâteaux,'), Wt('pâtes,'), Wt('mayo,'), Wt('resto.')], tSans = Wt('Sans');
+  bg(cam);
+  const head = title(cam, ['LES ŒUFS', ['CACHÉS', RED]], { size: 120, shadow: 0, sw: 12 });
+  const items = [['🍰', 'GÂTEAUX'], ['🍝', 'PÂTES'], [null, 'MAYO'], ['🍽️', 'RESTO']].map(([e, s], i) => {
+    const g = el('g', {}, cam), inner = el('g', {}, g);
+    card(inner, -190, -170, 380, 340, CREAM, 36, 12, 7);
+    if (e) { const eg = el('g', {}, inner); emoji(eg, e, 150); tf(eg, 0, -40); }
+    else {   // pot de mayonnaise dessiné
+      const j = el('g', { transform: 'translate(0,-40)' }, inner);
+      el('rect', { x: -62, y: -78, width: 124, height: 30, rx: 8, fill: RED, stroke: INK, 'stroke-width': 6 }, j);
+      el('rect', { x: -70, y: -50, width: 140, height: 130, rx: 26, fill: '#FFF1B8', stroke: INK, 'stroke-width': 6 }, j);
+      el('rect', { x: -52, y: -6, width: 104, height: 46, rx: 8, fill: GREEN, stroke: INK, 'stroke-width': 4 }, j);
+    }
+    txt(inner, s, { size: 54 }).g.setAttribute('transform', 'translate(0,120)');
+    const q = el('g', {}, inner); el('circle', { r: 42, fill: RED, stroke: INK, 'stroke-width': 6 }, q);
+    txt(q, '?', { size: 62, fill: CREAM }).t.setAttribute('y', 22); tf(q, 150, -140);
+    return { g, inner, q };
+  });
+  const st = stamp(cam, 'AUCUN CHIFFRE', RED, 80);
+  return t => {
+    at(head, CX, 300, pop(t, a + .1, .4), -2);
+    items.forEach((it, i) => {
+      at(it.g, CX + (i % 2 ? 205 : -205), 620 + Math.floor(i / 2) * 390, 1, i % 2 ? 2 : -2);
+      tf(it.inner, 0, 0, pop(t, ts[i] - .25)); show(it.g, t > ts[i] - .26);
+      tf(it.q, 150, -140, pop(t, tSans - .1 + i * .06), 0);
+    });
+    st.update(CX, 820, t, tSans + .1, -6);
+    shock(t, tSans + .25, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 5. EN RAYON 18 %, PRODUCTION 28 % : la différence part dans l'industrie ====================
+S(T.shelf, T.free, (cam, a) => {
+  const t18 = Wt('18 %'), t28 = Wt('28 %'), tDev = Wt('Devine');
+  bg(cam);
+  const tag = chip(cam, 'ŒUFS DE CAGE (CODE 3)', RED, CREAM, 46);
+  const bars = [['EN RAYON', 18, t18], ['PRODUCTION', 28, t28]].map(([lab, v, t0], i) => {
+    const g = el('g', {}, cam);
+    txt(g, lab, { size: 52, anchor: 'start' }).g.setAttribute('transform', 'translate(-400,-70)');
+    card(g, -400, -40, 800, 110, CREAM, 24, 10, 7);
+    const fill = el('rect', { x: -400, y: -40, height: 110, rx: 24, fill: RED, stroke: INK, 'stroke-width': 7 }, g);
+    const n = bigNum(g, 80, CREAM); n.t.setAttribute('y', 44);
+    return { g, fill, n, v, t0 };
+  });
+  const gap = el('rect', { y: 700, height: 110, fill: YELLOW, stroke: INK, 'stroke-width': 7, 'stroke-dasharray': '18 10' }, cam);
+  const q = el('g', {}, cam); txt(q, 'DEVINE OÙ ÇA PASSE…', { size: 66, fill: YELLOW, sw: 12 });
+  const hid = [['🍰', -260], ['🍝', 0], ['🍽️', 260]].map(([e, dx]) => { const g = el('g', {}, cam); emoji(g, e, 120); return { g, dx }; });
+  const SC = 800 / 40;    // 40 % = toute la barre
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    bars.forEach((b, i) => {
+      at(b.g, CX, 470 + i * 270, pop(t, b.t0 - .5, .35));
+      const k = p(t, b.t0 - .1, b.t0 + .5, E.out);
+      set(b.fill, { width: fmt(Math.max(1, b.v * SC * k)) }); show(b.fill, k > 0);
+      b.n.set(Math.round(b.v * k) + ' %'); b.n.t.setAttribute('x', fmt(-400 + b.v * SC * k + 110));
+      b.n.t.setAttribute('fill', INK);
+    });
+    const kg = p(t, t28 + .6, t28 + 1, E.out);
+    set(gap, { x: fmt(CX - 400 + 18 * SC), width: fmt(10 * SC * kg) }); show(gap, kg > 0);
+    at(q, CX, 920, pop(t, tDev - .1));
+    hid.forEach((h, i) => at(h.g, CX + h.dx, 1060 + Math.sin(t * 5 + i) * 10, pop(t, tDev + .3 + i * .12), Math.sin(t * 3 + i) * 8));
+    shock(t, t28 + .3, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. « PLEIN AIR »… enfermées 16 semaines =================================================
+S(T.free, T.winter, (cam, a) => {
+  const tPet = Wt('lignes.'), tGri = Wt('grippe'), tEnf = Wt('enfermées'), t16 = Wt('16 semaines,'), tRes = Wt('pleinair', 2);
+  bg(cam);
+  const boxG = el('g', {}, cam);
+  card(boxG, -330, -120, 660, 240, CREAM, 30, 12, 7);
+  const sun = el('g', {}, boxG); emoji(sun, '☀️', 110); tf(sun, -220, 0);
+  txt(boxG, 'PLEIN AIR', { size: 88, fill: GREEN, sw: 12 }).g.setAttribute('transform', 'translate(60,32)');
+  const small = el('g', {}, cam); txt(small, '*VOIR LES PETITES LIGNES', { size: 34, fill: '#777' });
+  const shed = el('g', {}, cam);
+  el('path', { d: 'M-300,-60 L0,-200 L300,-60 V180 H-300 Z', fill: INK, transform: 'translate(12,12)' }, shed);
+  el('path', { d: 'M-300,-60 L0,-200 L300,-60 V180 H-300 Z', fill: '#D9CBB5', stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, shed);
+  const door = el('rect', { x: -90, y: 20, width: 180, height: 160, fill: INK }, shed);
+  const doorC = el('rect', { x: -90, y: 20, height: 160, fill: RED, stroke: INK, 'stroke-width': 6 }, shed);
+  const lock = el('g', {}, shed); emoji(lock, '🔒', 80);
+  const hens = [0, 1, 2].map(() => hen(cam));
+  const cnt = el('g', {}, cam); card(cnt, -340, -80, 680, 160, CREAM, 30, 12, 7);
+  const cS = bigNum(cnt, 76, RED);
+  const ok = el('g', {}, cam); el('circle', { r: 60, fill: GREEN, stroke: INK, 'stroke-width': 7 }, ok);
+  el('path', { d: 'M-26,2 L-6,24 L30,-22', fill: 'none', stroke: CREAM, 'stroke-width': 14, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, ok);
+  return t => {
+    at(boxG, CX, 300, pop(t, a + .05, .4) * (1 + .06 * hit(t, tRes + .2, .3)), -2);
+    at(small, CX + 120, 450, pop(t, tPet - .3), -2);
+    at(shed, CX, 760, pop(t, tGri - .3, .4));
+    const kd = p(t, tEnf - .1, tEnf + .3, E.out);
+    set(doorC, { width: fmt(Math.max(1, 180 * kd)) }); show(doorC, kd > 0);
+    tf(lock, 0, 100, pop(t, tEnf + .25));
+    hens.forEach((h, i) => {
+      const inside = p(t, tEnf - .4, tEnf, E.inOut);
+      const x0 = CX - 300 + i * 300, y0 = 1010;
+      at(h.g, lerp(x0, CX - 40 + i * 40, inside), lerp(y0, 860, inside) - Math.abs(Math.sin(t * 7 + i)) * 12 * (1 - inside), pop(t, tGri - .2 + i * .08) * (1 - inside * .6));
+      show(h.g, inside < .99);
+    });
+    const kc = p(t, t16 - .1, t16 + .8, E.out);
+    at(cnt, CX, 1050, pop(t, t16 - .3), 2); cS.set(Math.round(16 * kc) + ' SEMAINES');
+    at(ok, CX + 320, 185, pop(t, tRes), 0);
+    shock(t, tEnf + .3, .25, .5); shock(t, tRes + .2, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 7. L'HIVER DERNIER : six mois de confinement ===========================================
+S(T.winter, T.lay, (cam, a) => {
+  const tFr = Wt('françaises'), tConf = Wt('confinées'), tSix = Wt('six');
+  bg(cam);
+  const tag = chip(cam, "L'HIVER DERNIER EN FRANCE", INK, CREAM, 44);
+  const months = ['OCT', 'NOV', 'DÉC', 'JAN', 'FÉV', 'MARS', 'AVR'];
+  const cells = months.map((m, i) => {
+    const g = el('g', {}, cam);
+    const bgc = card(g, -62, -80, 124, 160, CREAM, 18, 8, 6);
+    txt(g, m, { size: 34 }).g.setAttribute('transform', 'translate(0,-30)');
+    const l = el('g', {}, g); emoji(l, '🔒', 56); tf(l, 0, 30);
+    return { g, bgc, l };
+  });
+  const n = el('g', {}, cam), nS = bigNum(n, 220, RED); nS.set('6 MOIS');
+  const sub = el('g', {}, cam); txt(sub, 'VOLAILLES CONFINÉES', { size: 60 });
+  const dates = chip(cam, '22 OCT. 2025 → 27 AVR. 2026', INK, CREAM, 40);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    cells.forEach((c, i) => {
+      at(c.g, CX - 3 * 135 + i * 135, 470, pop(t, a + .2 + i * .05, .3), (i % 2 ? 2 : -2));
+      const on = t > tConf - .2 + i * .08;
+      set(c.bgc, { fill: on ? RED : CREAM }); tf(c.l, 0, 30, on ? pop(t, tConf - .2 + i * .08, .25) : .001);
+    });
+    at(sub, CX, 640, pop(t, tFr - .2), -1);
+    at(n, CX, 850, pop(t, tSix - .15, .35), -3);
+    dates.update(CX, 1070, pop(t, tSix + .3), 2);
+    shock(t, tSix + .1, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. 300 œufs par an, contre une vingtaine ================================================
+S(T.lay, T.dk, (cam, a) => {
+  const tChi = Wt('chiffre,', 1, a), t300 = Wt('300'), tSau = Wt('sauvage,'), tVin = Wt('vingtaine.');
+  bg(cam);
+  const head = title(cam, ['QUEL QUE SOIT', ['LE CHIFFRE', RED]], { size: 90, shadow: 0, sw: 12 });
+  const R = rng(9), rain = [];
+  for (let i = 0; i < 18; i++) { const g = el('g', {}, cam); egg(g, 24, null, SHELL, false); rain.push({ g, x: R() * 300 - 150, ph: R() }); }
+  const cols = [['AUJOURD\'HUI', 300, RED, t300], ['POULE SAUVAGE', 20, GREEN, tVin]].map(([lab, v, c, t0], i) => {
+    const g = el('g', {}, cam);
+    const hn = hen(g); tf(hn.g, 0, -40, 1.5);
+    txt(g, lab, { size: 38 }).g.setAttribute('transform', 'translate(0,90)');
+    const n = bigNum(g, 130, c);
+    const nG = el('g', {}, g); nG.appendChild(n.t); tf(nG, 0, 230);
+    txt(g, 'ŒUFS / AN', { size: 40, fill: '#666' }).g.setAttribute('transform', 'translate(0,330)');
+    return { g, n, v, t0 };
+  });
+  const vs = el('g', {}, cam); el('circle', { r: 60, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'VS', { size: 50, fill: CREAM }).t.setAttribute('y', 18);
+  return t => {
+    at(head, CX, 290, pop(t, a + .1, .4), -2);
+    cols.forEach((c, i) => {
+      at(c.g, CX + (i ? 250 : -250), 640, pop(t, i ? tSau - .3 : t300 - .5, .35), i ? 2 : -2);
+      const k = p(t, c.t0 - .2, c.t0 + .5, E.out); c.n.set(String(Math.round(c.v * k)));
+    });
+    rain.forEach((r, i) => {
+      const u = ((t - t300) * .9 + r.ph) % 1;
+      at(r.g, CX - 250 + r.x, lerp(400, 560, u), t > t300 - .1 ? 1 : .001, u * 200 + i * 20);
+      r.g.setAttribute('opacity', fmt(Math.min(1, (1 - u) * 3, u * 6)));
+    });
+    at(vs, CX, 870, pop(t, tSau - .1), 0);
+    shock(t, t300 + .2, .3, .5); shock(t, tVin + .2, .25, .3);
+  };
+}, { swipe: RED });
+
+// ====== 9. Au Danemark, 85 % des poules ont un os fracturé, en cage comme en bio ===============
+S(T.dk, T.cta, (cam, a) => {
+  const t85 = Wt('85 %'), tFra = Wt('fracturé.'), tCage = Wt('cage', 1, a), tBio = Wt('bio.', 1, a);
+  bg(cam);
+  const tag = chip(cam, '🇩🇰 ÉTUDE : 4 800 POULES', INK, CREAM, 44);
+  const n = el('g', {}, cam), nS = bigNum(n, 220, RED);
+  const lab = el('g', {}, cam); txt(lab, 'AVEC UN OS FRACTURÉ', { size: 58 });
+  const hens = []; for (let i = 0; i < 20; i++) hens.push(hen(cam));
+  const eq = el('g', {}, cam);
+  const c1 = chip(eq, 'CAGE', RED, CREAM, 60), c2 = chip(eq, 'BIO', GREEN, CREAM, 60);
+  const eqT = el('g', {}, eq); txt(eqT, '=', { size: 120, fill: INK }).t.setAttribute('y', 40);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    const k = p(t, t85 - .2, t85 + .5, E.out);
+    at(n, CX, 400, pop(t, t85 - .3, .35), -3); nS.set(Math.round(85 * k) + ' %');
+    at(lab, CX, 540, pop(t, tFra - .4), -1);
+    hens.forEach((h, i) => {
+      at(h.g, CX - 2 * 180 + (i % 5) * 180, 670 + Math.floor(i / 5) * 105, .72 * pop(t, a + .3 + i * .03, .3));
+      h.color(i < 17 && t > t85 + .3 + i * .03 ? RED : WHITE);
+    });
+    at(eq, CX, 1130, 1, -2);
+    c1.update(-200, 0, pop(t, tCage - .2)); c2.update(200, 0, pop(t, tBio - .2)); tf(eqT, 0, 0, pop(t, tBio));
+    shock(t, t85 + .3, .3, .6); shock(t, tBio + .1, .25, .3);
+  };
+}, { swipe: RED });
+
+// ====== 10. Vraie info ou bonne conscience ? ====================================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tChi = Wt('chiffre', 1, a), tVra = Wt('vraie'), tBon = Wt('bonne'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const L = el('rect', { x: 0, width: 540, height: H, fill: GREEN }, cam);
+  const R = el('rect', { x: 540, width: 540, height: H, fill: RED }, cam);
+  el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+  const q = title(cam, [['LE CHIFFRE', CREAM], ['SUR LA BOÎTE ?', CREAM]], { size: 84 });
+  const yes = el('g', {}, cam), no = el('g', {}, cam);
+  const yE = el('g', {}, yes); emoji(yE, '✅', 150);
+  const nE = el('g', {}, no); emoji(nE, '😇', 150);
+  const yT = el('g', {}, yes), nT = el('g', {}, no);
+  title(yT, [['VRAIE', CREAM], ['INFO', CREAM]], { size: 76, shadow: 10 });
+  title(nT, [['BONNE', CREAM], ['CONSCIENCE', CREAM]], { size: 58, shadow: 10 });
+  const vs = el('g', {}, cam); el('circle', { r: 66, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'OU', { size: 56, fill: CREAM }).t.setAttribute('y', 20);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 200);
+  const ring = el('circle', { fill: 'none', stroke: CREAM, 'stroke-width': 10 }, cam);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    const kIn = p(t, a - .05, a + .35, E.out5);
+    set(L, { y: fmt(-H * (1 - kIn)) }); set(R, { y: fmt(H * (1 - kIn)) });
+    at(q, 540, 300, pop(t, tChi - .3), -2);
+    tf(yes, 270, 640); tf(no, 790, 640);
+    tf(yE, 0, -120, pop(t, tVra - .15), Math.sin(t * 5) * 8); tf(nE, 0, -120, pop(t, tBon - .15), Math.sin(t * 5 + 1) * 8);
+    tf(yT, 0, 100, pop(t, tVra - .1), -4); tf(nT, 0, 100, pop(t, tBon - .1), 4);
+    at(vs, 540, 640, pop(t, tVra + .2), 0);
+    const kb = pop(t, tDis - .3, .4);
+    at(bub, 540, 1000, kb * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    const rp = ((t - tDis) * .9) % 1;
+    set(ring, { cx: 540, cy: 990, r: fmt(90 + rp * 130), opacity: fmt(t > tDis ? (1 - rp) * .8 : 0) });
+    at(cta, CX, 1310, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+    shock(t, tBon + .3, .25, .4);
+  };
+}, { swipe: RED });
+
+// Sous-titres jusqu'à « Dis-le en commentaire »
+captions({ until: tDis });
+start();
+})();
+</script>
+</body>
+</html>
