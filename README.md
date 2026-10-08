@@ -108,3 +108,23 @@ ffmpeg -i assets/voix_electrique.mp3 -i sfx.wav -filter_complex \
 ffmpeg -framerate 30 -i frames/f_%05d.jpg -i mix.wav -c:v libx264 -crf 20 -pix_fmt yuv420p \
   -c:a aac -b:a 192k -shortest electrique_tiktok.mp4
 ```
+
+---
+
+# Qui paie au premier rendez-vous ? (TikTok, 9:16)
+
+Épisode 1 de la série « Qui a raison ? ». Une vidéo verticale de 27 s (1080×1920, 30 i/s, H.264) avec la charte habituelle (`docs/MODELE.md`). Accroche affichée dès la première image (« Partager l'addition ? » puis tampon « RED FLAG ? »), un argument juste pour chaque camp (celui qui invite paie / chacun sa part), le débat « tu paies ou tu partages ? » et une fin qui annonce l'épisode suivant (l'addition entre potes) avec un bouton « Abonne-toi ».
+
+- **Vidéo :** `rendezvous_tiktok.mp4` (voix + bruitages)
+- **Source :** `rendezvous.html`, voix-off `scripts/rendezvous.txt` → `assets/voix_rendezvous.mp3`, bruitages `tools/sfx_rendezvous.py`
+
+```bash
+node tools/voix.mjs rendezvous
+PAGE=rendezvous.html node tools/render.mjs frames 30
+python3 tools/sfx_rendezvous.py sfx.wav
+ffmpeg -i assets/voix_rendezvous.mp3 -i sfx.wav -filter_complex \
+  "[0:a]aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur=27[v];[1:a]volume=0.32[s];[v][s]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5[a]" \
+  -map "[a]" -t 27 mix.wav
+ffmpeg -framerate 30 -i frames/f_%05d.jpg -i mix.wav -c:v libx264 -crf 20 -pix_fmt yuv420p \
+  -c:a aac -b:a 192k -shortest rendezvous_tiktok.mp4
+```

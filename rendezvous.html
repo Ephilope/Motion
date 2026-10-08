@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qui paie au premier rendez-vous ?</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Qui paie au premier rendez-vous ? », épisode 1 de la série « Qui a raison ? » (charte : docs/MODELE.md).
+     Voix-off : scripts/rendezvous.txt → node tools/voix.mjs rendezvous -->
+<script src="lib/motion.js"></script>
+<script src="assets/rendezvous_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, burst, sparkles, bg, newId } = Motion;
+await setup({
+  duration: 27,
+  words: window.WORDS,
+  audio: 'assets/voix_rendezvous.mp3',
+  emojis: '💘🚩✂️💳🌹💪⚖️🤝💬👇🥗🦞👆',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+// Ticket de restaurant centré sur (0,0), 440 × 560. Renvoie l'id du dessin (pour le découper en deux).
+function ticketDef() {
+  const id = newId('ticket'), g = el('g', { id }, M.defs);
+  const w = 440, h = 560;
+  // rectangle à bas dentelé
+  let d = `M${-w / 2},${-h / 2} H${w / 2} V${h / 2 - 22}`;
+  for (let i = 14; i >= 0; i--) d += ` L${fmt(-w / 2 + i * w / 14)},${fmt(h / 2 - (i % 2 ? 0 : 22))}`;
+  d += ' Z';
+  el('path', { d, fill: WHITE, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  const t = (s, y, o = {}) => { const e = el('text', { x: o.x ?? 0, y, 'text-anchor': o.anchor || 'middle', 'font-size': o.size || 34, fill: o.fill || INK, ...(o.cls ? { class: o.cls } : {}) }, g); e.textContent = s; };
+  t('ADDITION', -180, { size: 56 });
+  el('line', { x1: -180, x2: 180, y1: -150, y2: -150, stroke: INK, 'stroke-width': 4, 'stroke-dasharray': '10 8' }, g);
+  [['2 PLATS', '52 €', -90], ['VIN', '24 €', -30], ['2 DESSERTS', '16 €', 30]].forEach(([a, b, y]) => { t(a, y, { anchor: 'start', x: -180, size: 36 }); t(b, y, { anchor: 'end', x: 180, size: 36 }); });
+  el('line', { x1: -180, x2: 180, y1: 80, y2: 80, stroke: INK, 'stroke-width': 4, 'stroke-dasharray': '10 8' }, g);
+  t('TOTAL', 160, { anchor: 'start', x: -180, size: 50 }); t('92 €', 160, { anchor: 'end', x: 180, size: 60, fill: RED });
+  return id;
+}
+// Ticket coupé en deux : deux moitiés (clipPath) qui peuvent s'écarter.
+function splitTicket(parent) {
+  const id = ticketDef(), g = el('g', {}, parent);
+  const shadow = el('rect', { x: -220 + 12, y: -280 + 12, width: 440, height: 538, fill: INK }, g);
+  const halves = [-1, 1].map(s => {
+    const cid = newId('clip');
+    const cp = el('clipPath', { id: cid }, M.defs);
+    el('rect', { x: s < 0 ? -240 : 0, y: -300, width: 240, height: 600 }, cp);
+    const h = el('g', {}, g);
+    const sh = el('rect', { x: s < 0 ? -220 + 12 : 12, y: -280 + 12, width: 220, height: 538, fill: INK }, h);
+    el('use', { href: '#' + id, 'clip-path': `url(#${cid})` }, h);
+    return { h, sh };
+  });
+  const cut = el('line', { x1: 0, x2: 0, y1: -280, stroke: RED, 'stroke-width': 8, 'stroke-dasharray': '18 12', 'stroke-linecap': 'round' }, g);
+  return {
+    g,
+    // k : écart des moitiés (0 → collées), c : progression du trait de coupe (0→1)
+    update(x, y, s, r, k, c) {
+      tf(g, x, y, s, r);
+      show(shadow, k < .01);
+      halves.forEach((o, i) => { tf(o.h, (i ? 1 : -1) * 70 * k, 0, 1, (i ? 1 : -1) * 6 * k); show(o.sh, k >= .01); });
+      set(cut, { y2: fmt(-280 + 560 * c) }); show(cut, c > 0 && k < .5);
+    },
+  };
+}
+// Carte bancaire stylisée, centrée sur (0,0), 400 × 250.
+function bankCard(parent, fill) {
+  const g = el('g', {}, parent);
+  card(g, -200, -125, 400, 250, fill, 26, 12, 7);
+  el('rect', { x: -200, y: -70, width: 400, height: 50, fill: INK }, g);
+  card(g, -150, 0, 80, 60, YELLOW, 10, 0, 5);
+  [0, 1, 2, 3].forEach(i => el('rect', { x: -40 + i * 52, y: 72, width: 40, height: 14, rx: 7, fill: CREAM }, g));
+  return g;
+}
+// Étiquette d'argument : emoji + texte dans une carte, qui arrive en pop.
+function arg(parent, emo, str, fill = CREAM, color = INK, size = 52) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  const w = t.w + 190, h = size * 2;
+  card(inner, -w / 2, -h / 2, w, h, fill, h / 2, 10, 7);
+  inner.appendChild(t.g);
+  t.g.setAttribute('transform', `translate(${fmt(45)},${fmt(size * .36)})`);
+  const e = el('g', {}, inner); emoji(e, emo, size * 1.35); tf(e, -w / 2 + 70, 0);
+  return { g, update(x, y, k, r = 0) { show(g, k > .001); tf(g, x, y, 1, r); tf(inner, 0, 0, k); } };
+}
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 110) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);   // impulsion pour addShake
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = { camp1: Wt('Camp') - .25, camp2: Wt('Camp', 2) - .25, cta: Wt('Alors') - .25, next: Wt('Prochain') - .25 };
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : partager l'addition, red flag ? =============================
+// Tout le texte est déjà à l'écran à la première image (beaucoup regardent sans le son).
+S(0, T.camp1, (cam) => {
+  const tPart = Wt('partager'), tAdd = Wt("l'addition,"), tRed = Wt('red');
+  bg(cam);
+  const rdv = chip(cam, '1ER RENDEZ-VOUS 💘', RED, CREAM, 50);
+  const head = title(cam, ['PARTAGER', ['L\'ADDITION ?', RED]], { size: 100 });
+  const tk = splitTicket(cam);
+  const sc = el('g', {}, cam); emoji(sc, '✂️', 110);
+  const halves = [-1, 1].map(() => { const g = el('g', {}, cam); txt(g, '46 €', { size: 76, fill: GREEN, sw: 12, shadow: 8 }); return g; });
+  const flag = el('g', {}, cam); emoji(flag, '🚩', 150);
+  const st = stamp(cam, 'RED FLAG ?', RED, 120);
+  const bst = burst(cam, 16, RED);
+  return t => {
+    rdv.update(CX, 230, 1, -2);
+    at(head, CX, 420, lerp(1.12, 1, p(t, 0, .35, E.out)) * (1 + .015 * Math.sin(t * 6)), -2);
+    const c = p(t, tPart - .15, tAdd, E.inOut), k = p(t, tAdd - .05, tAdd + .35, E.back);
+    tk.update(CX, 900, .88, 2 - 2 * k, k, c);
+    at(sc, CX + 30, lerp(650, 1160, c), (c > 0 && c < 1) ? 1 : 0, 90 + Math.sin(t * 30) * 12);
+    halves.forEach((g, i) => at(g, CX + (i ? 1 : -1) * 170, 640, pop(t, tAdd + .2 + i * .1), (i ? 6 : -6)));
+    at(flag, 870, 780, pop(t, tRed - .1) * (1 + .05 * Math.sin(t * 9)), Math.sin(t * 7) * 10);
+    st.update(CX, 1000, t, tRed - .05, -8);
+    bst.update(CX, 1000, clamp((t - tRed + .05) / .5));
+    addShake(hit(t, tRed, .3) * .8);
+  };
+});
+
+// ====== 2. CAMP 1 : celui qui invite paie ========================================
+S(T.camp1, T.camp2, (cam, a) => {
+  const tInv = Wt('invite'), tPaie = Wt('paie.'), tEle = Wt('élégant,'), tEff = Wt('effort.');
+  bg(cam);
+  const tag = chip(cam, 'CAMP 1', RED, CREAM, 56);
+  const head = title(cam, ['QUI INVITE', ['PAIE', RED]], { size: 140 });
+  const bc = bankCard(cam, RED);
+  const sp = sparkles(cam, 8, 3, 260);
+  const a1 = arg(cam, '🌹', "C'EST ÉLÉGANT");
+  const a2 = arg(cam, '💪', 'ÇA MONTRE UN EFFORT', CREAM, INK, 46);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .05), -3);
+    at(head, CX, 470, pop(t, tInv - .3, .4), -2);
+    const kc = p(t, tPaie - .3, tPaie + .1, E.out5);
+    at(bc, lerp(1300, CX, kc), 780 + Math.sin(t * 4) * 6, .9, lerp(30, -8, kc));
+    sp.update(CX, 780, pop(t, tPaie + .05) * (1 - p(t, tEle + .5, tEle + .9)), t);
+    a1.update(CX, 970, pop(t, tEle - .1), -2);
+    a2.update(CX, 1090, pop(t, tEff - .2), 2);
+    addShake(hit(t, tPaie + .05, .25) * .5);
+  };
+}, { swipe: RED });
+
+// ====== 3. CAMP 2 : chacun paie sa part ==========================================
+S(T.camp2, T.cta, (cam, a) => {
+  const tCha = Wt('chacun'), tPart = Wt('part.'), tEga = Wt("l'égalité,"), tRed = Wt('redevable.');
+  bg(cam, GREEN, false);
+  const tag = chip(cam, 'CAMP 2', INK, CREAM, 56);
+  const head = title(cam, [['CHACUN', CREAM], ['SA PART', CREAM]], { size: 140 });
+  const tk = splitTicket(cam);
+  const fifty = [-1, 1].map(() => { const g = el('g', {}, cam); txt(g, '50 %', { size: 70, fill: CREAM, sw: 12, shadow: 8 }); return g; });
+  const a1 = arg(cam, '⚖️', "C'EST L'ÉGALITÉ");
+  const a2 = arg(cam, '🤝', 'PERSONNE NE DOIT RIEN', CREAM, INK, 46);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .05), 3);
+    at(head, CX, 470, pop(t, tCha - .3, .4), 2);
+    const k = p(t, tPart - .2, tPart + .15, E.back);
+    tk.update(CX, 770, .6 * pop(t, tCha), 0, k, p(t, tCha, tPart - .2));
+    fifty.forEach((g, i) => at(g, CX + (i ? 1 : -1) * 310, 770, pop(t, tPart + i * .1), i ? 8 : -8));
+    a1.update(CX, 1000, pop(t, tEga - .1), 2);
+    a2.update(CX, 1110, pop(t, tRed - .5), -2);
+    addShake(hit(t, tPart, .25) * .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. LE DÉBAT : tu paies ou tu partages ? ====================================
+S(T.cta, T.next, (cam, a) => {
+  const tToi = Wt('toi ?'), tPaies = Wt('paies,'), tOu = Wt('ou', 1, a), tParts = Wt('partages ?'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const L = el('rect', { x: 0, width: 540, height: H, fill: RED }, cam);
+  const R = el('rect', { x: 540, width: 540, height: H, fill: GREEN }, cam);
+  el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+  const q = title(cam, [['ALORS TOI ?', CREAM]], { size: 110 });
+  const no = el('g', {}, cam), yes = el('g', {}, cam);
+  const nE = el('g', {}, no); emoji(nE, '💳', 170);
+  const yE = el('g', {}, yes); emoji(yE, '🤝', 170);
+  const nTx = el('g', {}, no), yTx = el('g', {}, yes);
+  ['TU', 'PAIES'].forEach((s, i) => txt(nTx, s, { size: 72, fill: CREAM, sw: 14, shadow: 10 }).g.setAttribute('transform', `translate(0,${i * 80})`));
+  ['TU', 'PARTAGES'].forEach((s, i) => txt(yTx, s, { size: 72, fill: CREAM, sw: 14, shadow: 10 }).g.setAttribute('transform', `translate(0,${i * 80})`));
+  const vs = el('g', {}, cam); el('circle', { r: 66, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'OU', { size: 56, fill: CREAM }).t.setAttribute('y', 20);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 200);
+  const ring = el('circle', { fill: 'none', stroke: CREAM, 'stroke-width': 10 }, cam);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    const kIn = p(t, a - .05, a + .35, E.out5);
+    set(L, { y: fmt(-H * (1 - kIn)) }); set(R, { y: fmt(H * (1 - kIn)) });
+    at(q, 540, 270, pop(t, tToi - .25), -2);
+    tf(no, 270, 600, 1, 0); tf(yes, 790, 600, 1, 0);
+    tf(nE, 0, -150, pop(t, tPaies - .15), Math.sin(t * 5) * 8); tf(yE, 0, -150, pop(t, tParts - .15), Math.sin(t * 5 + 1) * 8);
+    tf(nTx, 0, 50, pop(t, tPaies - .1), -4); tf(yTx, 0, 50, pop(t, tParts - .1), 4);
+    tf(vs, 540, 620, pop(t, tOu - .05), 0);
+    const kb = pop(t, tDis - .3, .4);
+    tf(bub, 540, 1000, kb * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    const rp = ((t - tDis) * .9) % 1;
+    set(ring, { cx: 540, cy: 990, r: fmt(90 + rp * 130), opacity: fmt(t > tDis ? (1 - rp) * .8 : 0) });
+    tf(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+    addShake(hit(t, tParts, .25) * .4);
+  };
+}, { swipe: RED });
+
+// ====== 5. LA SUITE : prochain épisode + abonne-toi ================================
+S(T.next, M.DUR, (cam, a) => {
+  const tAdd = Wt("l'addition", 1, a), tPotes = Wt('potes.'), tAbo = Wt('Abonne-toi');
+  bg(cam);
+  const ser = chip(cam, 'QUI A RAISON ? · ÉPISODE 2', INK, CREAM, 44);
+  const ep = el('g', {}, cam);
+  card(ep, -420, -230, 840, 460, CREAM, 36, 14, 8);
+  const head = title(ep, ["L'ADDITION", ['ENTRE POTES', GREEN]], { size: 96, shadow: 8 });
+  tf(head, 0, -80);
+  const sal = el('g', {}, ep); emoji(sal, '🥗', 120);
+  const lob = el('g', {}, ep); emoji(lob, '🦞', 120);
+  const vsT = el('g', {}, ep); txt(vsT, 'VS', { size: 60, fill: RED });
+  const btn = el('g', {}, cam), btnIn = el('g', {}, btn);
+  card(btnIn, -330, -75, 660, 150, RED, 75, 12, 8);
+  const plus = el('g', {}, btnIn); el('circle', { r: 46, fill: CREAM, stroke: INK, 'stroke-width': 6 }, plus); txt(plus, '+', { size: 90, fill: RED }).t.setAttribute('y', 31);
+  tf(plus, -262, 0);
+  txt(btnIn, 'ABONNE-TOI', { size: 76, fill: CREAM, sw: 12 }).g.setAttribute('transform', 'translate(52,27)');
+  const hand = el('g', {}, cam); emoji(hand, '👆', 130);
+  const ring = el('rect', { fill: 'none', stroke: RED, 'stroke-width': 10 }, cam);
+  const remind = chip(cam, '💬 TU PAIES OU TU PARTAGES ?', GREEN, INK, 44);
+  return t => {
+    ser.update(CX, 240, pop(t, a + .1), -2);
+    at(ep, CX, 600, pop(t, tAdd - .25, .4), 1);
+    at(sal, -170, 120, pop(t, tPotes - .1), Math.sin(t * 5) * 8);
+    at(lob, 170, 120, pop(t, tPotes), Math.sin(t * 5 + 2) * 8);
+    at(vsT, 0, 140, pop(t, tPotes + .1));
+    const kb = pop(t, tAbo - .2, .4);
+    at(btn, CX, 1010, kb, 0); tf(btnIn, 0, 0, 1 + .05 * Math.sin(t * 8) * (t > tAbo + .4 ? 1 : 0));
+    const tap = t > tAbo + .5 ? Math.abs(Math.sin((t - tAbo - .5) * 4)) : 0;
+    at(hand, CX + 250, 1120 + tap * 30, pop(t, tAbo + .3), -15);
+    const rp = ((t - tAbo - .5) * .8) % 1, on = t > tAbo + .5;
+    set(ring, { x: fmt(CX - 330 - rp * 50), y: fmt(1010 - 75 - rp * 50), width: fmt(660 + rp * 100), height: fmt(150 + rp * 100), rx: fmt(75 + rp * 50), opacity: fmt(on ? (1 - rp) * .8 : 0) });
+    remind.update(CX, 1330, pop(t, tAbo + .8), -2);
+    addShake(hit(t, tAbo, .25) * .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à « Dis-le en commentaire » : ensuite les cartes disent la même chose que la voix
+captions({ until: tDis, active: t => t >= T.camp2 + .1 && t < T.cta ? YELLOW : GREEN });
+start();
+})();
+</script>
+</body>
+</html>

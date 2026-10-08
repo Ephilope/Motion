@@ -1,0 +1,9 @@
+# Voix-off de rendezvous.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+Au premier rendez-vous, proposer de partager l'addition, c'est un red flag_?
+Camp numéro un_: celui qui invite paie.
+C'est élégant, et ça montre qu'on fait un effort.
+Camp numéro deux_: chacun paie sa part.
+C'est l'égalité, et personne ne se sent redevable.
+Alors toi_? Tu paies, ou tu partages_?
+Dis-le en commentaire.
+Prochain épisode_: l'addition entre potes. Abonne-toi pour ne pas le rater.
