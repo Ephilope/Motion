@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Footballeur pro : tous millionnaires ?</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Footballeur pro : tous millionnaires ? » (charte : docs/MODELE.md).
+     Voix-off : scripts/foot.txt → node tools/voix.mjs foot
+     Chiffres et sources : en tête de scripts/foot.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/foot_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, sparkles, bg, rng } = Motion;
+await setup({
+  duration: 54.5,
+  words: window.WORDS,
+  audio: 'assets/voix_foot.mp3',
+  emojis: '⚽💸💰⏱️🏠🎂🎉🏖️🏟️❤️🙅💬👇',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+const sp = n => Math.round(n).toLocaleString('fr-FR').replace(/\s/g, ' ');
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return s => { t.textContent = s; };
+}
+// Silhouette de joueur (tête + maillot), ~90 × 120, centrée.
+function figure(parent) {
+  const g = el('g', {}, parent);
+  const head = el('circle', { cy: -32, r: 26, fill: '#F2C49B', stroke: INK, 'stroke-width': 6 }, g);
+  const body = el('path', { d: 'M-42,58 V30 Q-42,0 -12,0 H12 Q42,0 42,30 V58 Z', stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return { g, color(c) { set(body, { fill: c }); } };
+}
+// Fiche de paie : bandeau de couleur, montant brut mensuel.
+function payslip(parent, who, amount, color) {
+  const g = el('g', {}, parent);
+  card(g, -190, -150, 380, 300, WHITE, 18, 12, 7);
+  el('path', { d: 'M-190,-132 Q-190,-150 -172,-150 H172 Q190,-150 190,-132 V-70 H-190 Z', fill: color, stroke: INK, 'stroke-width': 7 }, g);
+  txt(g, who, { size: 46, fill: CREAM, sw: 10 }).g.setAttribute('transform', 'translate(0,-94)');
+  txt(g, amount, { size: 80 }).g.setAttribute('transform', 'translate(0,30)');
+  txt(g, 'BRUT PAR MOIS', { size: 30, fill: '#777' }).g.setAttribute('transform', 'translate(0,95)');
+  return g;
+}
+// Maillot vu de dos, avec un nom et un numéro.
+function jersey(parent, name, num, fill = RED) {
+  const g = el('g', {}, parent);
+  const d = 'M-120,-200 L-60,-220 Q0,-190 60,-220 L120,-200 L230,-110 L170,-30 L130,-60 L130,220 L-130,220 L-130,-60 L-170,-30 L-230,-110 Z';
+  el('path', { d, fill: INK, transform: 'translate(12,12)' }, g);
+  el('path', { d, fill, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, g);
+  txt(g, name, { size: 50, fill: CREAM, sw: 10 }).g.setAttribute('transform', 'translate(0,-100)');
+  txt(g, num, { size: 220, fill: CREAM, sw: 14 }).g.setAttribute('transform', 'translate(0,130)');
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  smic: Wt('En') - .25, mill: Wt('Footballeur', 2) - .25, funnel: Wt('Et') - .25, sacr: Wt('Il') - .25,
+  career: Wt('Et', 2) - .25, passion: Wt('Alors') - .25, cta: Wt('Et', 1, 48) - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : 6 € par seconde =====================================================
+// Le texte est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.smic, (cam) => {
+  const t6 = Wt('6 €'), tSec = Wt('seconde.');
+  bg(cam);
+  const tag = chip(cam, 'RONALDO ⚽', INK, CREAM, 50);
+  const n = el('g', {}, cam), nS = bigNum(n, 300, GREEN); nS('6 €');
+  const l2 = el('g', {}, cam); txt(l2, 'PAR SECONDE', { size: 110 });
+  const ctr = el('g', {}, cam); card(ctr, -300, -80, 600, 160, CREAM, 30, 12, 7);
+  const cS = bigNum(ctr, 90, INK);
+  const bills = [0, 1, 2, 3, 4, 5].map(() => { const g = el('g', {}, cam); emoji(g, '💸', 110); return g; });
+  return t => {
+    tag.update(CX, 220, 1, -3);
+    at(n, CX, 470, lerp(1.2, 1, p(t, 0, .3, E.out)) * (1 + .12 * hit(t, t6 + .1, .25)), -3);
+    at(l2, CX, 680, lerp(1.2, 1, p(t, 0, .3, E.out)), -2);
+    at(ctr, CX, 930, 1, 2); cS('+ ' + (6.34 * t).toFixed(2).replace('.', ',') + ' €');
+    bills.forEach((g, i) => { const u = (t * .7 + i / 6) % 1; at(g, 160 + i * 140, lerp(300, 1150, u), .8, Math.sin(t * 3 + i) * 25); g.setAttribute('opacity', fmt(Math.min(1, (1 - u) * 3) * .9)); });
+    shock(t, t6 + .1, .25, .5); shock(t, tSec + .1, .25, .3);
+  };
+});
+
+// ====== 2. LIGUE 3 AU SMIC, Ronaldo le gagne en moins de 5 minutes ========================
+S(T.smic, T.mill, (cam, a) => {
+  const tDiv = Wt('division'), tSmic = Wt('SMIC.'), tRon = Wt('Ronaldo', 2), tMin = Wt('minutes.');
+  bg(cam);
+  const tag = chip(cam, 'TROISIÈME DIVISION', INK, CREAM, 46);
+  const slip = payslip(cam, 'LIGUE 3', '1 867 €', RED);
+  const st = stamp(cam, 'LE SMIC', RED, 80);
+  const clock = el('g', {}, cam); card(clock, -360, -95, 720, 190, CREAM, 30, 12, 7);
+  const ce = el('g', {}, clock); emoji(ce, '⏱️', 110); tf(ce, -270, 0);
+  const cl = el('g', {}, clock); txt(cl, 'RONALDO', { size: 40, anchor: 'start' }); tf(cl, -190, -30);
+  const cv = el('g', {}, clock); tf(cv, 70, 45); const cS = bigNum(cv, 80, GREEN);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    at(slip, CX, 560, pop(t, tDiv - .3, .4), -3);
+    st.update(CX + 190, 790, t, tSmic + .05, 8);
+    const k = p(t, tRon, tMin + .2, E.inOut);
+    at(clock, CX, 1040, pop(t, tRon - .2, .4), 2);
+    const s = Math.round(295 * k);
+    cS(`${Math.floor(s / 60)} MIN ${String(s % 60).padStart(2, '0')}`);
+    shock(t, tSmic + .15, .3, .6); shock(t, tMin + .2, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 3. PAS FORCÉMENT MILLIONNAIRE : presque 1 pro sur 2 sous 1 000 $ ====================
+S(T.mill, T.funnel, (cam, a) => {
+  const tMil = Wt('millionnaire.'), tDeux = Wt('deux'), t1000 = Wt('1 000 dollars');
+  bg(cam);
+  const head = title(cam, ['PAS FORCÉMENT', ['MILLIONNAIRE', RED]], { size: 96, shadow: 0, sw: 12 });
+  const figs = []; for (let i = 0; i < 10; i++) figs.push(figure(cam));
+  const lab = el('g', {}, cam); const lS = bigNum(lab, 120, RED); lS('< 1 000 $');
+  const sub = chip(cam, 'PAR MOIS · 1 PRO SUR 2', INK, CREAM, 44);
+  return t => {
+    at(head, CX, 360, pop(t, a + .1, .4) * (1 + .05 * hit(t, tMil + .2, .3)), -2);
+    figs.forEach((f, i) => {
+      const bad = i % 2 === 0 && t > tDeux;
+      at(f.g, CX + (i % 5 - 2) * 160, 620 + Math.floor(i / 5) * 160, pop(t, a + .4 + i * .04, .3) * (bad ? 1.1 : 1));
+      f.color(bad ? RED : GREEN);
+    });
+    at(lab, CX, 960, pop(t, t1000 - .2, .35), -3);
+    sub.update(CX, 1100, pop(t, t1000 + .3), 2);
+    shock(t, tDeux + .1, .25, .4); shock(t, t1000, .25, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. L'ENTONNOIR : 110 000 gamins → 90 pros ==========================================
+S(T.funnel, T.sacr, (cam, a) => {
+  const t110 = Wt('110 000'), tDix = Wt('dix'), t90 = Wt('90'), tPros = Wt('pros.');
+  bg(cam);
+  const tag = chip(cam, 'EN FRANCE', INK, CREAM, 46);
+  const n = el('g', {}, cam), nS = bigNum(n, 170, INK);
+  const lab = el('g', {}, cam); const labT = txt(lab, 'GAMINS DE 10 ANS', { size: 46 });
+  const fun = el('g', {}, cam);
+  el('path', { d: 'M-330,0 H330 L60,330 V420 H-60 V330 Z', fill: INK, transform: 'translate(12,12)' }, fun);
+  el('path', { d: 'M-330,0 H330 L60,330 V420 H-60 V330 Z', fill: CREAM, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, fun);
+  const R = rng(5), balls = [];
+  for (let i = 0; i < 40; i++) { const g = el('g', {}, cam); emoji(g, '⚽', 54); balls.push({ g, x: -290 + R() * 580, ph: R() }); }
+  const out = el('g', {}, cam); emoji(out, '⚽', 90);
+  return t => {
+    tag.update(CX, 210, pop(t, a + .05), -2);
+    const k = p(t, t90 - .5, t90 + .2, E.inOut);
+    at(n, CX, 360, pop(t, t110 - .3, .35) * (1 + .15 * hit(t, t90 + .2, .3)), -2);
+    nS(t < t90 - .5 ? '110 000' : sp(lerp(110000, 90, Math.pow(k, .25))));
+    n.firstChild.setAttribute('fill', t > t90 ? GREEN : INK);
+    labT.t.textContent = t > t90 + .2 ? 'DEVIENDRONT PROS' : 'GAMINS DE 10 ANS';
+    at(lab, CX, 470, pop(t, tDix - .3), -1);
+    at(fun, CX, 560, pop(t, a + .3, .4), 0);
+    balls.forEach((b, i) => {
+      const u = ((t - a) * .5 + b.ph) % 1, y = 520 + 380 * u, x = b.x * Math.max(.15, 1 - u * 1.1);
+      at(b.g, CX + x, y, pop(t, a + .4 + i * .01, .3) * (1 - .5 * u), t * 120 + i * 30);
+      b.g.setAttribute('opacity', fmt(u > .85 ? 0 : 1));
+    });
+    at(out, CX, 1050 + Math.abs(Math.sin(t * 6)) * -30, pop(t, tPros - .2, .4), t * 200);
+    shock(t, t90 + .2, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 5. LES SACRIFICES ====================================================================
+S(T.sacr, T.career, (cam, a) => {
+  const ts = [Wt('famille'), Wt('anniversaires,'), Wt('soirées,'), Wt('vacances.')], tJours = Wt('jours,');
+  bg(cam);
+  const head = title(cam, ['LES', ['SACRIFICES', RED]], { size: 120, shadow: 0, sw: 12 });
+  const items = [['🏠', 'LA FAMILLE À 15 ANS'], ['🎂', 'LES ANNIVERSAIRES'], ['🎉', 'LES SOIRÉES'], ['🏖️', 'LES VACANCES']].map(([e, s]) => {
+    const g = el('g', {}, cam), inner = el('g', {}, g);
+    card(inner, -380, -58, 760, 116, CREAM, 58, 10, 7);
+    const eg = el('g', {}, inner); emoji(eg, e, 70); tf(eg, -310, 0);
+    txt(inner, s, { size: 46, anchor: 'start' }).g.setAttribute('transform', 'translate(-250,17)');
+    const strike = el('line', { x1: -260, y1: 0, x2: -260, y2: 0, stroke: RED, 'stroke-width': 7, 'stroke-linecap': 'round', opacity: .9 }, inner);
+    return { g, inner, strike };
+  });
+  const ch = chip(cam, '⚽ ENTRAÎNEMENT TOUS LES JOURS', INK, CREAM, 40);
+  return t => {
+    at(head, CX, 320, pop(t, a + .1, .4), -2);
+    items.forEach((it, i) => {
+      at(it.g, CX, 520 + i * 140, 1, i % 2 ? 1.5 : -1.5); tf(it.inner, 0, 0, pop(t, ts[i] - .25)); show(it.g, t > ts[i] - .26);
+      const k = p(t, ts[i] + .3, ts[i] + .6, E.out); set(it.strike, { x2: fmt(lerp(-260, 340, k)) }); show(it.strike, k > 0);
+    });
+    ch.update(CX, 1110, pop(t, tJours - .5), -2);
+    ts.forEach(t0 => shock(t, t0 + .45, .2, .25));
+  };
+}, { swipe: RED });
+
+// ====== 6. UNE CARRIÈRE DE 4 À 6 ANS ==========================================================
+S(T.career, T.passion, (cam, a) => {
+  const tCar = Wt('carrière'), t46 = Wt('4 à 6 ans.'), tTrois = Wt('trois'), tSai = Wt('saison');
+  bg(cam);
+  const tag = chip(cam, 'UNE CARRIÈRE', INK, CREAM, 46);
+  const n = el('g', {}, cam), nS = bigNum(n, 170, RED); nS('4 À 6 ANS');
+  const life = el('g', {}, cam);
+  card(life, -400, -50, 800, 100, CREAM, 50, 10, 7);
+  const seg = el('rect', { x: -400 + 800 * 20 / 80, y: -50, height: 100, fill: GREEN, stroke: INK, 'stroke-width': 7 }, life);
+  const ticks = [0, 20, 40, 60, 80].map(v => { const g = el('g', {}, life); txt(g, v + ' ANS', { size: 30, fill: '#666' }); tf(g, -400 + v * 10, 95); return g; });
+  const lifeL = el('g', {}, cam); txt(lifeL, 'TA VIE', { size: 44 });
+  const st = stamp(cam, '1 SUR 3 : UNE SEULE SAISON', RED, 54);
+  return t => {
+    tag.update(CX, 210, pop(t, a + .05), -2);
+    at(n, CX, 400, pop(t, t46 - .2, .35), -3);
+    at(lifeL, CX, 620, pop(t, tCar - .2), -1);
+    at(life, CX, 740, pop(t, tCar - .1, .4), 0);
+    const k = p(t, t46, t46 + .5, E.out); set(seg, { width: fmt(Math.max(1, 50 * k)) }); show(seg, k > 0);
+    st.update(CX, 1030, t, tSai - .2, -4);
+    shock(t, t46 + .3, .3, .5); shock(t, tSai, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. LA PASSION ==========================================================================
+S(T.passion, T.cta, (cam, a) => {
+  const tPour = Wt('sacrifier ?'), tSal = Wt('salaire.'), tBal = Wt('ballon,'), tSta = Wt('stade,'), tNom = Wt('nom.');
+  bg(cam, GREEN, false);
+  const q = title(cam, [['POURQUOI', CREAM], ['TOUT SACRIFIER ?', CREAM]], { size: 96 });
+  const sal = el('g', {}, cam); emoji(sal, '💰', 160);
+  const cross = el('path', { d: 'M-90,-90 L90,90 M90,-90 L-90,90', stroke: RED, 'stroke-width': 26, 'stroke-linecap': 'round' }, cam);
+  const ball = el('g', {}, cam); emoji(ball, '⚽', 170);
+  const stad = el('g', {}, cam); emoji(stad, '🏟️', 170);
+  const jer = jersey(cam, 'TON NOM', '10');
+  const sk = sparkles(cam, 10, 4, 280);
+  return t => {
+    at(q, CX, 330, pop(t, a + .1, .4), -2);
+    const gone = p(t, tBal - .3, tBal, E.in);
+    at(sal, CX, 760, pop(t, tSal - .4) * (1 - gone), 0);
+    at(cross, CX, 760, pop(t, tSal - .1) * (1 - gone), 0);
+    const kJ = pop(t, tNom - .4, .4);
+    at(ball, CX - 220, 650 - Math.abs(Math.sin(t * 5)) * 60, pop(t, tBal - .2) * (1 - .3 * kJ), t * 90);
+    at(stad, CX + 220, 640, pop(t, tSta - .2) * (1 - .3 * kJ), Math.sin(t * 3) * 5);
+    at(jer, CX, 880, .85 * kJ, Math.sin(t * 2.5) * 3);
+    sk.update(CX, 860, kJ, t);
+    shock(t, tNom, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. ET TOI ? Tu aurais tout sacrifié pour ta passion ? ===============================
+S(T.cta, M.DUR, (cam, a) => {
+  const tToi = Wt('toi ?'), tSac = Wt('sacrifié'), tPas = Wt('passion ?'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const L = el('rect', { x: 0, width: 540, height: H, fill: GREEN }, cam);
+  const R = el('rect', { x: 540, width: 540, height: H, fill: RED }, cam);
+  el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+  const q = title(cam, [['TOUT SACRIFIER', CREAM], ['POUR TA PASSION ?', CREAM]], { size: 74 });
+  const yes = el('g', {}, cam), no = el('g', {}, cam);
+  const yE = el('g', {}, yes); emoji(yE, '❤️', 160);
+  const nE = el('g', {}, no); emoji(nE, '🙅', 160);
+  const yT = el('g', {}, yes), nT = el('g', {}, no);
+  txt(yT, 'OUI', { size: 90, fill: CREAM, sw: 14, shadow: 10 });
+  txt(nT, 'JAMAIS', { size: 76, fill: CREAM, sw: 14, shadow: 10 });
+  const vs = el('g', {}, cam); el('circle', { r: 66, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'OU', { size: 56, fill: CREAM }).t.setAttribute('y', 20);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 200);
+  const ring = el('circle', { fill: 'none', stroke: CREAM, 'stroke-width': 10 }, cam);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    const kIn = p(t, a - .05, a + .35, E.out5);
+    set(L, { y: fmt(-H * (1 - kIn)) }); set(R, { y: fmt(H * (1 - kIn)) });
+    at(q, 540, 290, pop(t, tToi - .2), -2);
+    tf(yes, 270, 610); tf(no, 790, 610);
+    tf(yE, 0, -110, pop(t, tSac - .15), Math.sin(t * 5) * 8); tf(nE, 0, -110, pop(t, tSac), Math.sin(t * 5 + 1) * 8);
+    tf(yT, 0, 110, pop(t, tPas - .2), -4); tf(nT, 0, 110, pop(t, tPas - .1), 4);
+    at(vs, 540, 620, pop(t, tSac + .1), 0);
+    const kb = pop(t, tDis - .3, .4);
+    at(bub, 540, 1000, kb * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    const rp = ((t - tDis) * .9) % 1;
+    set(ring, { cx: 540, cy: 990, r: fmt(90 + rp * 130), opacity: fmt(t > tDis ? (1 - rp) * .8 : 0) });
+    at(cta, CX, 1310, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+    shock(t, tPas, .25, .4);
+  };
+}, { swipe: RED });
+
+// Sous-titres jusqu'à « Dis-le en commentaire » ; mot prononcé en jaune sur le fond vert de la scène 7
+captions({ until: tDis, active: t => t >= T.passion + .1 && t < T.cta ? YELLOW : GREEN });
+start();
+})();
+</script>
+</body>
+</html>

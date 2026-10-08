@@ -1,0 +1,14 @@
+# Voix-off de foot.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources : Ronaldo ~200 M€/an à Al-Nassr (Marca via beIN Sports, 2026) = 6,34 €/s ; SMIC brut 1 867 €/mois (juin 2026) ;
+# contrat fédéral National 1 / Ligue 3 : minimum = SMIC pour un joueur sans passé pro (kohenavocats.com, financemercato.fr) ;
+# Richard Duhautois, économiste (Paris Match, juin 2026) : ~48 % des pros < 1 000 $/mois (FIFPro), 110 000 U11 → ~90 pros en France,
+# carrière moyenne 4 à 6 ans, un tiers ne joue qu'une saison au plus haut niveau, ~20 % en grande difficulté financière après (les syndicats disent 40 à 60 %).
+Ronaldo gagne 6_€[six euros] par seconde.
+En France, un footballeur pro de troisième division peut être payé au SMIC. Ronaldo, lui, gagne ce SMIC en moins de cinq minutes.
+Footballeur pro, ce n'est pas forcément millionnaire. Dans le monde, presque un pro sur deux gagne moins de 1_000_dollars[mille dollars] par mois.
+Et pour en arriver là_? Sur 110_000[cent dix mille] gamins qui jouent au foot à dix ans, environ 90[quatre-vingt-dix] deviendront pros.
+Il faut quitter sa famille à 15_ans,[quinze ans,] s'entraîner tous les jours, rater les anniversaires, les soirées, les vacances.
+Et la carrière dure en moyenne 4_à_6_ans.[quatre à six ans.] Un joueur sur trois ne fait qu'une seule saison au plus haut niveau.
+Alors pourquoi tout sacrifier_? Parce qu'au départ, personne ne rêve d'un salaire. On rêve d'un ballon, d'un stade, et d'entendre son nom.
+Et toi_? Tu aurais tout sacrifié pour ta passion_?
+Dis-le en commentaire.
