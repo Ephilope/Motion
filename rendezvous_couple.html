@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qui paie au premier rendez-vous ? (version couple)</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Qui paie au premier rendez-vous ? », version couple et longue (3 arguments par camp),
+     épisode 1 de la série « Qui a raison ? » (charte : docs/MODELE.md).
+     Voix-off : scripts/rendezvous_couple.txt → node tools/voix.mjs rendezvous_couple -->
+<script src="lib/motion.js"></script>
+<script src="assets/rendezvous_couple_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, bubble, emoji, burst, sparkles, bg, newId } = Motion;
+await setup({
+  duration: 57,
+  words: window.WORDS,
+  audio: 'assets/voix_rendezvous_couple.mp3',
+  emojis: '💘💕💳🍷👴👵🌙👍🤝💬👇🥗🦞👆💼🌹',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', SKIN = '#F2C49B';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+// Ticket de restaurant centré sur (0,0), 440 × 560. Renvoie l'id du dessin (pour le découper en deux).
+function ticketDef() {
+  const id = newId('ticket'), g = el('g', { id }, M.defs);
+  const w = 440, h = 560;
+  // rectangle à bas dentelé
+  let d = `M${-w / 2},${-h / 2} H${w / 2} V${h / 2 - 22}`;
+  for (let i = 14; i >= 0; i--) d += ` L${fmt(-w / 2 + i * w / 14)},${fmt(h / 2 - (i % 2 ? 0 : 22))}`;
+  d += ' Z';
+  el('path', { d, fill: WHITE, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  const t = (s, y, o = {}) => { const e = el('text', { x: o.x ?? 0, y, 'text-anchor': o.anchor || 'middle', 'font-size': o.size || 34, fill: o.fill || INK, ...(o.cls ? { class: o.cls } : {}) }, g); e.textContent = s; };
+  t('ADDITION', -180, { size: 56 });
+  el('line', { x1: -180, x2: 180, y1: -150, y2: -150, stroke: INK, 'stroke-width': 4, 'stroke-dasharray': '10 8' }, g);
+  [['2 PLATS', '52 €', -90], ['VIN', '24 €', -30], ['2 DESSERTS', '16 €', 30]].forEach(([a, b, y]) => { t(a, y, { anchor: 'start', x: -180, size: 36 }); t(b, y, { anchor: 'end', x: 180, size: 36 }); });
+  el('line', { x1: -180, x2: 180, y1: 80, y2: 80, stroke: INK, 'stroke-width': 4, 'stroke-dasharray': '10 8' }, g);
+  t('TOTAL', 160, { anchor: 'start', x: -180, size: 50 }); t('92 €', 160, { anchor: 'end', x: 180, size: 60, fill: RED });
+  return id;
+}
+// Ticket coupé en deux : deux moitiés (clipPath) qui peuvent s'écarter.
+function splitTicket(parent) {
+  const id = ticketDef(), g = el('g', {}, parent);
+  const shadow = el('rect', { x: -220 + 12, y: -280 + 12, width: 440, height: 538, fill: INK }, g);
+  const halves = [-1, 1].map(s => {
+    const cid = newId('clip');
+    const cp = el('clipPath', { id: cid }, M.defs);
+    el('rect', { x: s < 0 ? -240 : 0, y: -300, width: 240, height: 600 }, cp);
+    const h = el('g', {}, g);
+    const sh = el('rect', { x: s < 0 ? -220 + 12 : 12, y: -280 + 12, width: 220, height: 538, fill: INK }, h);
+    el('use', { href: '#' + id, 'clip-path': `url(#${cid})` }, h);
+    return { h, sh };
+  });
+  const cut = el('line', { x1: 0, x2: 0, y1: -280, stroke: RED, 'stroke-width': 8, 'stroke-dasharray': '18 12', 'stroke-linecap': 'round' }, g);
+  return {
+    g,
+    // k : écart des moitiés (0 → collées), c : progression du trait de coupe (0→1)
+    update(x, y, s, r, k, c) {
+      tf(g, x, y, s, r);
+      show(shadow, k < .01);
+      halves.forEach((o, i) => { tf(o.h, (i ? 1 : -1) * 70 * k, 0, 1, (i ? 1 : -1) * 6 * k); show(o.sh, k >= .01); });
+      set(cut, { y2: fmt(-280 + 560 * c) }); show(cut, c > 0 && k < .5);
+    },
+  };
+}
+// Carte bancaire stylisée, centrée sur (0,0), 400 × 250.
+function bankCard(parent, fill) {
+  const g = el('g', {}, parent);
+  card(g, -200, -125, 400, 250, fill, 26, 12, 7);
+  el('rect', { x: -200, y: -70, width: 400, height: 50, fill: INK }, g);
+  card(g, -150, 0, 80, 60, YELLOW, 10, 0, 5);
+  [0, 1, 2, 3].forEach(i => el('rect', { x: -40 + i * 52, y: 72, width: 40, height: 14, rx: 7, fill: CREAM }, g));
+  return g;
+}
+// Étiquette d'argument : emoji + texte dans une carte, qui arrive en pop.
+function arg(parent, emo, str, fill = CREAM, color = INK, size = 52) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  const w = t.w + 190, h = size * 2;
+  card(inner, -w / 2, -h / 2, w, h, fill, h / 2, 10, 7);
+  inner.appendChild(t.g);
+  t.g.setAttribute('transform', `translate(${fmt(45)},${fmt(size * .36)})`);
+  const e = el('g', {}, inner); emoji(e, emo, size * 1.35); tf(e, -w / 2 + 70, 0);
+  return { g, update(x, y, k, r = 0) { show(g, k > .001); tf(g, x, y, 1, r); tf(inner, 0, 0, k); } };
+}
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 110) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);   // impulsion pour addShake
+// Personnage en buste, de face, centré sur le cou ; ~300 px de large, de y = -175 (cheveux) à 260 (bas du buste).
+function person(parent, shirt, hair, long) {
+  const g = el('g', {}, parent);
+  if (long) el('path', { d: 'M-104,-80 Q-130,60 -92,120 L92,120 Q130,60 104,-80 Z', fill: hair, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round', transform: 'translate(0,-70)' }, g);
+  const body = 'M-150,260 L-150,150 Q-150,60 -60,50 L60,50 Q150,60 150,150 L150,260 Z';
+  el('path', { d: body, fill: INK, transform: 'translate(10,10)' }, g);
+  el('path', { d: body, fill: shirt, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  el('rect', { x: -28, y: 0, width: 56, height: 56, fill: SKIN, stroke: INK, 'stroke-width': 6 }, g);
+  const head = el('g', { transform: 'translate(0,-70)' }, g);
+  el('circle', { r: 95, fill: SKIN, stroke: INK, 'stroke-width': 7 }, head);
+  el('path', { d: long ? 'M-100,-5 Q-104,-108 0,-106 Q104,-108 100,-5 Q70,-75 0,-68 Q-50,-64 -100,-5 Z' : 'M-97,-25 Q-100,-108 0,-106 Q100,-108 97,-25 Q78,-62 40,-60 Q0,-78 -40,-60 Q-78,-62 -97,-25 Z', fill: hair, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, head);
+  const pupils = [-35, 35].map(x => { el('circle', { cx: x, cy: 0, r: 21, fill: WHITE, stroke: INK, 'stroke-width': 5 }, head); return el('circle', { r: 10, fill: INK }, head); });
+  [-58, 58].forEach(x => el('circle', { cx: x, cy: 34, r: 14, fill: RED, opacity: .35 }, head));
+  const mouth = el('path', { fill: 'none', stroke: INK, 'stroke-width': 7, 'stroke-linecap': 'round' }, head);
+  const sweat = el('path', { d: 'M0,-26 Q18,0 0,12 Q-18,0 0,-26 Z', fill: '#7FD3FF', stroke: INK, 'stroke-width': 4 }, head);
+  const MOUTH = { smile: 'M-30,40 Q0,66 30,40', flat: 'M-24,50 H24', o: 'M-12,50 a12,14 0 1,0 24,0 a12,14 0 1,0 -24,0' };
+  return {
+    g,
+    // look : -1 (gauche) à 1 (droite), down : 0 à 1 ; mouth : smile | flat | o ; sw : goutte de sueur 0→1
+    update(x, y, s = 1, o = {}) {
+      tf(g, x, y + (o.bob || 0), s, o.r || 0);
+      pupils.forEach((e, i) => set(e, { cx: fmt((i ? 35 : -35) + 9 * (o.look || 0)), cy: fmt(7 * (o.down || 0)) }));
+      set(mouth, { d: MOUTH[o.mouth || 'smile'], fill: o.mouth === 'o' ? INK : 'none' });
+      show(sweat, (o.sw || 0) > .01); tf(sweat, 92, -40 + 30 * (o.sw || 0), o.sw || 0);
+    },
+  };
+}
+// Table de restaurant vue de face (nappe, bougie, verres), bord supérieur en (0,0).
+function table(parent) {
+  const g = el('g', {}, parent);
+  card(g, -480, 0, 960, 200, WHITE, 14, 12, 7);
+  el('rect', { x: -480, y: 150, width: 960, height: 50, fill: RED, stroke: INK, 'stroke-width': 7 }, g);
+  card(g, -20, -110, 40, 110, CREAM, 6, 0, 6);
+  const flame = el('path', { d: 'M0,-46 Q22,-14 0,0 Q-22,-14 0,-46 Z', fill: YELLOW, stroke: INK, 'stroke-width': 5 }, g);
+  [-300, 300].forEach(x => { const e = el('g', {}, g); emoji(e, '🍷', 96); tf(e, x, -46); });
+  return { g, update(x, y, t) { tf(g, x, y); tf(flame, Math.sin(t * 11) * 2, -110, 1 + .08 * Math.sin(t * 17), Math.sin(t * 9) * 6); } };
+}
+// Petit ticket « ADDITION » posé sur une soucoupe.
+function bill(parent) {
+  const g = el('g', {}, parent);
+  el('ellipse', { cx: 6, cy: 10, rx: 150, ry: 34, fill: INK }, g);
+  el('ellipse', { rx: 150, ry: 34, fill: CREAM, stroke: INK, 'stroke-width': 6 }, g);
+  card(g, -80, -170, 160, 175, WHITE, 8, 8, 6);
+  txt(g, 'ADDITION', { size: 26 }).g.setAttribute('transform', 'translate(0,-128)');
+  el('line', { x1: -55, x2: 55, y1: -100, y2: -100, stroke: INK, 'stroke-width': 3, 'stroke-dasharray': '6 5' }, g);
+  txt(g, '92 €', { size: 46, fill: RED }).g.setAttribute('transform', 'translate(0,-40)');
+  return g;
+}
+function heart(parent, fill = RED) {
+  const g = el('g', {}, parent);
+  const d = 'M0,60 C-110,-10 -80,-110 0,-60 C80,-110 110,-10 0,60 Z';
+  el('path', { d, fill: INK, transform: 'translate(8,8)' }, g);
+  el('path', { d, fill, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Le couple à table : lui (vert) à gauche, elle (rouge) à droite.
+function coupleScene(cam, Y = 800) {
+  const him = person(cam, GREEN, '#5A3A22', false), her = person(cam, RED, '#2B1A10', true);
+  const tab = table(cam), b = bill(cam);
+  return { him, her, tab, b, Y };
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  c1: Wt('Camp') - .25, a11: Wt('Un', 1, 10) - .25, a12: Wt('Deux') - .25, a13: Wt('Trois') - .25,
+  c2: Wt('Camp', 2) - .25, a21: Wt('Un', 1, 29) - .25, a22: Wt('Deux', 1, 35) - .25, a23: Wt('Trois', 2) - .25,
+  cta: Wt('Et', 1, 45) - .25, next: Wt('Prochain') - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : l'addition arrive, tous les regards sur lui ===================
+// La question est déjà à l'écran à la première image (beaucoup regardent sans le son).
+S(0, T.c1, (cam) => {
+  const tAdd = Wt("L'addition"), tArr = Wt('arrive…'), tReg = Wt('regards'), tLui = Wt('lui.'), tPay = Wt('payer ?');
+  bg(cam);
+  const spot = el('path', { d: 'M-60,-700 L60,-700 L230,240 L-230,240 Z', fill: YELLOW, opacity: .45 }, cam);
+  const rdv = chip(cam, '1ER RENDEZ-VOUS 💘', RED, CREAM, 46);
+  const head = title(cam, ["L'HOMME DOIT", ['PAYER ?', RED]], { size: 100 });
+  const c = coupleScene(cam);
+  const eyes = el('g', {}, cam); [0, 1, 2].forEach(i => { const e = el('g', {}, eyes); emoji(e, '👀', 80); tf(e, i * 20, i * 95); });
+  const st = stamp(cam, 'TOUS LES REGARDS', RED, 62);
+  const bst = burst(cam, 14, RED);
+  return t => {
+    rdv.update(CX, 200, 1, -2);
+    at(head, CX, 405, lerp(1.1, 1, p(t, 0, .35, E.out)) * (1 + .06 * Math.max(0, 1 - Math.abs(t - tPay) / .3)), -2);
+    const ks = p(t, tReg - .1, tReg + .3);
+    show(spot, ks > 0); tf(spot, 280, 800, 1, 0); spot.setAttribute('opacity', fmt(.45 * ks));
+    const kb = p(t, tAdd - .3, tArr + .1, E.out5), down = p(t, tArr, tArr + .2) * (1 - p(t, tReg - .2, tReg));
+    c.him.update(280, 800, .82, { look: lerp(1, 0, p(t, tArr, tArr + .2)) * (t < tReg ? 1 : 0) + (t > tReg ? Math.sin(t * 9) : 0), down, mouth: t > tReg ? 'flat' : 'smile', sw: p(t, tLui - .2, tLui + .3) });
+    c.her.update(790, 800, .82, { look: t < tArr ? -1 : t < tReg ? -.3 : -1, down, mouth: 'smile' });
+    c.tab.update(CX, 950, t);
+    at(c.b, lerp(1400, CX, kb), 935, 1, 0);
+    at(eyes, 820, 470, pop(t, tReg - .05) * (1 - p(t, tPay - .4, tPay - .2)), 0);
+    st.update(CX, 1110, t, tReg + .1, -6);
+    show(st.g, t >= tReg + .1 && t < tPay - .2);
+    bst.update(280, 620, clamp((t - tLui) / .5));
+    addShake(Math.max(0, 1 - Math.abs(t - tLui) / .3) * .5 + Math.max(0, 1 - Math.abs(t - tPay) / .3) * .5);
+  };
+});
+
+// ====== 2. CAMP 1 : oui, c'est à lui ================================================
+S(T.c1, T.a11, (cam, a) => {
+  const tOui = Wt('oui,'), tLui = Wt('lui.', 2);
+  bg(cam);
+  const tag = chip(cam, 'CAMP 1', RED, CREAM, 56);
+  const head = title(cam, ['OUI,', ["C'EST À LUI", RED]], { size: 100 });
+  const c = coupleScene(cam);
+  const bc = bankCard(cam, GREEN);
+  const hearts = [0, 1, 2].map(() => heart(cam));
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -3);
+    at(head, CX, 420, pop(t, tOui - .25, .4), -2);
+    const kc = p(t, tLui - .35, tLui, E.out5);
+    c.him.update(280, 800, .82, { look: 1, down: kc * (1 - p(t, tLui + .3, tLui + .5)), mouth: 'smile' });
+    c.her.update(790, 800, .82, { look: -1, mouth: t > tLui ? 'o' : 'smile' });
+    c.tab.update(CX, 950, t); at(c.b, CX, 935);
+    at(bc, lerp(280, CX, kc), lerp(960, 860, kc), .42 * pop(t, tOui), lerp(0, -12, kc));
+    hearts.forEach((h, i) => { const u = clamp((t - tLui - .2 - i * .25) / 1.4); show(h, u > 0 && u < 1); at(h, 760 + i * 60 - 60, 600 - u * 220, .35 * (1 - u * .4), Math.sin(t * 6 + i) * 10); h.setAttribute('opacity', fmt(1 - u)); });
+    addShake(Math.max(0, 1 - Math.abs(t - tLui) / .25) * .4);
+  };
+}, { swipe: RED });
+
+// --- scène d'argument : étiquette « CAMP n · ARGUMENT k/3 », titre, visuel ----------
+function argScene(a, b, o) {
+  const green = o.camp === 2;
+  S(a, b, cam => {
+    bg(cam, green ? GREEN : CREAM, !green);
+    const tag = chip(cam, `CAMP ${o.camp} · ARGUMENT ${o.n}/3`, green ? INK : RED, CREAM, 42);
+    const head = title(cam, o.lines, { size: o.size || 96 });
+    const upd = o.build(cam, a);
+    return t => {
+      tag.update(CX, 220, pop(t, a + .05), o.n % 2 ? -2 : 2);
+      at(head, CX, 400, pop(t, a + .25, .4), o.n % 2 ? -2 : 2);
+      upd(t);
+    };
+  }, { swipe: green ? GREEN : RED });
+}
+
+// ====== 3. Camp 1, argument 1 : la galanterie =======================================
+argScene(T.a11, T.a12, { camp: 1, n: 1, lines: ["C'EST DE LA", ['GALANTERIE', RED]], build: (cam, a) => {
+  const tGal = Wt('galanterie.'), tJai = Wt("j'ai"), tRev = Wt('revoir.');
+  const him = person(cam, GREEN, '#5A3A22', false), her = person(cam, RED, '#2B1A10', true);
+  const rose = el('g', {}, cam); emoji(rose, '🌹', 130);
+  const h = heart(cam);
+  const bub = bubble(cam, "J'AI ENVIE DE TE REVOIR", CREAM, INK, 46);
+  const sp = sparkles(cam, 8, 5, 170);
+  return t => {
+    him.update(270, 900, .85, { look: 1, mouth: 'smile', bob: Math.sin(t * 3) * 4 });
+    her.update(800, 900, .85, { look: -1, mouth: t > tRev ? 'o' : 'smile', bob: Math.sin(t * 3 + 1) * 4 });
+    at(rose, lerp(380, 470, p(t, tGal - .2, tGal + .3, E.out)), 1010, pop(t, tGal - .2), -30);
+    const beat = 1 + .1 * Math.abs(Math.sin(t * 5));
+    at(h, CX + 10, 790, pop(t, tRev - .1) * beat * .9, 0);
+    sp.update(CX + 10, 790, pop(t, tRev), t);
+    bub.update(CX, 600, pop(t, tJai - .15), -2);
+  };
+} });
+
+// ====== 4. Camp 1, argument 2 : la tradition =========================================
+argScene(T.a12, T.a13, { camp: 1, n: 2, lines: ["C'EST LA", ['TRADITION', RED]], build: (cam, a) => {
+  const tTra = Wt('tradition.'), tPar = Wt('parents'), tCom = Wt('comme');
+  const ph = el('g', {}, cam);
+  card(ph, -260, -290, 520, 580, WHITE, 10, 14, 7);
+  el('rect', { x: -220, y: -250, width: 440, height: 400, fill: '#D9B98A', stroke: INK, 'stroke-width': 6 }, ph);
+  const old = [['👴', -95], ['👵', 95]].map(([c, x]) => { const e = el('g', {}, ph); emoji(e, c, 170); tf(e, x, -50); return e; });
+  const h = heart(ph, '#C0705A'); tf(h, 0, -170, .4);
+  txt(ph, 'NOS PARENTS', { size: 46 }).g.setAttribute('transform', 'translate(0,230)');
+  const year = chip(cam, '1985', RED, CREAM, 50);
+  return t => {
+    at(ph, CX, 820, pop(t, tTra - .2, .4), -4 + Math.sin(t * 2) * 1.5);
+    old.forEach((e, i) => tf(e, i ? 95 : -95, -50, pop(t, tPar - .1 + i * .12)));
+    year.update(CX + 230, 560, pop(t, tCom - .1), 10);
+    addShake(Math.max(0, 1 - Math.abs(t - tTra - .1) / .25) * .3);
+  };
+} });
+
+// ====== 5. Camp 1, argument 3 : la calculette casse la magie ==========================
+argScene(T.a13, T.c2, { camp: 1, n: 3, lines: ['ÇA CASSE', ['LA MAGIE', RED]], build: (cam, a) => {
+  const tCal = Wt('calculette'), tSoir = Wt('soir,'), tCas = Wt('casse'), tMag = Wt('magie.');
+  const calc = el('g', {}, cam);
+  card(calc, -170, -250, 340, 500, '#3A3A3A', 30, 12, 7);
+  card(calc, -130, -210, 260, 110, '#CFE8C8', 12, 0, 6);
+  const scr = el('text', { x: 110, y: -135, 'text-anchor': 'end', 'font-size': 56, fill: INK, class: 'mono' }, calc);
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) card(calc, -130 + c * 92, -70 + r * 76, 76, 60, c === 2 && r === 3 ? RED : CREAM, 12, 0, 5);
+  const halves = [-1, 1].map(s => {
+    const cid = newId('clip'), cp = el('clipPath', { id: cid }, M.defs);
+    el('path', { d: `M${s * 200},-200 L0,-200 L0,-60 L-20,-20 L15,10 L-10,40 L0,200 L${s * 200},200 Z` }, cp);
+    const g = el('g', {}, cam), inner = el('g', { 'clip-path': `url(#${cid})` }, g);
+    heart(inner);
+    return g;
+  });
+  return t => {
+    at(calc, CX - 190, 810, pop(t, tCal - .2, .4), -6);
+    const n = 92 * p(t, tCal + .1, tSoir + .2, E.lin);
+    scr.textContent = (t > tSoir + .2 ? '46,00' : n.toFixed(2).replace('.', ','));
+    const k = p(t, tCas - .05, tMag + .2, E.back);
+    halves.forEach((g, i) => at(g, CX + 220 + (i ? 1 : -1) * 45 * k, 760 + 20 * k, 1.5 * pop(t, tCal + .2), (i ? 1 : -1) * 18 * k));
+    addShake(Math.max(0, 1 - Math.abs(t - tCas) / .3) * .7);
+  };
+} });
+
+// ====== 6. CAMP 2 : non, on partage ====================================================
+S(T.c2, T.a21, (cam, a) => {
+  const tNon = Wt('non,'), tPart = Wt('partage.');
+  bg(cam, GREEN, false);
+  const tag = chip(cam, 'CAMP 2', INK, CREAM, 56);
+  const head = title(cam, [['NON,', CREAM], ['ON PARTAGE', CREAM]], { size: 100 });
+  const c = coupleScene(cam);
+  const cards = [GREEN, RED].map(f => bankCard(cam, f));
+  const fifty = chip(cam, '50 / 50', INK, CREAM, 60);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), 3);
+    at(head, CX, 420, pop(t, tNon - .25, .4), 2);
+    const kc = p(t, tPart - .35, tPart, E.out5);
+    c.him.update(280, 800, .82, { look: 1, mouth: 'smile' });
+    c.her.update(790, 800, .82, { look: -1, mouth: 'smile' });
+    c.tab.update(CX, 950, t); at(c.b, CX, 935);
+    cards.forEach((g, i) => at(g, lerp(i ? 790 : 280, CX + (i ? 50 : -50), kc), lerp(960, 860, kc), .36 * pop(t, tNon + i * .1), (i ? 1 : -1) * 12 * kc));
+    fifty.update(CX, 1050, pop(t, tPart + .1), -3);
+    addShake(Math.max(0, 1 - Math.abs(t - tPart) / .25) * .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. Camp 2, argument 1 : d'égal à égal ===========================================
+argScene(T.a21, T.a22, { camp: 2, n: 1, lines: [["D'ÉGAL", CREAM], ['À ÉGAL', CREAM]], build: (cam, a) => {
+  const tGag = Wt('gagne'), tCou = Wt('couple,'), tEg = Wt('égal.');
+  const base = el('g', {}, cam);
+  el('path', { d: 'M-130,0 L130,0 L60,-50 L-60,-50 Z', fill: INK }, base);
+  el('rect', { x: -14, y: -380, width: 28, height: 340, fill: INK }, base);
+  const beam = el('g', {}, cam);
+  el('rect', { x: -320, y: -14, width: 640, height: 28, rx: 14, fill: INK }, beam);
+  el('circle', { r: 30, fill: YELLOW, stroke: INK, 'stroke-width': 6 }, beam);
+  const pans = ['LUI', 'ELLE'].map((s, i) => {
+    const g = el('g', {}, cam);
+    const rope = el('path', { d: 'M0,0 L-110,170 M0,0 L110,170', stroke: INK, 'stroke-width': 6, fill: 'none' }, g);
+    el('path', { d: 'M-140,170 Q0,260 140,170 Z', fill: CREAM, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+    const e = el('g', {}, g); emoji(e, '💼', 110); tf(e, 0, 120);
+    txt(g, s, { size: 44, fill: i ? RED : GREEN, sw: 8 }).g.setAttribute('transform', 'translate(0,250)');
+    return g;
+  });
+  const job = chip(cam, 'ELLE GAGNE SA VIE AUSSI', CREAM, INK, 44);
+  return t => {
+    const BY = 1080, PY = 690;
+    at(base, CX, BY, pop(t, a + .2));
+    const ang = lerp(-14, 0, p(t, tEg - .3, tEg + .5, E.elastic)) * (1 - 0) + Math.sin(t * 2) * (t > tEg ? 0 : 1.5);
+    at(beam, CX, PY, pop(t, a + .2), ang);
+    pans.forEach((g, i) => { const s = i ? 1 : -1, rad = ang * Math.PI / 180; at(g, CX + s * 300 * Math.cos(rad), PY + s * 300 * Math.sin(rad), pop(t, a + .3 + i * .1)); });
+    job.update(CX, 1130, pop(t, tGag - .1), -2);
+    addShake(Math.max(0, 1 - Math.abs(t - tEg) / .25) * .3);
+  };
+} });
+
+// ====== 8. Camp 2, argument 2 : personne ne doit rien ====================================
+argScene(T.a22, T.a23, { camp: 2, n: 2, lines: [['PERSONNE', CREAM], ['NE DOIT RIEN', CREAM]], build: (cam, a) => {
+  const tPer = Wt('personne'), tRed = Wt('redevable'), tSoi = Wt('soirée.');
+  const her = person(cam, RED, '#2B1A10', true);
+  const th = el('g', {}, cam);
+  [[150, 150, 18], [110, 105, 26]].forEach(([x, y, r]) => { el('circle', { cx: x + 6, cy: y + 6, r, fill: INK }, th); el('circle', { cx: x, cy: y, r, fill: CREAM, stroke: INK, 'stroke-width': 6 }, th); });
+  card(th, -330, -80, 560, 150, CREAM, 75, 10, 7);
+  txt(th, 'JE LUI DOIS QUOI ?', { size: 50 }).g.setAttribute('transform', 'translate(-50,18)');
+  const x = el('path', { d: 'M-280,-90 L190,80 M190,-90 L-280,80', stroke: RED, 'stroke-width': 22, 'stroke-linecap': 'round', fill: 'none', pathLength: 1, 'stroke-dasharray': '1 1' }, cam);
+  const moon = el('g', {}, cam); emoji(moon, '🌙', 110);
+  const st = stamp(cam, 'ON EST QUITTES', GREEN, 64);
+  return t => {
+    const free = p(t, tSoi, tSoi + .3);
+    her.update(760, 930, .9, { look: -.6, down: 0, mouth: free > .5 ? 'smile' : 'flat', sw: p(t, tPer, tPer + .3) * (1 - free) });
+    at(th, CX - 60, 640, pop(t, tPer - .1), -2);
+    tf(x, CX - 60, 640, 1, -2);
+    x.setAttribute('stroke-dashoffset', fmt(1 - p(t, tRed + .1, tRed + .5)));
+    show(x, t > tRed + .1);
+    at(moon, 170, 860, pop(t, tSoi - .2), Math.sin(t * 2) * 8);
+    st.update(CX - 80, 1110, t, tSoi + .25, -6);
+    addShake(Math.max(0, 1 - Math.abs(t - tRed - .3) / .25) * .4);
+  };
+} });
+
+// ====== 9. Camp 2, argument 3 : un premier test ==========================================
+argScene(T.a23, T.cta, { camp: 2, n: 3, lines: [['UN PREMIER', CREAM], ['TEST', CREAM]], build: (cam, a) => {
+  const tTest = Wt('test.'), rows = [["PARLER D'ARGENT", Wt('parle')], ['SANS GÊNE', Wt('gêne')], ['DÈS LE DÉBUT', Wt('début,')]], tSig = Wt('signe.');
+  const sh = el('g', {}, cam);
+  card(sh, -360, -270, 720, 540, WHITE, 20, 14, 7);
+  txt(sh, 'TEST DU 1ER RDV', { size: 50, fill: RED }).g.setAttribute('transform', 'translate(0,-180)');
+  el('line', { x1: -300, x2: 300, y1: -145, y2: -145, stroke: INK, 'stroke-width': 4, 'stroke-dasharray': '10 8' }, sh);
+  const checks = rows.map(([s], i) => {
+    const y = -70 + i * 120;
+    el('rect', { x: -300, y: y - 40, width: 80, height: 80, rx: 12, fill: CREAM, stroke: INK, 'stroke-width': 6 }, sh);
+    txt(sh, s, { size: 50, anchor: 'start' }).g.setAttribute('transform', `translate(-190,${y + 18})`);
+    return el('path', { d: `M-292,${y} L-262,${y + 30} L-205,${y - 45}`, stroke: GREEN, 'stroke-width': 18, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1, 'stroke-dasharray': '1 1' }, sh);
+  });
+  const st = stamp(cam, 'BON SIGNE 👍', GREEN, 70);
+  return t => {
+    at(sh, CX, 790, pop(t, tTest - .25, .4), 2);
+    checks.forEach((c, i) => c.setAttribute('stroke-dashoffset', fmt(1 - p(t, rows[i][1], rows[i][1] + .25, E.out))));
+    st.update(CX, 1110, t, tSig - .1, -6);
+    addShake(Math.max(0, 1 - Math.abs(t - tSig) / .25) * .4);
+  };
+} });
+
+// ====== 10. LE DÉBAT : l'homme paie ou on partage ? =======================================
+S(T.cta, T.next, (cam, a) => {
+  const tToi = Wt('toi ?'), tHom = Wt("L'homme", 2), tOu = Wt('ou', 1, a), tPart = Wt('partage ?'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const L = el('rect', { x: 0, width: 540, height: H, fill: RED }, cam);
+  const R = el('rect', { x: 540, width: 540, height: H, fill: GREEN }, cam);
+  el('line', { x1: 540, y1: 0, x2: 540, y2: H, stroke: INK, 'stroke-width': 12 }, cam);
+  const q = title(cam, [['ET TOI ?', CREAM]], { size: 120 });
+  const no = el('g', {}, cam), yes = el('g', {}, cam);
+  const nE = el('g', {}, no); emoji(nE, '💳', 170);
+  const yE = el('g', {}, yes); emoji(yE, '🤝', 170);
+  const nTx = el('g', {}, no), yTx = el('g', {}, yes);
+  ["L'HOMME", 'PAIE'].forEach((s, i) => txt(nTx, s, { size: 70, fill: CREAM, sw: 14, shadow: 10 }).g.setAttribute('transform', `translate(0,${i * 80})`));
+  ['ON', 'PARTAGE'].forEach((s, i) => txt(yTx, s, { size: 70, fill: CREAM, sw: 14, shadow: 10 }).g.setAttribute('transform', `translate(0,${i * 80})`));
+  const vs = el('g', {}, cam); el('circle', { r: 66, fill: INK, stroke: CREAM, 'stroke-width': 6 }, vs); txt(vs, 'OU', { size: 56, fill: CREAM }).t.setAttribute('y', 20);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 200);
+  const ring = el('circle', { fill: 'none', stroke: CREAM, 'stroke-width': 10 }, cam);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    const kIn = p(t, a - .05, a + .35, E.out5);
+    set(L, { y: fmt(-H * (1 - kIn)) }); set(R, { y: fmt(H * (1 - kIn)) });
+    at(q, 540, 270, pop(t, tToi - .2), -2);
+    tf(no, 270, 600, 1, 0); tf(yes, 790, 600, 1, 0);
+    tf(nE, 0, -150, pop(t, tHom - .15), Math.sin(t * 5) * 8); tf(yE, 0, -150, pop(t, tPart - .15), Math.sin(t * 5 + 1) * 8);
+    tf(nTx, 0, 50, pop(t, tHom - .1), -4); tf(yTx, 0, 50, pop(t, tPart - .1), 4);
+    tf(vs, 540, 620, pop(t, tOu - .05), 0);
+    const kb = pop(t, tDis - .3, .4);
+    tf(bub, 540, 1000, kb * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    const rp = ((t - tDis) * .9) % 1;
+    set(ring, { cx: 540, cy: 990, r: fmt(90 + rp * 130), opacity: fmt(t > tDis ? (1 - rp) * .8 : 0) });
+    tf(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+    addShake(Math.max(0, 1 - Math.abs(t - tPart) / .25) * .4);
+  };
+}, { swipe: RED });
+
+// ====== 11. LA SUITE : prochain épisode + abonne-toi ================================
+S(T.next, M.DUR, (cam, a) => {
+  const tAdd = Wt("l'addition", 1, a), tPotes = Wt('potes.'), tAbo = Wt('Abonne-toi');
+  bg(cam);
+  const ser = chip(cam, 'QUI A RAISON ? · ÉPISODE 2', INK, CREAM, 44);
+  const ep = el('g', {}, cam);
+  card(ep, -420, -230, 840, 460, CREAM, 36, 14, 8);
+  const head = title(ep, ["L'ADDITION", ['ENTRE POTES', GREEN]], { size: 96, shadow: 8 });
+  tf(head, 0, -80);
+  const sal = el('g', {}, ep); emoji(sal, '🥗', 120);
+  const lob = el('g', {}, ep); emoji(lob, '🦞', 120);
+  const vsT = el('g', {}, ep); txt(vsT, 'VS', { size: 60, fill: RED });
+  const btn = el('g', {}, cam), btnIn = el('g', {}, btn);
+  card(btnIn, -330, -75, 660, 150, RED, 75, 12, 8);
+  const plus = el('g', {}, btnIn); el('circle', { r: 46, fill: CREAM, stroke: INK, 'stroke-width': 6 }, plus); txt(plus, '+', { size: 90, fill: RED }).t.setAttribute('y', 31);
+  tf(plus, -262, 0);
+  txt(btnIn, 'ABONNE-TOI', { size: 76, fill: CREAM, sw: 12 }).g.setAttribute('transform', 'translate(52,27)');
+  const hand = el('g', {}, cam); emoji(hand, '👆', 130);
+  const ring = el('rect', { fill: 'none', stroke: RED, 'stroke-width': 10 }, cam);
+  const remind = chip(cam, "💬 L'HOMME PAIE OU ON PARTAGE ?", GREEN, INK, 44);
+  return t => {
+    ser.update(CX, 240, pop(t, a + .1), -2);
+    at(ep, CX, 600, pop(t, tAdd - .25, .4), 1);
+    at(sal, -170, 120, pop(t, tPotes - .1), Math.sin(t * 5) * 8);
+    at(lob, 170, 120, pop(t, tPotes), Math.sin(t * 5 + 2) * 8);
+    at(vsT, 0, 140, pop(t, tPotes + .1));
+    const kb = pop(t, tAbo - .2, .4);
+    at(btn, CX, 1010, kb, 0); tf(btnIn, 0, 0, 1 + .05 * Math.sin(t * 8) * (t > tAbo + .4 ? 1 : 0));
+    const tap = t > tAbo + .5 ? Math.abs(Math.sin((t - tAbo - .5) * 4)) : 0;
+    at(hand, CX + 250, 1120 + tap * 30, pop(t, tAbo + .3), -15);
+    const rp = ((t - tAbo - .5) * .8) % 1, on = t > tAbo + .5;
+    set(ring, { x: fmt(CX - 330 - rp * 50), y: fmt(1010 - 75 - rp * 50), width: fmt(660 + rp * 100), height: fmt(150 + rp * 100), rx: fmt(75 + rp * 50), opacity: fmt(on ? (1 - rp) * .8 : 0) });
+    remind.update(CX, 1330, pop(t, tAbo + .8), -2);
+    addShake(hit(t, tAbo, .25) * .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à « Dis-le en commentaire » : ensuite les cartes disent la même chose que la voix
+captions({ until: tDis, active: t => t >= T.c2 + .1 && t < T.cta ? YELLOW : GREEN });   // jaune sur les fonds verts
+start();
+})();
+</script>
+</body>
+</html>
