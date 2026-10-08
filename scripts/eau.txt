@@ -1,0 +1,15 @@
+# Voix-off de eau.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources : prix SISPEA 2023 (4,69 €/m³) et CIEAU/ADEME (100 à 300 fois moins cher) ; PNAS, Columbia, janvier 2024 (240 000 particules/L) ;
+# Le Monde / Radio France, janvier 2024, et commission d'enquête du Sénat, mai 2025 (traitements interdits Nestlé Waters) ;
+# arrêté du préfet du Gard, avril 2024 (2 millions de bouteilles Perrier détruites) ; ministère de la Santé, 2021 (~20 % des Français, métabolites de pesticides).
+Tu paies ton eau jusqu'à 100_fois[cent fois] plus cher… pour boire du plastique.
+Au robinet, un litre coûte moins d'un demi-centime. En bouteille, environ 30_centimes.[trente centimes.]
+Et dans un seul litre, des chercheurs ont compté 240_000[deux cent quarante mille] particules de plastique.
+Bon, mais au moins c'est de l'eau pure, non_?
+En 2024,[deux mille vingt-quatre,] on apprend que Perrier, Vittel, Contrex et Hépar étaient traitées en cachette. Avec des procédés interdits.
+La même année, 2_millions[deux millions] de bouteilles de Perrier partent à la poubelle. Contamination d'origine fécale.
+Alors le robinet gagne_? Pas si vite.
+En 2021,[deux mille vingt et un,] près de 12_millions[douze millions] de Français ont pu boire une eau non conforme, à cause de résidus de pesticides.
+Ça reste l'aliment le plus contrôlé de France. Mais il n'est pas parfait.
+Et toi_? Robinet ou bouteille_?
+Dis-le en commentaire.
