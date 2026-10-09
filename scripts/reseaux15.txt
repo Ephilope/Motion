@@ -1,0 +1,26 @@
+# Voix-off de reseaux15.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources (vérifiées le 9 octobre 2026) :
+# loi n° 2023-566 du 7 juillet 2023 (« majorité numérique », Marcangeli) : accord parental avant 15 ans, votée à l'unanimité, jamais
+#   entrée en vigueur faute de décret (question au gouvernement QANR5L17QG677 ; compte rendu commission culture AN 2025-2026 n° 38) ;
+# CNIL / IFOP 2020 (1 000 parents, 500 enfants de 10-17 ans), cité dans le rapport AN n° 859 (16e lég.) : première inscription
+#   « en moyenne vers 8 ans et demi » ;
+# loi « visant à protéger les mineurs des risques auxquels les expose l'utilisation des réseaux sociaux », adoptée définitivement le
+#   21 juillet 2026 ; Conseil constitutionnel, décision n° 2026-911 DC du 14 août 2026 : article 1er (interdiction avant 15 ans) censuré,
+#   atteinte disproportionnée à la liberté d'expression (pas de prise en compte de l'âge, de la maturité, de la situation familiale,
+#   pas de levée par les parents, § 15-18) et à la vie privée (« toute personne, même majeure, fasse la preuve de son âge », § 20-21) ;
+# Australie, interdiction avant 16 ans depuis le 10 décembre 2025 ; étude eSafety publiée fin juillet 2026 (données de mars) : 86 % des
+#   10-15 ans utilisaient au moins une plateforme visée avant, plus de 81 % trois mois après (Al Jazeera / Reuters, 1er août 2026) ;
+# nouveau projet français notifié à la Commission européenne (annonce d'Emmanuel Macron le 14 septembre 2026, franceinfo 17/09/2026,
+#   Le Club des juristes 18/09/2026) : interdiction avant 15 ans des réseaux ayant au moins une de dix fonctionnalités à risque
+#   (défilement infini, lecture automatique, direct, filtres d'apparence, monnaies virtuelles…), autorisation parentale possible dès 13 ans.
+La France a voté deux lois pour éloigner les moins de 15_ans[quinze ans] des réseaux sociaux. Aucune ne s'applique.
+Sur TikTok ou Instagram, il faut déjà avoir 13_ans.[treize ans.] Mais il suffit de mentir sur sa date de naissance…
+Selon la CNIL, le premier compte arrive vers huit ans et demi.
+Première loi, en 2023_:[deux mille vingt-trois :] avant 15_ans,[quinze ans,] l'accord des parents. Votée à l'unanimité… jamais appliquée.
+Deuxième loi, en juillet_: l'interdiction totale. Le 14_août,[quatorze août,] le Conseil constitutionnel la censure.
+Trop large_: elle ignorait l'âge et la maturité de l'enfant. Et même toi, adulte, tu aurais dû prouver ton âge.
+En Australie, c'est interdit avant 16_ans[seize ans] depuis décembre. Trois mois plus tard, 81_%[quatre-vingt-un pour cent] des 10-15_ans[dix-quinze ans] étaient encore sur les réseaux. Contre 86_%[quatre-vingt-six pour cent] avant.
+Alors la France change de cible_: son nouveau texte vise les réseaux aux fonctions addictives.
+Le scroll infini. La vidéo qui démarre toute seule. Exactement ce que tu fais en ce moment.
+Toi, tu interdirais quoi_? Les réseaux aux ados… ou le scroll infini_?
+Dis-le en commentaire.
