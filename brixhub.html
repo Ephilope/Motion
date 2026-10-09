@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BrixHub : données volées</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Le site qui affiche tes données volées » (BrixHub) (charte : docs/MODELE.md).
+     Voix-off : scripts/brixhub.txt → node tools/voix.mjs brixhub
+     Faits et sources : en tête de scripts/brixhub.txt.
+     Règle : on ne montre jamais le vrai site, son adresse ni de vraies données. La fiche est fictive et floutée.
+     Le nom du site n'apparaît qu'à la fin (demande de Benoit : peu de gens le connaissent). -->
+<script src="lib/motion.js"></script>
+<script src="assets/brixhub_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, rng } = Motion;
+await setup({
+  duration: 54,
+  words: window.WORDS,
+  audio: 'assets/voix_brixhub.mp3',
+  emojis: '🏠📞🪪🏦🔍💻🏢🏛️📄💸💶👤⚖️⚠️🔑🔐🔒💬👇❌✅🤔',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BLUE = '#3498DB', GREY = '#B8B2A6';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+const icon = (parent, ch, size) => { const g = el('g', {}, parent); emoji(g, ch, size); return g; };
+const label = (parent, str, o) => { const g = el('g', {}, parent); txt(g, str, o); return g; };
+// Flou des fausses données : on ne montre jamais une vraie valeur lisible.
+el('filter', { id: 'flou', x: '-20%', y: '-60%', width: '140%', height: '220%' }, M.defs)
+  .appendChild(el('feGaussianBlur', { stdDeviation: 7 }));
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Données floutées : quelques barres sombres floues (largeurs fixes par graine).
+function blurred(parent, x, w, seed) {
+  const g = el('g', { filter: 'url(#flou)' }, parent), R = rng(seed);
+  let cx = x;
+  while (cx < x + w - 30) { const ww = Math.min(40 + R() * 90, x + w - cx); el('rect', { x: cx, y: -16, width: ww, height: 32, rx: 8, fill: INK }, g); cx += ww + 16; }
+  return g;
+}
+// Fenêtre de navigateur générique (aucun nom ni adresse de site).
+function browser(parent, w, h) {
+  const g = el('g', {}, parent);
+  card(g, -w / 2, -h / 2, w, h, WHITE, 30, 14, 8);
+  el('path', { d: `M${-w / 2},${-h / 2 + 30} a30,30 0 0 1 30,-30 h${w - 60} a30,30 0 0 1 30,30 v54 h${-w} Z`, fill: INK }, g);
+  [RED, YELLOW, GREEN].forEach((c, i) => el('circle', { cx: -w / 2 + 44 + i * 40, cy: -h / 2 + 42, r: 12, fill: c }, g));
+  return g;
+}
+// Barre de recherche : texte tapé lettre à lettre entre t0 et t1.
+function searchBar(parent, w, str) {
+  const g = el('g', {}, parent);
+  card(g, -w / 2, -48, w, 96, CREAM, 48, 8, 6);
+  const ic = icon(g, '🔍', 54); tf(ic, -w / 2 + 60, 0);
+  const t = el('text', { x: -w / 2 + 110, y: 20, 'font-size': 54, fill: INK }, g);
+  const cur = el('rect', { y: -30, width: 6, height: 60, fill: INK }, g);
+  return { g, update(tt, t0, t1) {
+    const n = Math.round(str.length * p(tt, t0, t1, E.lin));
+    t.textContent = str.slice(0, n);
+    set(cur, { x: fmt(-w / 2 + 114 + (n ? t.getComputedTextLength() : 0)) });
+    show(cur, Math.floor(tt * 3) % 2 === 0 || (tt > t0 && tt < t1));
+  } };
+}
+// Fiche fictive : lignes icône + intitulé + données floutées.
+function fiche(parent, rows, w = 760, seed = 1) {
+  const g = el('g', {}, parent), items = [];
+  rows.forEach(([ic, lab], i) => {
+    const r = el('g', {}, g);
+    el('rect', { x: -w / 2 + 30, y: -50, width: w - 60, height: 100, rx: 20, fill: i % 2 ? WHITE : '#F3EEE4' }, r);
+    const e = icon(r, ic, 60); tf(e, -w / 2 + 85, 0);
+    const l = el('text', { x: -w / 2 + 135, y: 18, 'font-size': 44, fill: INK }, r); l.textContent = lab;
+    blurred(r, -w / 2 + 135 + l.getComputedTextLength() + 30, w / 2 - 60 - (-w / 2 + 135 + l.getComputedTextLength() + 30), seed + i);
+    items.push(r);
+  });
+  return { g, items };
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const tRech = Wt('recherche.'), tCom = Wt('commence.'), tCred = Wt('crédits.'), tTouj = Wt('toujours.');
+const tJam = Wt('jamais.'), tPri = Wt('prison.'), tRens = Wt('renseignés.');
+const T = {
+  fiche: Wt('Adresse,') - .25, pirate: Wt('Ce') - .2, mill: Wt('Plus') - .25, biz: Wt('Et', 1, tRech) - .2,
+  paies: Wt('Tu', 1, tCred) - .2, copies: Wt('Sauf') - .25, justice: Wt('La', 1, tTouj) - .25,
+  recel: Wt('Et', 1, tJam) - .2, reflexe: Wt('Le', 1, tPri) - .25, nom: Wt('Ce', 1, tRens) - .25,
+};
+
+// ====== 1. ACCROCHE : le site qui affiche tes données volées ======================================
+// Le sujet est lisible dès la première image (beaucoup regardent sans le son). Pas de nom de site ici.
+S(0, T.fiche, (cam) => {
+  const tAff = Wt('affiche'), tVol = Wt('volées'), tMil = Wt('millions');
+  bg(cam);
+  const head = title(cam, [['CE SITE AFFICHE', INK], ['TES DONNÉES', RED], ['VOLÉES', RED]], { size: 96, shadow: 0, sw: 14 });
+  const win = browser(cam, 760, 420);
+  const sb = searchBar(win, 640, 'PRÉNOM NOM');
+  tf(sb.g, 0, 20);
+  const q = icon(cam, '🤔', 130);
+  const fr = chip(cam, 'DES MILLIONS DE FRANÇAIS', INK, CREAM, 46);
+  return t => {
+    at(head, CX, 360, 1 + .05 * hit(t, tVol + .1, .3), -2);
+    at(win, CX, 830, 1 + .03 * hit(t, tAff, .3));
+    sb.update(t, .1, 1.4);
+    at(q, CX + 340, 640, pop(t, Wt('Français ?') - .1), Math.sin(t * 4) * 6);
+    fr.update(CX, 1110, pop(t, tMil - .15), 2);
+    shock(t, .05, .25, .5); shock(t, tVol + .1, .25, .5);
+  };
+});
+
+// ====== 2. LA FICHE : adresse, téléphone, Sécu, RIB… il suffit d'un nom ===========================
+S(T.fiche, T.pirate, (cam, a) => {
+  const ts = [Wt('Adresse,'), Wt('téléphone,'), Wt('Sécu…'), Wt('RIB.')], tTap = Wt('taper'), tNom = Wt('nom.');
+  bg(cam);
+  const win = browser(cam, 860, 820);
+  const sb = searchBar(win, 740, 'PRÉNOM NOM'); tf(sb.g, 0, -250);
+  const f = fiche(win, [['🏠', 'ADRESSE'], ['📞', 'TÉLÉPHONE'], ['🪪', 'N° SÉCU'], ['🏦', 'RIB']], 860, 3);
+  f.items.forEach((r, i) => tf(r, 0, -110 + i * 115));
+  const fake = chip(cam, 'EXEMPLE FICTIF', GREY, INK, 34);
+  const one = stamp(cam, 'UN NOM SUFFIT', RED, 74);
+  return t => {
+    at(win, CX, 700, pop(t, a + .02, .3));
+    sb.update(t, tTap - .1, tNom + .1);
+    f.items.forEach((r, i) => { const k = pop(t, ts[i] - .12, .3); show(r, k > .001); r.setAttribute('transform', `translate(${fmt((1 - Math.min(1, k)) * 80)},${-110 + i * 115}) scale(${Math.max(k, .001).toFixed(3)},1)`); });
+    fake.update(CX + 250, 260, pop(t, a + .2), 4);
+    one.update(CX, 1130, t, tNom - .05, -5);
+    ts.forEach(x => shock(t, x + .05, .2, .25)); shock(t, tNom + .1, .25, .5);
+  };
+}, { swipe: RED });
+
+// ====== 3. IL NE PIRATE RIEN : il ramasse des données déjà volées =================================
+S(T.pirate, T.mill, (cam, a) => {
+  const tPir = Wt('pirate'), tRam = Wt('ramasse'), tDej = Wt('déjà'), tFui = Wt('fuites'), tEnt = Wt('entreprises'), tOrg = Wt('organismes.');
+  bg(cam);
+  const pc = icon(cam, '💻', 190);
+  const no = el('g', {}, cam);
+  el('line', { x1: -120, y1: -120, x2: 120, y2: 120, stroke: RED, 'stroke-width': 26, 'stroke-linecap': 'round' }, no);
+  el('line', { x1: 120, y1: -120, x2: -120, y2: 120, stroke: RED, 'stroke-width': 26, 'stroke-linecap': 'round' }, no);
+  const h1 = title(cam, [['IL NE PIRATE', INK], ['RIEN', RED]], { size: 110, shadow: 0, sw: 14 });
+  const ent = el('g', {}, cam); emoji(ent, '🏢', 130); label(ent, 'ENTREPRISES', { size: 42 }).setAttribute('transform', 'translate(0,120)');
+  const org = el('g', {}, cam); emoji(org, '🏛️', 130); label(org, 'ORGANISMES', { size: 42 }).setAttribute('transform', 'translate(0,120)');
+  const leak = el('g', {}, cam); txt(leak, 'FUITES', { size: 56, fill: RED, sw: 10 });
+  const docs = [], R = rng(11);
+  for (let i = 0; i < 10; i++) docs.push({ g: icon(cam, '📄', 70), side: i % 2, d: R() * 1.2, r: (R() - .5) * 40 });
+  const site = browser(cam, 420, 260);
+  const st = stamp(cam, 'DÉJÀ VOLÉES', RED, 80);
+  return t => {
+    const out = p(t, tRam - .4, tRam - .1, E.in);
+    at(h1, CX, 330, pop(t, a + .05, .35) * (1 - out) + .001, -2);
+    at(pc, CX, 700, pop(t, a + .1, .35) * (1 - out) + .001);
+    at(no, CX, 700, pop(t, tPir - .05, .25) * (1 - out) + .001);
+    const kIn = pop(t, tRam - .1, .35);
+    at(ent, CX - 260, 360, kIn); at(org, CX + 260, 360, pop(t, tRam + .1, .35));
+    at(leak, CX, 330, pop(t, tFui - .1), -3);
+    at(site, CX, 880, kIn);
+    docs.forEach((d, i) => {
+      const t0 = tRam + .2 + d.d + (t > tEnt ? 0 : 0), u = ((t - t0) / 1.1);
+      const uu = u - Math.floor(u), on = t > t0;
+      show(d.g, on);
+      if (!on) return;
+      const x0 = d.side ? CX + 260 : CX - 260;
+      at(d.g, lerp(x0, CX, E.inOut(uu)), lerp(470, 860, E.in(uu)) - Math.sin(uu * Math.PI) * 120, 1 - uu * .5, d.r + uu * 90);
+    });
+    st.update(CX, 1120, t, tDej - .05, -5);
+    shock(t, tPir + .1, .25, .5); shock(t, tDej + .1, .25, .5); shock(t, tOrg + .1, .2, .25);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. 11 MILLIARDS DE LIGNES derrière une barre de recherche =================================
+S(T.mill, T.biz, (cam, a) => {
+  const t11 = Wt('11 milliards'), tLig = Wt('lignes,'), tBar = Wt('barre');
+  bg(cam);
+  const tag = chip(cam, 'SELON LE SITE LUI-MÊME', INK, CREAM, 42);
+  const n = el('g', {}, cam), nS = bigNum(n, 112, RED);
+  const lab = label(cam, 'DE LIGNES', { size: 100, fill: CREAM, sw: 14 });
+  const R = rng(5), rows = [];
+  for (let i = 0; i < 7; i++) { const g = el('g', {}, cam); el('rect', { x: -380, y: -18, width: 760, height: 36, rx: 10, fill: WHITE, stroke: INK, 'stroke-width': 4 }, g); blurred(g, -360, 720, 20 + i); rows.push({ g, d: R() }); }
+  const sb = searchBar(cam, 760, '');
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    const v = 11e9 * p(t, t11 - .3, t11 + .7, E.out);
+    nS.set(Math.round(v).toLocaleString('fr-FR').replace(/\s/g, ' '));
+    at(n, CX, 420, pop(t, a + .05, .3), -2);
+    at(lab, CX, 580, pop(t, tLig - .1), 2);
+    rows.forEach((r, i) => { const y = 700 + ((i * 60 + (t - a) * 160) % 420); at(r.g, CX, y, pop(t, a + .2 + i * .05)); r.g.setAttribute('opacity', fmt(Math.min(1, Math.sin(Math.PI * (y - 700) / 420) * 2))); });
+    at(sb.g, CX, 1100, pop(t, tBar - .2, .35) * (1 + .05 * hit(t, tBar + .2, .3)));
+    sb.update(t, 99, 100);
+    shock(t, t11 + .7, .25, .5);
+  };
+}, { swipe: RED });
+
+// ====== 5. LE BUSINESS : faire disparaître ta fiche ? 5 € les 10 crédits ==========================
+S(T.biz, T.paies, (cam, a) => {
+  const tBus = Wt('business'), tDis = Wt('disparaître'), t5 = Wt('5 euros'), t10 = Wt('10');
+  bg(cam);
+  const head = title(cam, [['LE', INK], ['BUSINESS', GREEN]], { size: 150, shadow: 0, sw: 16 });
+  const money = icon(cam, '💸', 160);
+  const q = title(cam, [['EFFACER', INK], ['TA FICHE ?', RED]], { size: 100, shadow: 0, sw: 12 });
+  const tagG = el('g', {}, cam);
+  el('path', { d: 'M-300,-170 H230 L330,0 L230,170 H-300 Z', fill: INK, transform: 'translate(14,14)' }, tagG);
+  el('path', { d: 'M-300,-170 H230 L330,0 L230,170 H-300 Z', fill: YELLOW, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, tagG);
+  el('circle', { cx: 230, cy: 0, r: 22, fill: CREAM, stroke: INK, 'stroke-width': 6 }, tagG);
+  const pr = el('g', {}, tagG); bigNum(pr, 190, RED).set('5 €'); tf(pr, -50, -30);
+  const cr = el('g', {}, tagG); txt(cr, '= 10 CRÉDITS', { size: 50 }); tf(cr, -40, 110);
+  return t => {
+    const out = p(t, tDis - .6, tDis - .3, E.in);
+    at(head, CX, 520, pop(t, tBus - .25, .35) * (1 - out) + .001, -3);
+    at(money, CX, 820, pop(t, tBus, .35) * (1 - out) + .001, Math.sin(t * 6) * 8);
+    at(q, CX, 380, pop(t, tDis - .2, .35), -2);
+    at(tagG, CX, 820, pop(t, t5 - .15, .35), -6 + 2 * Math.sin(t * 5));
+    tf(cr, -40, 110, pop(t, t10 - .1));
+    shock(t, tBus + .1, .25, .5); shock(t, t5 + .1, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. TU PAIES… pour cacher tes propres données, volées par d'autres =========================
+S(T.paies, T.copies, (cam, a) => {
+  const tPai = Wt('paies…'), tCac = Wt('cacher'), tPro = Wt('propres'), tVol = Wt('volées', 1, tPro), tAut = Wt("d'autres.");
+  bg(cam);
+  const me = icon(cam, '👤', 170), site = browser(cam, 300, 220), coin = icon(cam, '💶', 90);
+  const l1 = title(cam, [['TU PAIES', RED]], { size: 140, shadow: 0, sw: 16 });
+  const l2 = title(cam, [['POUR CACHER', INK], ['TES PROPRES', INK], ['DONNÉES', GREEN]], { size: 96, shadow: 0, sw: 12 });
+  const st = stamp(cam, "VOLÉES PAR D'AUTRES", RED, 64);
+  return t => {
+    at(l1, CX, 300, pop(t, tPai - .3, .35), -3);
+    at(me, CX - 280, 560, pop(t, a + .05)); at(site, CX + 260, 560, pop(t, a + .1));
+    const u = ((t - tPai) / .9) % 1; show(coin, t > tPai);
+    at(coin, lerp(CX - 200, CX + 160, E.inOut(Math.max(0, u))), 560 - Math.sin(Math.max(0, u) * Math.PI) * 90, 1, u * 360);
+    at(l2, CX, 860, pop(t, tCac - .15, .35), -1);
+    st.update(CX, 1110, t, tVol - .05, -5);
+    shock(t, tPai + .1, .25, .5); shock(t, tVol + .1, .3, .6); shock(t, tAut + .2, .2, .3);
+  };
+}, { swipe: RED });
+
+// ====== 7. ÇA N'EFFACE RIEN AILLEURS : les copies circulent toujours ==============================
+S(T.copies, T.justice, (cam, a) => {
+  const tEff = Wt("n'efface"), tAil = Wt('ailleurs :'), tCop = Wt('copies'), tCir = Wt('circulent');
+  bg(cam);
+  const main = el('g', {}, cam); card(main, -170, -210, 340, 420, WHITE, 24, 12, 7);
+  [-110, -30, 50, 130].forEach((y, i) => { const r = el('g', {}, main); tf(r, 0, y); blurred(r, -130, 260, 40 + i); });
+  const cross = el('g', {}, cam);
+  el('line', { x1: -200, y1: -230, x2: 200, y2: 230, stroke: RED, 'stroke-width': 24, 'stroke-linecap': 'round' }, cross);
+  el('line', { x1: 200, y1: -230, x2: -200, y2: 230, stroke: RED, 'stroke-width': 24, 'stroke-linecap': 'round' }, cross);
+  const ok = chip(cam, 'SUPPRIMÉE ICI…', GREEN, CREAM, 50);
+  const R = rng(17), copies = [];
+  const spots = [[-330, 330], [330, 330], [-390, 640], [390, 640], [-330, 950], [330, 950], [0, 260], [0, 1020]];
+  spots.forEach(([x, y], i) => { const g = el('g', {}, cam); card(g, -80, -100, 160, 200, WHITE, 16, 8, 5); [-50, -10, 30, 70].forEach((yy, j) => { const r = el('g', {}, g); tf(r, 0, yy); blurred(r, -60, 120, 60 + i * 4 + j); }); copies.push({ g, x, y, d: i * .12, r: (R() - .5) * 24 }); });
+  const lab = title(cam, [['LES COPIES', INK], ['CIRCULENT', RED]], { size: 80, shadow: 0, sw: 12 });
+  return t => {
+    const kx = p(t, tEff - .1, tEff + .3, E.out);
+    const gone = 1 - p(t, tCir - .3, tCir, E.in);
+    at(main, CX, 640, pop(t, a + .05, .3) * (1 - .25 * p(t, tCop - .3, tCop, E.inOut)) * gone + .001);
+    at(cross, CX, 640, kx * gone + .001); show(cross, kx > 0 && gone > 0);
+    ok.update(CX, 900, pop(t, tEff + .2) * (1 - p(t, tCop - .3, tCop - .1, E.in)) + .001, -3);
+    copies.forEach(c => at(c.g, CX + c.x, c.y, .9 * pop(t, tCop - .1 + c.d, .3), c.r + Math.sin(t * 3 + c.d * 9) * 4));
+    at(lab, CX, 640, pop(t, tCir - .1, .35), -3);
+    shock(t, tEff + .2, .25, .4); shock(t, tCir + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. LA MINISTRE A SAISI LA JUSTICE : ne payez jamais =======================================
+S(T.justice, T.recel, (cam, a) => {
+  const tMin = Wt('ministre'), tSai = Wt('saisi'), tJus = Wt('justice.'), tNe = Wt('ne', 1, tJus), tPay = Wt('payez');
+  bg(cam);
+  const tag = chip(cam, 'MINISTRE DU NUMÉRIQUE', INK, CREAM, 46);
+  const scale = icon(cam, '⚖️', 230);
+  const h1 = title(cam, [['A SAISI', INK], ['LA JUSTICE', BLUE]], { size: 110, shadow: 0, sw: 14 });
+  const tagG = el('g', {}, cam);
+  el('path', { d: 'M-200,-110 H150 L215,0 L150,110 H-200 Z', fill: INK, transform: 'translate(12,12)' }, tagG);
+  el('path', { d: 'M-200,-110 H150 L215,0 L150,110 H-200 Z', fill: YELLOW, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, tagG);
+  const pr = el('g', {}, tagG); bigNum(pr, 130, RED).set('5 €'); tf(pr, -30, 0);
+  const cross = el('g', {}, tagG);
+  el('line', { x1: -230, y1: -130, x2: 240, y2: 130, stroke: RED, 'stroke-width': 22, 'stroke-linecap': 'round' }, cross);
+  const st = stamp(cam, 'NE PAYEZ JAMAIS', RED, 88);
+  return t => {
+    tag.update(CX, 250, pop(t, tMin - .2), -2);
+    const out = p(t, tNe - .5, tNe - .2, E.in);
+    at(scale, CX, 560, pop(t, tSai - .2, .35) * (1 - out) + .001, Math.sin(t * 3) * 6);
+    at(h1, CX, 850, pop(t, tSai - .05, .35) * (1 - out) + .001, -2);
+    at(tagG, CX, 640, pop(t, tNe - .25, .35), -5);
+    const kc = p(t, tPay, tPay + .2, E.out); show(cross, kc > 0); cross.setAttribute('transform', `scale(${Math.max(kc, .001).toFixed(3)},1)`);
+    st.update(CX, 960, t, tJam - .1, -6);
+    shock(t, tJus + .1, .25, .5); shock(t, tJam + .1, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 9. ATTENTION : chercher le nom d'un autre pourrait être du recel ===========================
+S(T.recel, T.reflexe, (cam, a) => {
+  const tAtt = Wt('attention :'), tChe = Wt('chercher'), tAut = Wt("d'autre"), tRec = Wt('recel.'), t5 = Wt('5', 1, tRec);
+  bg(cam);
+  const warn = el('g', {}, cam);
+  el('path', { d: 'M0,-120 L130,100 H-130 Z', fill: INK, transform: 'translate(10,10)', 'stroke-linejoin': 'round' }, warn);
+  el('path', { d: 'M0,-120 L130,100 H-130 Z', fill: YELLOW, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, warn);
+  txt(warn, '!', { size: 160 }).g.setAttribute('transform', 'translate(0,80)');
+  const sb = searchBar(cam, 760, "LE NOM D'UN AUTRE");
+  const h1 = title(cam, [['= RECEL ?', RED]], { size: 150, shadow: 0, sw: 16 });
+  const jail = el('g', {}, cam); const n5 = bigNum(jail, 100, CREAM); n5.set("JUSQU'À 5 ANS");
+  const lj = label(cam, 'DE PRISON', { size: 80 });
+  const lock = icon(cam, '🔒', 110);
+  const note = label(cam, 'SELON UN AVOCAT · AUCUN JUGEMENT POUR LE MOMENT', { size: 32 });
+  return t => {
+    at(warn, CX, 320, pop(t, tAtt - .2, .35) * (1 + .05 * Math.sin(t * 9)));
+    at(sb.g, CX, 540, pop(t, tChe - .2, .35)); sb.update(t, tChe, tAut + .2);
+    at(h1, CX, 740, pop(t, tRec - .15, .35), -3);
+    at(jail, CX, 930, pop(t, t5 - .4, .35), 2);
+    at(lj, CX, 1050, pop(t, t5 + .1)); at(lock, CX - 340, 1040, pop(t, t5 + .2), -10);
+    at(note, CX, 1140, pop(t, tRec + .3));
+    shock(t, tAtt + .1, .25, .4); shock(t, tRec + .1, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. LE BON RÉFLEXE : 3 gestes ==============================================================
+S(T.reflexe, T.nom, (cam, a) => {
+  const ts = [Wt('change'), Wt('active'), Wt('méfie-toi')];
+  bg(cam);
+  const tag = chip(cam, 'LE BON RÉFLEXE', GREEN, CREAM, 56);
+  const items = [['🔑', 'CHANGE TES', 'MOTS DE PASSE'], ['🔐', 'DOUBLE', 'AUTHENTIFICATION'], ['📞', 'MÉFIE-TOI DES APPELS', 'TROP BIEN RENSEIGNÉS']].map(([ic, l1, l2], i) => {
+    const g = el('g', {}, cam);
+    card(g, -420, -110, 840, 220, WHITE, 30, 12, 7);
+    const e = icon(g, ic, 100); tf(e, -330, 0);
+    const a1 = el('text', { x: -250, y: -12, 'font-size': 48, fill: INK }, g); a1.textContent = l1;
+    const a2 = el('text', { x: -250, y: 52, 'font-size': 48, fill: GREEN, stroke: INK, 'stroke-width': 8, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, g); a2.textContent = l2;
+    const ok = el('g', {}, g); el('circle', { r: 40, fill: GREEN, stroke: INK, 'stroke-width': 6 }, ok);
+    el('path', { d: 'M-18,0 L-4,15 L20,-14', fill: 'none', stroke: CREAM, 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, ok);
+    return { g, ok, y: 470 + i * 270 };
+  });
+  return t => {
+    tag.update(CX, 260, pop(t, a + .05), -2);
+    items.forEach((it, i) => { at(it.g, CX, it.y, pop(t, ts[i] - .25, .35)); tf(it.ok, 380, -100, pop(t, ts[i] + .4, .3)); shock(t, ts[i] + .45, .2, .25); });
+  };
+}, { swipe: RED });
+
+// ====== 11. LE NOM : ce site, c'est BrixHub. Tu en avais entendu parler ? =========================
+S(T.nom, M.DUR, (cam, a) => {
+  const tSite = Wt('site,', 1, a), tBx = Wt('BrixHub.'), tTu = Wt('Tu', 1, tBx), tPar = Wt('parler ?');
+  bg(cam, CREAM, false);
+  const pre = title(cam, [["CE SITE, C'EST…", INK]], { size: 96, shadow: 0 });
+  const name = el('g', {}, cam), nS = bigNum(name, 210, RED); nS.set('BRIXHUB');
+  const q = title(cam, [['TU EN AVAIS', INK], ['ENTENDU PARLER ?', INK]], { size: 82, shadow: 0 });
+  const bub = icon(cam, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE EN', { size: 84 }); w1.g.setAttribute('transform', 'translate(0,-12)');
+  const w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 }); w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(pre, CX, 340, pop(t, a + .05, .35), -2);
+    const kb = clamp((t - tBx + .05) / .2);
+    show(name, t >= tBx - .05);
+    at(name, CX, 600, lerp(2.4, 1, E.out(kb)) * (1 + .03 * Math.sin(t * 5) * (t > tBx + .3 ? 1 : 0)), -4);
+    at(q, CX, 860, pop(t, tTu - .1, .35));
+    at(cta, CX, 1260, pop(t, tPar + .2, .35), -2);
+    at(bub, CX + 330, 1110, pop(t, tPar + .1, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tPar + .5), 0);
+    shock(t, tBx + .1, .35, .9);
+  };
+}, { swipe: RED });
+
+// Sous-titres jusqu'à la révélation du nom (la fin a ses propres textes)
+captions({ until: T.nom + .2 });
+start();
+})();
+</script>
+</body>
+</html>

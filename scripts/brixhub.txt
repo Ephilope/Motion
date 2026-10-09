@@ -1,0 +1,24 @@
+# Voix-off de brixhub.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources :
+#   AFP, 5 octobre 2026 (Techniques de l'Ingénieur https://www.techniques-ingenieur.fr/actualite/breves-afp/donnees-personnelles-la-ministre-du-numerique-saisit-la-justice-contre-brixhub-164449/) :
+#     Anne Le Hénanff, ministre déléguée au Numérique, signale BrixHub au procureur de Paris (article 40) ; recherche par nom → adresse, téléphone,
+#     numéro de Sécurité sociale ; suppression payante ; le site revendique « plus de 11 milliards d'enregistrements issus de fuites de données déjà rendues publiques » ;
+#     le cabinet parle de « probables piratages » de sociétés commerciales ; « ne payez jamais pour faire retirer vos données ».
+#   Génération NT, 8 octobre 2026 (https://generation-nt.com/actualites/brixhub-moteur-donnees-volees-2082432) : RIB parfois affichés ; effacement via packs de crédits ;
+#     les données restent copiées ailleurs ; serveurs au Panama.
+#   consoGlobe (https://www.consoglobe.com/brixhub-que-faire-si-vos-donnees-personnelles-sont-sur-le-site-cg) : 5 € les 10 crédits de suppression ;
+#     payer retire la fiche de l'index mais pas les copies ; mots de passe, double authentification, méfiance face aux appels.
+#   Me Hassan Kohen, avocat (https://kohenavocats.com/brixhub-chercher-nom-moteur-donnees-fuites-illegal-recel-risques-2026/) : consulter les données
+#     d'autrui en connaissant leur origine pourrait relever du recel (art. 321-1 : 5 ans, 375 000 €) ; aucune décision de justice à ce jour.
+Tu es au courant pour le site qui affiche les données volées de millions de Français_?
+Adresse, téléphone, numéro de Sécu… parfois même un RIB.[ribe.] Il suffit de taper un nom.
+Ce site ne pirate rien lui-même_: il ramasse des données déjà volées, lors de fuites chez des entreprises et des organismes.
+Plus de 11_milliards[onze milliards] de lignes, rangées derrière une simple barre de recherche.
+Et c'est là que le business commence.
+Tu veux faire disparaître ta fiche_? 5_euros[Cinq euros] les 10[dix] crédits.
+Tu paies… pour cacher tes propres données, volées par d'autres.
+Sauf que ça n'efface rien ailleurs_: les copies circulent toujours.
+La ministre du Numérique a saisi la justice. Son message est clair_: ne payez jamais.
+Et attention_: chercher le nom de quelqu'un d'autre pourrait être vu comme du recel. Jusqu'à 5[cinq] ans de prison.
+Le bon réflexe_: change tes mots de passe, active la double authentification, et méfie-toi des appels trop bien renseignés.
+Ce site, c'est BrixHub.[Brix Heub.] Tu en avais entendu parler_?
