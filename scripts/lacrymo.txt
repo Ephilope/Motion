@@ -1,0 +1,27 @@
+# Voix-off de lacrymo.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources : Convention sur les armes chimiques (Paris, 1993), art. I.5 et II.9.d : agents de lutte antiémeute interdits comme moyen de guerre,
+#   autorisés pour le maintien de l'ordre (CICR https://www.icrc.org/fr/document/armes-chimiques-biologiques ; Amnesty 2020 : ni « types » ni
+#   « quantités » définis) ;
+# France 1914 : grenades au bromacétate d'éthyle dès août 1914 (https://en.wikipedia.org/wiki/Ethyl_bromoacetate) ;
+# CS = solide cristallin dispersé en aérosol (https://en.wikipedia.org/wiki/CS_gas) ; CS, CN, CR : agonistes TRPA1 (récepteur du wasabi)
+#   parmi les plus puissants connus (Brône et al. 2008 ; https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4448789/) ;
+# Sainte-Soline 25 mars 2023 : 5 015 grenades lacrymogènes selon le ministère de l'Intérieur
+#   (https://www.assemblee-nationale.fr/dyn/17/textes/l17b2064_proposition-resolution.pdf) ;
+# Hong Kong juin-déc. 2019 : ~16 000 cartouches selon les briefings de la police (Asia Times, déc. 2019) ;
+# lacrymogènes absents du fichier de suivi des armes (réponse ministérielle, question AN n° 17735, 15e législature) ;
+# Allemagne : pas de grenades ni LBD en manif, canons à eau, équipes anti-conflit (Rue89 Strasbourg 2019 ; franceinfo, « la désescalade »).
+Interdit à la guerre.
+Le gaz lacrymogène est interdit comme arme de guerre, par une convention internationale.
+Mais contre une foule, chez nous… on en tire par milliers.
+Pourquoi_? À la guerre, un nuage de gaz peut passer pour une attaque chimique mortelle.
+Ironie_: le premier pays à l'utiliser au combat, c'est la France, en 1914.[mille neuf cent quatorze.]
+D'ailleurs, ce n'est même pas un gaz. C'est une poudre, projetée en nuage.
+Elle active le capteur du wasabi… mais en des milliers de fois plus fort.
+Ton corps croit qu'il brûle.
+Et la France en tire beaucoup. À Sainte-Soline, en 2023_:[deux mille vingt-trois :] 5_015[cinq mille quinze] grenades… en moins de deux heures.
+À Hong_Kong, en 2019,[deux mille dix-neuf,] environ 16_000…[seize mille…] en six mois de révolte.
+Et personne ne les compte vraiment. Les tirs de LBD sont enregistrés. Le lacrymo, non.
+En Allemagne, pas de grenades en manif_: des canons à eau… et des policiers chargés de parler à la foule.
+Pour la police, le gaz évite le corps à corps.
+Pour ses critiques, il touche tout le monde… même les gens qui habitent là.
+Alors… trop de lacrymo, ou le prix pour éviter pire_? Dis-le en commentaire.

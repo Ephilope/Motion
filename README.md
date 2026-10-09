@@ -146,3 +146,21 @@ Chiffres : [Insee Focus n° 349](https://www.insee.fr/fr/statistiques/8381248) (
 
 - **Vidéo :** `loyer_tiktok.mp4`
 - **Source :** `loyer.html`, voix-off `scripts/loyer.txt`, bruitages `tools/sfx_loyer.py`. Mêmes commandes que pour `rendezvous`, avec une durée de 66.5 s. La voix a été coupée à 65,35 s pour retirer la fin « Abonne-toi : un nouveau débat chaque jour » ; relancer `voix.mjs loyer` régénère une nouvelle prise sans cette phrase.
+
+---
+
+# Lacrymo : interdit à la guerre, autorisé en manif (TikTok, 9:16)
+
+59 s. Le gaz lacrymogène est interdit comme arme de guerre (convention internationale), mais autorisé contre une foule. Pourquoi (risque de confusion avec une attaque chimique), l'ironie de 1914, ce n'est pas un gaz mais une poudre qui active le capteur du wasabi, puis la France : 5 015 grenades à Sainte-Soline en moins de deux heures contre ~16 000 à Hong Kong en six mois, aucun fichier de suivi, l'Allemagne sans grenades, et les deux points de vue (police / critiques).
+
+Chiffres et sources : en tête de `scripts/lacrymo.txt`.
+
+- **Vidéo :** `lacrymo_tiktok.mp4`
+- **Source :** `lacrymo.html`, voix-off `scripts/lacrymo.txt` (Sarah, eleven_v3), sans bruitages.
+
+```bash
+node tools/voix.mjs lacrymo
+PAGE=lacrymo.html node tools/render.mjs frames 30
+ffmpeg -framerate 30 -i frames/f_%05d.jpg -i assets/voix_lacrymo.mp3 -c:v libx264 -crf 20 -pix_fmt yuv420p \
+  -c:a aac -b:a 192k -af "apad,loudnorm=I=-14:TP=-1.5" -shortest lacrymo_tiktok.mp4
+```

@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lacrymo : interdit à la guerre</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Lacrymo : interdit à la guerre, autorisé en manif » (charte : docs/MODELE.md).
+     Voix-off : scripts/lacrymo.txt → node tools/voix.mjs lacrymo
+     Chiffres et sources : en tête de scripts/lacrymo.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/lacrymo_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, rng } = Motion;
+await setup({
+  duration: 59,
+  words: window.WORDS,
+  audio: 'assets/voix_lacrymo.mp3',
+  emojis: '🪖☠️🇫🇷🇩🇪🇭🇰🔥😭💦🏠💬👇📋🚫⏱️🧪',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', GAS = '#E9E4D8', STEEL = '#8E9AA0', WASABI = '#8DC63F';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Grenade lacrymogène (cartouche cylindrique, ≈ 90 × 200).
+function grenade(parent) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -38, y: -90, width: 90, height: 190, rx: 16, fill: INK }, g);
+  el('rect', { x: -45, y: -100, width: 90, height: 190, rx: 16, fill: STEEL, stroke: INK, 'stroke-width': 7 }, g);
+  el('rect', { x: -45, y: -40, width: 90, height: 34, fill: RED, stroke: INK, 'stroke-width': 6 }, g);
+  el('rect', { x: -28, y: -128, width: 56, height: 34, rx: 8, fill: INK }, g);
+  const l = txt(g, 'CS', { size: 44, fill: CREAM }); l.g.setAttribute('transform', 'translate(0,55)');
+  return g;
+}
+// Nuage de gaz : grappe de cercles qui gonfle (k de 0 à 1).
+function cloud(parent, seed, n = 9, rad = 150) {
+  const R = rng(seed), g = el('g', {}, parent), sh = el('g', {}, g), fg = el('g', {}, g);
+  const puffs = [];
+  for (let i = 0; i < n; i++) {
+    const o = { x: (R() - .5) * rad * 1.8, y: (R() - .5) * rad * .9, r: rad * (.35 + R() * .3), ph: R() * 6 };
+    o.s = el('circle', { fill: INK }, sh); o.f = el('circle', { fill: GAS, stroke: INK, 'stroke-width': 6 }, fg);
+    puffs.push(o);
+  }
+  return { g, update(x, y, k, t) {
+    show(g, k > .001); tf(g, x, y);
+    puffs.forEach(o => { const r = o.r * k * (1 + .06 * Math.sin(t * 3 + o.ph)), cx = o.x * (.6 + .4 * k), cy = o.y * (.6 + .4 * k) - 10 * Math.sin(t * 1.5 + o.ph);
+      set(o.s, { cx: fmt(cx + 10), cy: fmt(cy + 10), r: fmt(r) }); set(o.f, { cx: fmt(cx), cy: fmt(cy), r: fmt(r) }); });
+  } };
+}
+// Silhouette de manifestant (≈ 70 × 150).
+const SHIRTS = [GREEN, RED, YELLOW, '#3498DB', '#9B59B6', CREAM];
+function person(parent, i) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-34,70 V10 Q-34,-20 0,-20 Q34,-20 34,10 V70 Z', fill: SHIRTS[i % SHIRTS.length], stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  el('circle', { cy: -48, r: 26, fill: '#F2C9A0', stroke: INK, 'stroke-width': 6 }, g);
+  return g;
+}
+// Panneau « 2 côtés » de la fin.
+function sideCard(parent, w, h, fill, l1, l2, col) {
+  const g = el('g', {}, parent);
+  card(g, -w / 2, -h / 2, w, h, fill, 30, 12, 7);
+  txt(g, l1, { size: 44, fill: col }).g.setAttribute('transform', `translate(0,${-h / 2 + 70})`);
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  foule: Wt('Mais') - .25, pq: Wt('Pourquoi ?') - .25, iro: Wt('Ironie :') - .25, poudre: Wt("D'ailleurs,") - .25,
+  wasabi: Wt('Elle') - .25, fr: Wt('Et', 1, 27) - .25, hk: Wt('Hong Kong,') - .5, compte: Wt('Et', 1, 37) - .25,
+  all: Wt('En', 1, 42) - .25, camps: Wt('Pour', 1, 47) - .25, cta: Wt('Alors…') - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : interdit à la guerre ======================================================
+// Le texte est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.foule, (cam) => {
+  const tGaz = Wt('lacrymogène'), tConv = Wt('convention');
+  bg(cam);
+  const head = title(cam, ['INTERDIT', ['À LA GUERRE', RED]], { size: 130, shadow: 0, sw: 14 });
+  const cl = cloud(cam, 4, 7, 90);
+  const helmet = el('g', {}, cam); emoji(helmet, '🪖', 220);
+  const gr = grenade(cam);
+  const ban = el('g', {}, cam);
+  el('circle', { r: 190, fill: 'none', stroke: RED, 'stroke-width': 30 }, ban);
+  el('line', { x1: -134, y1: -134, x2: 134, y2: 134, stroke: RED, 'stroke-width': 30 }, ban);
+  const tag = chip(cam, 'CONVENTION INTERNATIONALE', INK, CREAM, 44);
+  return t => {
+    at(head, CX, 330, lerp(1.2, 1, p(t, 0, .3, E.out)), -2);
+    cl.update(CX + 200, 560, p(t, tGaz - .3, tGaz + .6, E.out), t);
+    at(helmet, CX - 150, 760, pop(t, .2, .35), -8);
+    at(gr, CX + 160, 760, pop(t, .35, .35), 12 + Math.sin(t * 3) * 4);
+    at(ban, CX, 730, pop(t, .6, .3), 0);
+    tag.update(CX, 1060, pop(t, tConv - .1), -2);
+    shock(t, .7, .3, .6);
+  };
+});
+
+// ====== 2. MAIS CONTRE UNE FOULE, CHEZ NOUS : par milliers ======================================
+S(T.foule, T.pq, (cam, a) => {
+  const tFoule = Wt('foule,'), tChez = Wt('chez'), tMil = Wt('milliers.');
+  bg(cam);
+  const tag = chip(cam, '🇫🇷 CHEZ NOUS : AUTORISÉ', GREEN, CREAM, 46);
+  const R = rng(9), crowd = [];
+  for (let i = 0; i < 14; i++) { const g = person(cam, i); crowd.push({ g, x: (i % 7 - 3) * 125 + (R() - .5) * 30, y: Math.floor(i / 7) * 120, ph: R() * 6 }); }
+  const nades = []; for (let i = 0; i < 9; i++) nades.push({ g: grenade(cam), x: (R() - .5) * 760, d: R() * .6, r: R() * 360 });
+  const clouds = [cloud(cam, 11, 7, 130), cloud(cam, 12, 7, 120), cloud(cam, 13, 7, 140)];
+  const lab = el('g', {}, cam); txt(lab, 'PAR MILLIERS', { size: 110, fill: RED, sw: 14 });
+  return t => {
+    tag.update(CX, 220, pop(t, tChez - .2), -2);
+    crowd.forEach((c, i) => at(c.g, CX + c.x, 760 + c.y + Math.abs(Math.sin(t * 5 + c.ph)) * -10, .95 * pop(t, tFoule - .5 + i * .03, .3)));
+    nades.forEach((n, i) => { const k = p(t, tMil - .9 + n.d, tMil - .3 + n.d, E.in); show(n.g, k > 0); at(n.g, CX + n.x, lerp(300, 720, k), .45, n.r + k * 300); });
+    clouds.forEach((c, i) => c.update(CX + (i - 1) * 300, 770, p(t, tMil - .3 + i * .15, tMil + .6 + i * .15, E.out), t));
+    at(lab, CX, 1060, pop(t, tMil), -3);
+    shock(t, tMil + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 3. POURQUOI ? À la guerre, le nuage passe pour une attaque chimique ======================
+S(T.pq, T.iro, (cam, a) => {
+  const tNuage = Wt('nuage'), tAtt = Wt('attaque'), tMort = Wt('mortelle.');
+  bg(cam);
+  const q = title(cam, [['POURQUOI ?', RED]], { size: 150, shadow: 0, sw: 14 });
+  const cl = cloud(cam, 21, 9, 170);
+  const skull = el('g', {}, cam); emoji(skull, '☠️', 200);
+  const helmL = el('g', {}, cam); emoji(helmL, '🪖', 140);
+  const lab = el('g', {}, cam); txt(lab, 'ATTAQUE CHIMIQUE ?', { size: 80, fill: CREAM, sw: 14 });
+  return t => {
+    at(q, CX, 300, pop(t, a + .05, .35), -2);
+    cl.update(CX, 700, p(t, tNuage - .3, tNuage + .6, E.out), t);
+    at(helmL, CX - 300, 900, pop(t, tNuage), -10);
+    at(skull, CX, 700, pop(t, tAtt - .1, .35) * (1 + .05 * Math.sin(t * 8)), Math.sin(t * 4) * 6);
+    at(lab, CX, 1040, pop(t, tAtt), -2);
+    shock(t, tMort, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. IRONIE : la France, la première, en 1914 ============================================
+S(T.iro, T.poudre, (cam, a) => {
+  const tPrem = Wt('premier'), tFr = Wt('France,'), t1914 = Wt('1914.');
+  bg(cam);
+  const tag = chip(cam, 'IRONIE', YELLOW, INK, 56);
+  const lab = el('g', {}, cam); txt(lab, '1ER PAYS AU COMBAT', { size: 70 });
+  const flag = el('g', {}, cam); emoji(flag, '🇫🇷', 260);
+  const n = el('g', {}, cam), nS = bigNum(n, 260, RED); nS.set('1914');
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -3);
+    at(lab, CX, 400, pop(t, tPrem - .1), -2);
+    at(flag, CX, 640, pop(t, tFr - .2, .35), Math.sin(t * 3) * 4);
+    at(n, CX, 960, pop(t, t1914 - .1, .35), -3);
+    shock(t, t1914 + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 5. CE N'EST MÊME PAS UN GAZ : une poudre ================================================
+S(T.poudre, T.wasabi, (cam, a) => {
+  const tPas = Wt('pas', 1, a), tPou = Wt('poudre,'), tNua = Wt('nuage.');
+  bg(cam);
+  const st = stamp(cam, 'PAS UN GAZ', RED, 96);
+  const pile = el('g', {}, cam);
+  el('path', { d: 'M-230,90 Q-120,-80 0,-90 Q120,-80 230,90 Z', fill: INK, transform: 'translate(12,12)' }, pile);
+  el('path', { d: 'M-230,90 Q-120,-80 0,-90 Q120,-80 230,90 Z', fill: WHITE, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, pile);
+  const R = rng(5), grains = [];
+  for (let i = 0; i < 40; i++) grains.push({ e: el('circle', { r: 6 + R() * 8, fill: WHITE, stroke: INK, 'stroke-width': 3 }, cam), a: -Math.PI / 2 + (R() - .5) * 2.2, v: 300 + R() * 300, d: R() * .4 });
+  const lab = el('g', {}, cam); txt(lab, 'UNE POUDRE', { size: 110, fill: CREAM, sw: 14 });
+  return t => {
+    st.update(CX, 330, t, tPas, -6);
+    at(pile, CX, 820, pop(t, tPou - .3, .35));
+    grains.forEach(g => { const k = clamp((t - tNua + .5 - g.d) / 1.2); show(g.e, k > 0); set(g.e, { cx: fmt(CX + Math.cos(g.a) * g.v * k), cy: fmt(760 + Math.sin(g.a) * g.v * k + 200 * k * k) }); });
+    at(lab, CX, 1060, pop(t, tPou), -2);
+    shock(t, tPas + .1, .25, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. LE CAPTEUR DU WASABI… des milliers de fois plus fort ; ton corps croit qu'il brûle ====
+S(T.wasabi, T.fr, (cam, a) => {
+  const tCap = Wt('capteur'), tWas = Wt('wasabi…'), tMil = Wt('milliers', 1, a), tCorps = Wt('corps'), tBru = Wt('brûle.');
+  bg(cam);
+  const tag = chip(cam, 'LE CAPTEUR DE LA DOULEUR', INK, CREAM, 44);
+  const was = el('g', {}, cam);
+  el('path', { d: 'M-90,40 Q-110,-40 -40,-60 Q0,-110 50,-60 Q110,-40 90,40 Q60,80 0,70 Q-60,80 -90,40 Z', fill: INK, transform: 'translate(10,10)' }, was);
+  el('path', { d: 'M-90,40 Q-110,-40 -40,-60 Q0,-110 50,-60 Q110,-40 90,40 Q60,80 0,70 Q-60,80 -90,40 Z', fill: WASABI, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, was);
+  const wl = txt(was, 'WASABI', { size: 40, fill: INK }); wl.g.setAttribute('transform', 'translate(0,130)');
+  const gr = grenade(cam);
+  const n = el('g', {}, cam), nS = bigNum(n, 150, RED); nS.set('× 1 000');
+  const fire = el('g', {}, cam); emoji(fire, '🔥', 180);
+  const cry = el('g', {}, cam); emoji(cry, '😭', 200);
+  return t => {
+    tag.update(CX, 230, pop(t, tCap - .2), -2);
+    const out = p(t, tCorps - .4, tCorps, E.in);
+    at(was, CX - 230, 560, pop(t, tWas - .3, .35) * (1 - out));
+    at(gr, CX + 230, 560, 1.1 * pop(t, tMil - .4, .35) * (1 - out), Math.sin(t * 12) * 6 * (t > tMil ? 1 : 0));
+    at(n, CX, 860, pop(t, tMil, .35) * (1 - out), -3);
+    at(cry, CX, 640, pop(t, tCorps - .1, .35) * (1 + .04 * Math.sin(t * 9)));
+    at(fire, CX + (t > tBru ? 0 : 300), 900, pop(t, tBru - .2, .35) * (1 + .06 * Math.sin(t * 11)), Math.sin(t * 7) * 6);
+    shock(t, tMil + .2, .3, .5); shock(t, tBru + .1, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 7. SAINTE-SOLINE 2023 : 5 015 grenades en moins de deux heures ===========================
+S(T.fr, T.hk, (cam, a) => {
+  const tSS = Wt('Sainte-Soline,'), t5 = Wt('5 015'), tH = Wt('deux', 1, a);
+  bg(cam);
+  const R = rng(17), rain = []; for (let i = 0; i < 12; i++) rain.push({ g: grenade(cam), x: (R() - .5) * 860, d: R(), r: R() * 360 });
+  const head = title(cam, ['ET LA FRANCE', ['EN TIRE BEAUCOUP', RED]], { size: 86, shadow: 0, sw: 12 });
+  const place = chip(cam, 'SAINTE-SOLINE · MARS 2023', INK, CREAM, 44);
+  const n = el('g', {}, cam), nS = bigNum(n, 230, RED);
+  const lab = el('g', {}, cam); txt(lab, 'GRENADES', { size: 90 });
+  const clock = chip(cam, '⏱️ EN MOINS DE 2 H', YELLOW, INK, 54);
+  return t => {
+    at(head, CX, 300, pop(t, a + .05, .35), -2);
+    place.update(CX, 480, pop(t, tSS - .2), 2);
+    const kc = p(t, t5 - .5, t5 + .3, E.out);
+    nS.set(Math.round(5015 * kc).toLocaleString('fr-FR').replace(/\s/g, ' '));
+    at(n, CX, 700, pop(t, t5 - .5, .3), -3);
+    at(lab, CX, 860, pop(t, t5 + .4), -2);
+    clock.update(CX, 1040, pop(t, tH - .3), -3);
+    rain.forEach(o => { const ph = ((t - t5) * .9 + o.d) % 1; show(o.g, t > t5 && t < T.hk); at(o.g, CX + o.x, lerp(150, 1500, ph), .35, o.r + ph * 400); });
+    shock(t, t5 + .3, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. HONG KONG 2019 : ~16 000 en six mois ==================================================
+S(T.hk, T.compte, (cam, a) => {
+  const t16 = Wt('16 000…'), tSix = Wt('six');
+  bg(cam);
+  const tag = chip(cam, 'POUR COMPARER', INK, CREAM, 46);
+  const base = 880, maxH = 440, k16 = 16000;
+  const bars = [
+    { flag: '🇫🇷', top: 'SAINTE-SOLINE', sub: '2 HEURES', n: 5015, val: '5 015', col: RED, x: CX - 200 },
+    { flag: '🇭🇰', top: 'HONG KONG', sub: '6 MOIS', n: 16000, val: '~16 000', col: '#3498DB', x: CX + 200 },
+  ].map(b => {
+    const g = el('g', {}, cam);
+    const sh = el('rect', { x: -110 + 12, width: 220, fill: INK }, g), r = el('rect', { x: -110, width: 220, fill: b.col, stroke: INK, 'stroke-width': 7 }, g);
+    const v = el('g', {}, g); txt(v, b.val, { size: 64, sw: 10, fill: CREAM });
+    const f = el('g', {}, g); emoji(f, b.flag, 90); tf(f, 0, base + 80);
+    const t1 = el('g', {}, g); txt(t1, b.top, { size: 40 }); tf(t1, 0, base + 180);
+    const t2 = el('g', {}, g); txt(t2, b.sub, { size: 52, fill: RED }); tf(t2, 0, base + 235);
+    return { ...b, g, sh, r, v, t2 };
+  });
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    bars.forEach((b, i) => {
+      const t0 = i ? t16 - .5 : a + .1, k = p(t, t0, t0 + .6, E.out), h = Math.max(1, maxH * b.n / k16 * k);
+      at(b.g, b.x, 0, 1); show(b.g, t >= t0 - .05);
+      set(b.r, { y: fmt(base - h), height: fmt(h) }); set(b.sh, { y: fmt(base - h + 12), height: fmt(h) });
+      tf(b.v, 0, base - h - 50, pop(t, t0 + .4));
+      tf(b.t2, 0, base + 235, i ? pop(t, tSix - .1) * (1 + .08 * hit(t, tSix + .2, .3)) : 1);
+    });
+    shock(t, tSix + .2, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 9. PERSONNE NE LES COMPTE : LBD enregistrés, lacrymo non =================================
+S(T.compte, T.all, (cam, a) => {
+  const tPers = Wt('personne'), tLBD = Wt('LBD'), tLac = Wt('lacrymo,'), tNon = Wt('non.');
+  bg(cam);
+  const head = title(cam, ['PERSONNE', ['NE LES COMPTE', RED]], { size: 100, shadow: 0, sw: 12 });
+  const reg = el('g', {}, cam);
+  card(reg, -380, -230, 760, 460, WHITE, 20, 12, 7);
+  const ic = el('g', {}, reg); emoji(ic, '📋', 80); tf(ic, -290, -150);
+  txt(reg, 'FICHIER DE SUIVI', { size: 46 }).g.setAttribute('transform', 'translate(40,-135)');
+  el('line', { x1: -340, y1: -80, x2: 340, y2: -80, stroke: INK, 'stroke-width': 5 }, reg);
+  const row = (y, s) => { const g = el('g', {}, reg); txt(g, s, { size: 64, anchor: 'start' }).g.setAttribute('transform', `translate(-320,${y + 22})`); return g; };
+  const r1 = row(10, 'TIRS DE LBD'), r2 = row(140, 'LACRYMO');
+  const ok = el('g', {}, reg); el('circle', { r: 46, fill: GREEN, stroke: INK, 'stroke-width': 6 }, ok);
+  el('path', { d: 'M-20,2 L-5,18 L22,-16', fill: 'none', stroke: CREAM, 'stroke-width': 12, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, ok); tf(ok, 270, 10);
+  const no = el('g', {}, reg); el('circle', { r: 46, fill: RED, stroke: INK, 'stroke-width': 6 }, no);
+  el('path', { d: 'M-17,-17 L17,17 M17,-17 L-17,17', stroke: CREAM, 'stroke-width': 12, 'stroke-linecap': 'round' }, no);
+  return t => {
+    at(head, CX, 310, pop(t, tPers - .2, .35), -2);
+    at(reg, CX, 800, pop(t, tLBD - .6, .35), 1);
+    r1.setAttribute('opacity', t > tLBD - .2 ? 1 : 0); r2.setAttribute('opacity', t > tLac - .2 ? 1 : 0);
+    tf(ok, 270, 10, pop(t, tLBD + .4));
+    tf(no, 270, 140, pop(t, tNon - .05));
+    shock(t, tNon + .1, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. EN ALLEMAGNE : pas de grenades, canons à eau, policiers qui parlent ===================
+S(T.all, T.camps, (cam, a) => {
+  const tGr = Wt('grenades', 1, a), tCan = Wt('canons'), tPol = Wt('policiers'), tPar = Wt('parler');
+  bg(cam);
+  const tag = chip(cam, '🇩🇪 EN ALLEMAGNE', INK, CREAM, 52);
+  const gr = grenade(cam);
+  const ban = el('g', {}, cam);
+  el('circle', { r: 150, fill: 'none', stroke: RED, 'stroke-width': 24 }, ban);
+  el('line', { x1: -106, y1: -106, x2: 106, y2: 106, stroke: RED, 'stroke-width': 24 }, ban);
+  const water = chip(cam, '💦 CANONS À EAU', '#3498DB', CREAM, 50);
+  const cop = person(cam, 3), fan = person(cam, 0);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const lab = chip(cam, 'ÉQUIPES ANTI-CONFLIT', GREEN, CREAM, 44);
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    const out = p(t, tCan - .3, tCan, E.in);
+    at(gr, CX, 560, 1.3 * pop(t, tGr - .3, .3) * (1 - out));
+    at(ban, CX, 560, pop(t, tGr, .3) * (1 - out));
+    water.update(CX, 420, pop(t, tCan - .2), -2);
+    at(cop, CX - 140, 760, 1.4 * pop(t, tPol - .2, .35));
+    at(fan, CX + 140, 760, 1.4 * pop(t, tPol, .35));
+    at(bub, CX, 560 + Math.sin(t * 5) * 10, pop(t, tPar - .1, .35));
+    lab.update(CX, 1040, pop(t, tPar + .1), 2);
+    shock(t, tGr + .1, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 11. LES DEUX CÔTÉS : police / critiques ==================================================
+S(T.camps, T.cta, (cam, a) => {
+  const tEv = Wt('évite'), tCrit = Wt('critiques,'), tTout = Wt('tout'), tGens = Wt('gens');
+  bg(cam);
+  const L = el('g', {}, cam), Rr = el('g', {}, cam);
+  card(L, -220, -330, 440, 660, GREEN, 30, 12, 7); card(Rr, -220, -330, 440, 660, RED, 30, 12, 7);
+  const lt = el('g', {}, L); txt(lt, 'POLICE', { size: 64, fill: CREAM, sw: 10 }); tf(lt, 0, -240);
+  const rt = el('g', {}, Rr); txt(rt, 'CRITIQUES', { size: 58, fill: CREAM, sw: 10 }); tf(rt, 0, -240);
+  const l1 = el('g', {}, L); [['PAS DE', -60], ['CORPS', 20], ['À CORPS', 100]].forEach(([s, y]) => txt(l1, s, { size: 62, fill: INK }).g.setAttribute('transform', `translate(0,${y})`));
+  const lp1 = person(L, 5), lp2 = person(L, 1);
+  const r1 = el('g', {}, Rr); [['TOUCHE', -60], ['TOUT LE', 20], ['MONDE', 100]].forEach(([s, y]) => txt(r1, s, { size: 62, fill: INK }).g.setAttribute('transform', `translate(0,${y})`));
+  const house = el('g', {}, Rr); emoji(house, '🏠', 110);
+  return t => {
+    at(L, CX - 235, 760, pop(t, a + .1, .35), -2);
+    at(Rr, CX + 235, 760, pop(t, tCrit - .3, .35), 2);
+    tf(l1, 0, 0, pop(t, tEv - .1));
+    tf(lp1, -90, 230, .9 * pop(t, tEv + .2)); tf(lp2, 90, 230, .9 * pop(t, tEv + .2));
+    tf(r1, 0, 0, pop(t, tTout - .2));
+    tf(house, 0, 240, pop(t, tGens - .1) * (1 + .06 * Math.sin(t * 6)));
+    shock(t, tTout + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 12. FIN : trop de lacrymo, ou le prix pour éviter pire ? =================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tTrop = Wt('trop'), tPrix = Wt('prix'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  bg(cam, CREAM, false);
+  const top = el('g', {}, cam), bot = el('g', {}, cam);
+  el('rect', { x: -W, y: -230, width: 2 * W, height: 460, fill: RED }, top);
+  title(top, [['TROP DE', CREAM], ['LACRYMO ?', CREAM]], { size: 110 });
+  el('rect', { x: -W, y: -230, width: 2 * W, height: 460, fill: GREEN }, bot);
+  title(bot, [['LE PRIX POUR', CREAM], ['ÉVITER PIRE ?', CREAM]], { size: 96 });
+  const vs = el('g', {}, cam); el('circle', { r: 70, fill: INK }, vs); txt(vs, 'OU', { size: 60, fill: CREAM }).t.setAttribute('y', 22);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(top, lerp(-W, W / 2, p(t, tTrop - .3, tTrop + .05, E.out)), 410);
+    at(bot, lerp(2 * W, W / 2, p(t, tPrix - .4, tPrix, E.out)), 870);
+    at(vs, CX, 640, pop(t, tPrix + .1));
+    at(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 1150, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+    shock(t, tPrix + .2, .25, .4);
+  };
+}, { swipe: RED });
+
+// Sous-titres jusqu'à « Alors… » (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+start();
+})();
+</script>
+</body>
+</html>
