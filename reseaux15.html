@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réseaux sociaux avant 15 ans</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Réseaux sociaux avant 15 ans : deux lois votées, aucune appliquée » (charte : docs/MODELE.md).
+     Voix-off : scripts/reseaux15.txt → node tools/voix.mjs reseaux15
+     Chiffres et sources : en tête de scripts/reseaux15.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/reseaux15_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg } = Motion;
+await setup({
+  duration: 53,
+  words: window.WORDS,
+  audio: 'assets/voix_reseaux15.mp3',
+  emojis: '📱✅❌⚖️🇦🇺♾️▶️👀💬👇',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BLUE = '#3498DB', PAPER = '#FFFFFF', GREY = '#8A8174';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Texte placé à (x, y) dans un groupe.
+function label(parent, str, x, y, o) { const r = txt(parent, str, o); r.g.setAttribute('transform', `translate(${x},${y})`); return r; }
+// Téléphone : renvoie le groupe et un calque d'écran découpé (origine au centre de l'écran).
+let clipN = 0;
+function phone(parent, w = 380, h = 720) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -w / 2 + 14, y: -h / 2 + 14, width: w, height: h, rx: 56, fill: INK }, g);
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 56, fill: INK }, g);
+  const sw = w - 36, sh = h - 36, id = 'scr' + (++clipN);
+  const cp = el('clipPath', { id }, g);
+  el('rect', { x: -sw / 2, y: -sh / 2, width: sw, height: sh, rx: 40 }, cp);
+  const scr = el('g', { 'clip-path': `url(#${id})` }, g);
+  el('rect', { x: -sw / 2, y: -sh / 2, width: sw, height: sh, fill: CREAM }, scr);
+  el('rect', { x: -50, y: -h / 2 + 26, width: 100, height: 22, rx: 11, fill: INK }, g);
+  return { g, scr, sw, sh };
+}
+// Document officiel (texte de loi).
+function lawDoc(parent, lines) {
+  const g = el('g', {}, parent);
+  card(g, -340, -200, 680, 400, PAPER, 18, 12, 7);
+  el('rect', { x: -340, y: -200, width: 680, height: 70, fill: BLUE, stroke: INK, 'stroke-width': 7 }, g);
+  label(g, 'RÉPUBLIQUE FRANÇAISE', 0, -152, { size: 34, fill: CREAM });
+  lines.forEach(([s, size, fill], i) => label(g, s, 0, -60 + i * 78, { size, fill: fill || INK }));
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  rule: Wt('Sur') - .25, loi1: Wt('Première') - .25, loi2: Wt('Deuxième') - .25, why: Wt('Trop') - .25,
+  aus: Wt('En', 1, 29) - .25, plan: Wt('Alors') - .25, cta: Wt('Toi,', 1, 45) - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : 2 lois votées, 0 appliquée =================================================
+// Le texte est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.rule, (cam) => {
+  const tAuc = Wt('Aucune');
+  bg(cam);
+  const head = title(cam, ['RÉSEAUX SOCIAUX', ['AVANT 15 ANS', RED]], { size: 86, shadow: 0, sw: 12 });
+  const row1 = el('g', {}, cam), n1 = bigNum(row1, 220, GREEN); n1.set('2');
+  const l1 = el('g', {}, cam); txt(l1, 'LOIS VOTÉES', { size: 90, fill: GREEN, sw: 12 });
+  const st = stamp(cam, '0 APPLIQUÉE', RED, 100);
+  return t => {
+    at(head, CX, 290, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
+    at(row1, CX - 40, 560, lerp(1.3, 1, p(t, 0, .25, E.out)) * (1 + .08 * hit(t, Wt('deux'), .3)), -4);
+    at(l1, CX, 730, lerp(1.2, 1, p(t, 0, .3, E.out)), -3);
+    st.update(CX, 960, t, tAuc - .05, -6);
+    shock(t, tAuc + .2, .3, .7);
+  };
+});
+
+// ====== 2. LA RÈGLE DES APPLIS : 13 ans… et on ment. Premier compte vers 8 ans et demi ===========
+S(T.rule, T.loi1, (cam, a) => {
+  const t13 = Wt('13 ans.'), tMen = Wt('mentir'), tNai = Wt('naissance…'), tCnil = Wt('CNIL,'), tHuit = Wt('huit');
+  bg(cam);
+  const tag = chip(cam, 'LA RÈGLE DE TIKTOK ET INSTAGRAM', INK, CREAM, 40);
+  const ph = phone(cam);
+  label(ph.scr, 'INSCRIPTION', 0, -230, { size: 44 });
+  label(ph.scr, 'DATE DE', 0, -120, { size: 34, fill: GREY });
+  label(ph.scr, 'NAISSANCE', 0, -80, { size: 34, fill: GREY });
+  card(ph.scr, -130, -40, 260, 120, PAPER, 18, 0, 6);
+  const year = bigNum(ph.scr, 80, INK); year.t.setAttribute('stroke-width', 0); year.t.setAttribute('transform', 'translate(0,20)');
+  const btn = el('g', {}, ph.scr); card(btn, -130, 130, 260, 90, GREEN, 45, 0, 6); label(btn, 'VALIDER', 0, 188, { size: 40, fill: CREAM });
+  const ok = el('g', {}, ph.scr); emoji(ok, '✅', 90); tf(ok, 0, 290);
+  const min = el('g', {}, cam); el('circle', { r: 120, fill: RED, stroke: INK, 'stroke-width': 8 }, min);
+  label(min, '13', 0, 20, { size: 110, fill: CREAM }); label(min, 'ANS MIN.', 0, 70, { size: 30, fill: CREAM });
+  const lie = stamp(cam, 'IL SUFFIT DE MENTIR', RED, 56);
+  const cnil = el('g', {}, cam), cS = bigNum(cnil, 180, RED); cS.set('8 ANS ½');
+  const cl = el('g', {}, cam); txt(cl, 'LE 1ER COMPTE, EN MOYENNE', { size: 52 });
+  const src = chip(cam, 'SONDAGE CNIL', INK, CREAM, 44);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    const out = p(t, tCnil - .35, tCnil, E.in);
+    const kr = p(t, tMen, tMen + .7, E.inOut);
+    year.set(String(Math.round(lerp(2015, 2008, kr))));
+    show(ok, t > tMen + .8); tf(ok, 0, 290, pop(t, tMen + .8));
+    at(ph.g, CX - 120, lerp(720, 2400, out), .95 * pop(t, a + .1, .35), -3);
+    at(min, CX + 280, lerp(470, -400, out), pop(t, t13 - .4), 8 + Math.sin(t * 3) * 3);
+    lie.update(CX + 190, lerp(1000, 2600, out), t, tNai - .3, 6);
+    at(cnil, CX, 600, pop(t, tCnil + .15, .35) * (1 + .08 * hit(t, tHuit, .3)), -3);
+    at(cl, CX, 790, pop(t, tCnil + .4), -2);
+    src.update(CX, 920, pop(t, tCnil), 2);
+    shock(t, t13, .25, .4); shock(t, tHuit + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 3. LOI N°1 (2023) : accord des parents, votée à l'unanimité… jamais appliquée =============
+S(T.loi1, T.loi2, (cam, a) => {
+  const tPar = Wt('parents.'), tUna = Wt("l'unanimité…"), tJam = Wt('jamais');
+  bg(cam);
+  const tag = chip(cam, 'LOI N°1 · JUILLET 2023', INK, CREAM, 50);
+  const doc = lawDoc(cam, [['MAJORITÉ NUMÉRIQUE', 52, BLUE], ['AVANT 15 ANS :', 52], ["L'ACCORD", 64, GREEN], ['DES PARENTS', 64, GREEN]]);
+  const vote = chip(cam, "VOTÉE À L'UNANIMITÉ", GREEN, CREAM, 50);
+  const ve = el('g', {}, cam); emoji(ve, '✅', 90);
+  const st = stamp(cam, 'JAMAIS APPLIQUÉE', RED, 84);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    at(doc, CX, 600, pop(t, a + .15, .4) * (1 + .03 * hit(t, tPar, .3)), -2);
+    vote.update(CX - 30, 920, pop(t, tUna - .4), 2);
+    at(ve, CX + 340, 910, pop(t, tUna - .2), 0);
+    st.update(CX, 650, t, tJam - .05, -8);
+    shock(t, tJam + .2, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. LOI N°2 (juillet 2026) : interdiction totale… censurée le 14 août =====================
+S(T.loi2, T.why, (cam, a) => {
+  const tTot = Wt('totale.'), t14 = Wt('14 août,'), tCons = Wt('Conseil'), tCen = Wt('censure.');
+  bg(cam);
+  const tag = chip(cam, 'LOI N°2 · JUILLET 2026', INK, CREAM, 50);
+  const doc = lawDoc(cam, [['INTERDICTION', 76, RED], ['TOTALE', 76, RED], ['AVANT 15 ANS', 60], ['', 10]]);
+  const date = chip(cam, '14 AOÛT 2026', RED, CREAM, 50);
+  const cc = chip(cam, 'CONSEIL CONSTITUTIONNEL', INK, CREAM, 44);
+  const gav = el('g', {}, cam); emoji(gav, '⚖️', 130);
+  const st = stamp(cam, 'CENSURÉE', RED, 110);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    at(doc, CX, 600, pop(t, a + .15, .4) * (1 + .04 * hit(t, tTot, .3)), 2);
+    date.update(CX - 150, 900, pop(t, t14 - .2), -3);
+    cc.update(CX, 1020, pop(t, tCons - .1), 2);
+    at(gav, CX + 300, 880 - 60 * Math.max(0, Math.sin(Math.min(1, (t - tCons) / .5) * Math.PI)), pop(t, tCons - .2), -20 + 40 * hit(t, tCen, .2));
+    st.update(CX, 600, t, tCen - .05, -8);
+    shock(t, tCen + .2, .3, .8);
+  };
+}, { swipe: RED });
+
+// ====== 5. POURQUOI : trop large… et même les adultes auraient dû prouver leur âge ===============
+S(T.why, T.aus, (cam, a) => {
+  const tAge = Wt("l'âge"), tMat = Wt('maturité'), tToi = Wt('toi,'), tAdu = Wt('adulte,'), tPro = Wt('prouver');
+  bg(cam);
+  const head = title(cam, [['TROP LARGE', RED]], { size: 140, sw: 14 });
+  const c1 = chip(cam, "L'ÂGE DE L'ENFANT", INK, CREAM, 46), c2 = chip(cam, 'SA MATURITÉ', INK, CREAM, 46);
+  const x1 = el('g', {}, cam); emoji(x1, '❌', 70); const x2 = el('g', {}, cam); emoji(x2, '❌', 70);
+  const ign = label(cam, 'IGNORÉS PAR LA LOI', 0, 0, { size: 44, fill: RED, sw: 0 });
+  const id = el('g', {}, cam);
+  card(id, -280, -150, 560, 300, PAPER, 26, 12, 7);
+  el('rect', { x: -280, y: -150, width: 560, height: 64, fill: BLUE, stroke: INK, 'stroke-width': 7 }, id);
+  label(id, "PIÈCE D'IDENTITÉ", 0, -106, { size: 32, fill: CREAM });
+  el('circle', { cx: -160, cy: 30, r: 70, fill: '#F3D9B1', stroke: INK, 'stroke-width': 6 }, id);
+  el('path', { d: 'M-215,100 Q-160,40 -105,100 Z', fill: INK }, id);
+  [-20, 30, 80].forEach((y, i) => el('rect', { x: -50, y: y - 14, width: [270, 220, 160][i], height: 22, rx: 11, fill: '#D9CBB5' }, id));
+  const adu = label(cam, 'MÊME LES ADULTES', 0, 0, { size: 70, fill: CREAM, sw: 12 });
+  const pre = chip(cam, "PREUVE D'ÂGE POUR TOUS", RED, CREAM, 46);
+  return t => {
+    const up = p(t, tToi - .4, tToi, E.inOut);
+    at(head, CX, lerp(330, 250, up), pop(t, a + .05, .35) * lerp(1, .7, up), -3);
+    c1.update(CX - 50, 500, pop(t, tAge - .2) * (1 - up), -2); at(x1, CX + 280, 500, pop(t, tAge + .1) * (1 - up));
+    c2.update(CX - 50, 610, pop(t, tMat - .2) * (1 - up), 2); at(x2, CX + 220, 610, pop(t, tMat + .1) * (1 - up));
+    at(ign.g, CX, 720, pop(t, tMat + .4) * (1 - up), -2);
+    at(id, CX, 640, pop(t, tToi - .1, .4) * (1 + .04 * hit(t, tPro + .2, .3)), 3);
+    at(adu.g, CX, 900, pop(t, tAdu - .1), -2);
+    pre.update(CX, 1040, pop(t, tAdu + .3), 2);
+    shock(t, tPro + .2, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. L'AUSTRALIE : interdit avant 16 ans… 86 % avant, 81 % trois mois après =================
+S(T.aus, T.plan, (cam, a) => {
+  const t16 = Wt('16 ans'), tDec = Wt('décembre.'), tTro = Wt('Trois'), t81 = Wt('81 %'), t86 = Wt('86 %'), tAva = Wt('avant.', 1, t86);
+  bg(cam);
+  const tag = chip(cam, '🇦🇺 EN AUSTRALIE', INK, CREAM, 50);
+  const head = title(cam, [['INTERDIT', RED], ['AVANT 16 ANS', INK]], { size: 96, shadow: 0, sw: 12 });
+  const since = chip(cam, 'DEPUIS DÉCEMBRE 2025', GREEN, CREAM, 40);
+  const base = 1090, maxH = 420;
+  const bars = [[86, 'AVANT', GREY, t86], [81, '3 MOIS APRÈS', RED, t81]].map(([v, l, c, t0], i) => {
+    const g = el('g', {}, cam);
+    const shadowR = el('rect', { x: -110 + 10, width: 220, fill: INK }, g);
+    const r = el('rect', { x: -110, width: 220, fill: c, stroke: INK, 'stroke-width': 7 }, g);
+    const n = bigNum(g, 96, c === GREY ? CREAM : RED);
+    const lab = label(g, l, 0, 50, { size: 38 });
+    return { g, r, shadowR, n, v, t0, x: CX + (i ? 200 : -200) };
+  });
+  const sub = label(cam, 'DES 10-15 ANS ENCORE SUR LES RÉSEAUX', 0, 0, { size: 38, fill: INK });
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    const up = p(t, tTro - .4, tTro, E.inOut);
+    at(head, CX, lerp(520, 380, up), pop(t, a + .1, .35) * lerp(1, .75, up), -2);
+    since.update(CX, 720, pop(t, tDec - .4) * (1 - up), 2);
+    bars.forEach(b => {
+      const k = p(t, b.t0 - .3, b.t0 + .4, E.out), h = maxH * b.v / 100 * k;
+      show(b.g, k > 0); tf(b.g, b.x, base);
+      set(b.r, { y: fmt(-h), height: fmt(h) }); set(b.shadowR, { y: fmt(-h + 10), height: fmt(h) });
+      b.n.set(Math.round(b.v * k) + ' %'); b.n.t.setAttribute('transform', `translate(0,${fmt(-h - 70)})`);
+    });
+    at(sub.g, CX, 540, pop(t, tTro + .3), 0);
+    shock(t, t81 + .1, .3, .5); shock(t, tAva, .25, .3);
+  };
+}, { swipe: RED });
+
+// ====== 7. LE NOUVEAU PLAN : viser les fonctions addictives… comme ce que tu fais là =============
+S(T.plan, T.cta, (cam, a) => {
+  const tFon = Wt('fonctions'), tScr = Wt('scroll'), tVid = Wt('vidéo'), tExa = Wt('Exactement'), tMom = Wt('moment.');
+  bg(cam);
+  const tag = chip(cam, 'LE NOUVEAU TEXTE', INK, CREAM, 50);
+  const head = title(cam, ['IL VISE LES', ['FONCTIONS ADDICTIVES', RED]], { size: 76, shadow: 0, sw: 12 });
+  const ph = phone(cam, 400, 640);
+  const feed = el('g', {}, ph.scr), cols = [RED, GREEN, BLUE, YELLOW, '#9B59B6'], posts = [];
+  for (let i = 0; i < 6; i++) {
+    const g = el('g', {}, feed);
+    el('rect', { x: -160, y: -120, width: 320, height: 240, rx: 24, fill: cols[i % 5], stroke: INK, 'stroke-width': 6 }, g);
+    el('path', { d: 'M-26,-36 L34,0 L-26,36 Z', fill: CREAM, stroke: INK, 'stroke-width': 5, 'stroke-linejoin': 'round' }, g);
+    posts.push(g);
+  }
+  const inf = chip(cam, '♾️ SCROLL INFINI', RED, CREAM, 48);
+  const auto = chip(cam, '▶️ LECTURE AUTO', RED, CREAM, 48);
+  const you = stamp(cam, "C'EST TOI, LÀ", RED, 80);
+  const eyes = el('g', {}, cam); emoji(eyes, '👀', 120);
+  return t => {
+    tag.update(CX, 220, pop(t, a + .05), -2);
+    at(head, CX, 360, pop(t, a + .15, .35) * (1 + .04 * hit(t, tFon + .2, .3)), -2);
+    at(ph.g, CX, 790, pop(t, tFon - .2, .4), -2);
+    // défilement : rapide et sans fin à partir de « scroll »
+    const off = t < tScr ? 0 : (t - tScr) * 900;
+    posts.forEach((g, i) => { const y = ((i * 270 - off) % 1620 + 1620) % 1620 - 540; tf(g, 0, y); });
+    inf.update(CX - 120, 640, pop(t, tScr - .15), -5);
+    auto.update(CX + 90, 900, pop(t, tVid - .15), 4);
+    you.update(CX, 1090, t, tExa + .1, -5);
+    at(eyes, CX + 320, 560, pop(t, tMom - .3) * (1 + .08 * Math.sin(t * 8)), 0);
+    shock(t, tExa + .3, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. Tu interdirais quoi ? ===============================================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tAdo = Wt('ados…'), tOu = Wt('ou', 1, tAdo), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ['TU INTERDIRAIS', ['QUOI ?', RED]], { size: 96, shadow: 0, sw: 12 });
+  const o1 = el('g', {}, cam); card(o1, -380, -80, 760, 160, RED, 30, 12, 7);
+  label(o1, 'LES RÉSEAUX', 0, -8, { size: 60, fill: CREAM }); label(o1, 'AUX ADOS', 0, 52, { size: 44, fill: CREAM });
+  const vs = el('g', {}, cam); el('circle', { r: 50, fill: INK }, vs); label(vs, 'OU', 0, 16, { size: 44, fill: CREAM });
+  const o2 = el('g', {}, cam); card(o2, -380, -80, 760, 160, GREEN, 30, 12, 7);
+  label(o2, 'LE SCROLL', 0, -8, { size: 60, fill: CREAM }); label(o2, 'INFINI', 0, 52, { size: 44, fill: CREAM });
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 270, pop(t, a + .1, .4), -2);
+    at(o1, CX, 470, pop(t, tAdo - .4, .35) * (1 + .03 * Math.sin(t * 5)), -2);
+    at(vs, CX, 590, pop(t, tOu - .1), 0);
+    at(o2, CX, 710, pop(t, tOu + .2, .35) * (1 + .03 * Math.sin(t * 5 + 2)), 2);
+    at(bub, CX + 330, 1180, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    at(cta, CX, 990, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+  };
+}, { swipe: GREEN });
+
+captions({ until: tDis });
+start();
+})();
+</script>
+</body>
+</html>
