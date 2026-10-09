@@ -151,7 +151,7 @@ Chiffres : [Insee Focus n° 349](https://www.insee.fr/fr/statistiques/8381248) (
 
 # Lacrymo : interdit à la guerre, autorisé en manif (TikTok, 9:16)
 
-59 s. Le gaz lacrymogène est interdit comme arme de guerre (convention internationale), mais autorisé contre une foule. Pourquoi (risque de confusion avec une attaque chimique), l'ironie de 1914, ce n'est pas un gaz mais une poudre qui active le capteur du wasabi, puis la France : 5 015 grenades à Sainte-Soline en moins de deux heures contre ~16 000 à Hong Kong en six mois, aucun fichier de suivi, l'Allemagne sans grenades, et les deux points de vue (police / critiques).
+57 s. « Le gaz lacrymo est interdit à la guerre » dès la première seconde. Le gaz lacrymogène est interdit comme arme de guerre (convention internationale), mais autorisé contre une foule. Pourquoi (risque de confusion avec une attaque chimique), l'ironie de 1914, ce n'est pas un gaz mais une poudre qui active le capteur du wasabi, puis la France : 5 015 grenades à Sainte-Soline en moins de deux heures contre ~16 000 à Hong Kong en six mois, aucun fichier de suivi, l'Allemagne sans grenades, et les deux points de vue (police / critiques).
 
 Chiffres et sources : en tête de `scripts/lacrymo.txt`.
 
