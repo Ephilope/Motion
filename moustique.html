@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le moustique qui tue en France</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Le moustique qui tue en France » (virus du Nil occidental, charte : docs/MODELE.md).
+     Voix-off : scripts/moustique.txt → node tools/voix.mjs moustique
+     Chiffres et sources : en tête de scripts/moustique.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/moustique_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, rng } = Motion;
+await setup({
+  duration: 61.5,
+  words: window.WORDS,
+  audio: 'assets/voix_moustique.mp3',
+  emojis: '🇺🇬🇫🇷🐦🧠💉💊💀🌙🌸💬👇🩸🦠',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BROWN = '#B07A4A', NIGHT = '#2C3E66', WATER = '#5DADE2', SKIN = '#F2C9A0';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Moustique de profil, tête à droite (≈ 300 × 200). tiger = rayé noir et blanc, sinon brun (Culex).
+function mosquito(parent, tiger = false) {
+  const g = el('g', {}, parent), body = tiger ? INK : BROWN, s = { stroke: INK, 'stroke-width': 6, 'stroke-linecap': 'round', fill: 'none' };
+  const legs = el('g', {}, g);
+  [[-10, -60, 60, -95, 110], [20, -20, 70, -40, 120], [45, 25, 70, 30, 125]].forEach(([x0, kx, ky, fx, fy]) =>
+    el('path', { d: `M${x0},10 L${kx},${ky} L${fx},${fy}`, ...s, 'stroke-width': 5 }, legs));
+  const wings = el('g', {}, g);
+  const w1 = el('ellipse', { cx: -30, cy: -55, rx: 85, ry: 30, fill: WHITE, 'fill-opacity': .75, stroke: INK, 'stroke-width': 5 }, wings);
+  el('ellipse', { cx: -110 + 8, cy: 8 + 8, rx: 105, ry: 30, fill: INK }, g);
+  el('ellipse', { cx: -110, cy: 8, rx: 105, ry: 30, fill: body, stroke: INK, 'stroke-width': 6 }, g);
+  if (tiger) [-170, -130, -90, -50].forEach(x => el('rect', { x, y: -14, width: 14, height: 46, rx: 4, fill: WHITE, transform: `rotate(8 ${x} 8)` }, g));
+  el('ellipse', { cx: 25, cy: 0, rx: 48, ry: 38, fill: body, stroke: INK, 'stroke-width': 6 }, g);
+  if (tiger) el('rect', { x: 18, y: -34, width: 12, height: 60, rx: 5, fill: WHITE }, g);
+  el('circle', { cx: 90, cy: -10, r: 28, fill: body, stroke: INK, 'stroke-width': 6 }, g);
+  el('circle', { cx: 100, cy: -16, r: 10, fill: RED, stroke: INK, 'stroke-width': 3 }, g);
+  el('path', { d: 'M112,0 L190,40', ...s }, g);
+  const w2 = el('ellipse', { cx: -20, cy: -60, rx: 85, ry: 30, fill: WHITE, 'fill-opacity': .85, stroke: INK, 'stroke-width': 5 }, g);
+  return { g, update(t) { const f = Math.sin(t * 60); w1.setAttribute('transform', `rotate(${fmt(-15 + f * 18)} 25 -20)`); w2.setAttribute('transform', `rotate(${fmt(-5 - f * 18)} 25 -20)`); } };
+}
+// Particule de virus : boule hérissée.
+function virus(parent, r = 90, fill = GREEN) {
+  const g = el('g', {}, parent);
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+    el('line', { x1: fmt(c * r), y1: fmt(s * r), x2: fmt(c * r * 1.45), y2: fmt(s * r * 1.45), stroke: INK, 'stroke-width': 8, 'stroke-linecap': 'round' }, g);
+    el('circle', { cx: fmt(c * r * 1.5), cy: fmt(s * r * 1.5), r: r * .14, fill: RED, stroke: INK, 'stroke-width': 5 }, g); }
+  el('circle', { cx: 10, cy: 10, r, fill: INK }, g);
+  el('circle', { r, fill, stroke: INK, 'stroke-width': 8 }, g);
+  [[-.3, -.25], [.3, .1], [-.1, .4]].forEach(([x, y]) => el('circle', { cx: x * r, cy: y * r, r: r * .15, fill: INK, opacity: .25 }, g));
+  return g;
+}
+// Silhouette simple (≈ 70 × 150).
+function person(parent, fill = GREEN) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-34,70 V10 Q-34,-20 0,-20 Q34,-20 34,10 V70 Z', fill, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  el('circle', { cy: -48, r: 26, fill: SKIN, stroke: INK, 'stroke-width': 6 }, g);
+  return g;
+}
+// Cercle d'interdiction.
+function ban(parent, r = 150) {
+  const g = el('g', {}, parent), k = r * .707;
+  el('circle', { r, fill: 'none', stroke: RED, 'stroke-width': r * .16 }, g);
+  el('line', { x1: -k, y1: -k, x2: k, y2: k, stroke: RED, 'stroke-width': r * .16 }, g);
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  chambre: Wt("C'est") - .25, nom: Wt('Son') - .25, ouganda: Wt('Un', 1, Wt('occidental.')) - .25,
+  chiffres: Wt('En', 1, Wt('maintenant.')) - .25, morts: Wt('Et', 1, Wt('plus.')) - .25, comment: Wt('Mais', 1, Wt('vérification.')) - .25,
+  surprise: Wt('Et', 1, Wt('toi.')) - .2, symptome: Wt('La', 1, Wt('moustique.', 1, Wt('contaminer'))) - .25,
+  remede: Wt('Et', 1, Wt('cerveau.')) - .25, eau: Wt('Ce', 1, Wt('traitement.')) - .25, cta: Wt('Et', 1, Wt('pondre.')) - .2,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : le moustique qui tue en France… pas le tigre =============================
+// Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.chambre, (cam) => {
+  const tTig = Wt('tigre.');
+  bg(cam);
+  const head = title(cam, ['LE MOUSTIQUE', ['QUI TUE', RED], 'EN FRANCE'], { size: 120, shadow: 0, sw: 12 });
+  const tag = chip(cam, 'CETTE ANNÉE', INK, CREAM, 46);
+  const mq = mosquito(cam, true);
+  const lab = el('g', {}, cam); txt(lab, 'LE MOUSTIQUE TIGRE ?', { size: 64 });
+  const st = stamp(cam, 'NON !', RED, 120);
+  return t => {
+    at(head, CX, 250, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
+    tag.update(CX, 600, pop(t, Wt('cette') - .1), 2);
+    mq.update(t);
+    at(mq.g, CX + 20 + Math.sin(t * 2.3) * 40, 860 + Math.sin(t * 3.1) * 25, 1.5 * pop(t, .1, .35), -6);
+    at(lab, CX, 1080, pop(t, Wt('pas') - .1), -2);
+    st.update(CX + 120, 830, t, tTig + .15, -10);
+    shock(t, .3, .3, .5); shock(t, tTig + .25, .3, .7);
+  };
+});
+
+// ====== 2. LE MOUSTIQUE COMMUN, celui de ta chambre la nuit ====================================
+S(T.chambre, T.nom, (cam, a) => {
+  const tCom = Wt('commun.'), tCh = Wt('chambre,'), tNuit = Wt('nuit.');
+  bg(cam);
+  const room = el('g', {}, cam);
+  card(room, -400, -330, 800, 660, NIGHT, 30, 12, 7);
+  const win = el('g', {}, room); card(win, -330, -270, 240, 220, '#1B2A4A', 14, 0, 6);
+  el('line', { x1: -210, y1: -270, x2: -210, y2: -50, stroke: INK, 'stroke-width': 6 }, win);
+  const moon = el('g', {}, win); emoji(moon, '🌙', 110); tf(moon, -210, -160);
+  const bed = el('g', {}, room);
+  card(bed, -330, 130, 660, 110, CREAM, 20, 0, 7);
+  el('rect', { x: -330, y: 90, width: 30, height: 200, rx: 8, fill: BROWN, stroke: INK, 'stroke-width': 6 }, bed);
+  el('ellipse', { cx: -210, cy: 115, rx: 80, ry: 38, fill: WHITE, stroke: INK, 'stroke-width': 6 }, bed);
+  el('circle', { cx: -200, cy: 85, r: 40, fill: SKIN, stroke: INK, 'stroke-width': 6 }, bed);
+  el('path', { d: 'M-160,100 Q50,40 320,110 L320,150 L-160,150 Z', fill: '#E74C3C', stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, bed);
+  const mq = mosquito(cam);
+  const zz = el('g', {}, cam); txt(zz, 'BZZZ', { size: 70, fill: YELLOW, sw: 10 });
+  const tag = chip(cam, 'LE MOUSTIQUE COMMUN', GREEN, CREAM, 54);
+  return t => {
+    tag.update(CX, 260, pop(t, tCom - .3), -2);
+    at(room, CX, 780, pop(t, a + .05, .35));
+    mq.update(t);
+    const k = p(t, tCh - .4, tNuit + .4, E.inOut);
+    at(mq.g, CX + lerp(260, -80, k) + Math.sin(t * 4) * 50, 700 + Math.sin(t * 5.3) * 40, .75 * pop(t, a + .2, .35), Math.sin(t * 3) * 8);
+    at(zz, CX + 250, 520 + Math.sin(t * 6) * 8, pop(t, tCh - .1) * (1 + .08 * Math.sin(t * 20)), -8);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. SON NOM : LE CULEX, il transporte le virus du Nil occidental =======================
+S(T.nom, T.ouganda, (cam, a) => {
+  const tCul = Wt('Culex.'), tTr = Wt('transporte'), tVir = Wt('virus', 1, a), tOcc = Wt('occidental.');
+  bg(cam);
+  const name = el('g', {}, cam); txt(name, 'CULEX', { size: 220, fill: BROWN, sw: 16, shadow: 14 });
+  const tag = chip(cam, 'SON NOM', INK, CREAM, 50);
+  const mq = mosquito(cam);
+  const vi = virus(cam, 70);
+  const lab = chip(cam, 'VIRUS DU NIL OCCIDENTAL', RED, CREAM, 50);
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    at(name, CX, 470, pop(t, tCul - .1, .35), -3);
+    mq.update(t);
+    at(mq.g, CX - 120 + Math.sin(t * 2) * 20, 800 + Math.sin(t * 3) * 15, 1.3 * pop(t, a + .2, .35), -4);
+    at(vi, CX + 260, 760 + Math.sin(t * 4) * 12, pop(t, tVir - .2, .35) * (1 + .05 * Math.sin(t * 7)), t * 20);
+    lab.update(CX, 1060, pop(t, tOcc - .4), 2);
+    shock(t, tCul + .1, .3, .6); shock(t, tVir, .3, .4);
+  };
+}, { swipe: RED });
+
+// ====== 4. DÉCOUVERT EN OUGANDA EN 1937… jusqu'à maintenant ===================================
+S(T.ouganda, T.chiffres, (cam, a) => {
+  const tOu = Wt('Ouganda,'), t37 = Wt('1937.'), tLoin = Wt('loin'), tMain = Wt('maintenant.');
+  bg(cam);
+  const tag = chip(cam, 'DÉCOUVERT EN', INK, CREAM, 50);
+  const ug = el('g', {}, cam); emoji(ug, '🇺🇬', 220);
+  const n = el('g', {}, cam), nS = bigNum(n, 200, RED); nS.set('1937');
+  const fr = el('g', {}, cam); emoji(fr, '🇫🇷', 220);
+  const arrow = el('path', { d: 'M0,0 Q260,-230 520,0', fill: 'none', stroke: INK, 'stroke-width': 12, 'stroke-dasharray': '30 22', 'stroke-linecap': 'round' }, cam);
+  const vi = virus(cam, 34);
+  const lab = chip(cam, "JUSQU'À MAINTENANT", RED, CREAM, 54);
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    const k = p(t, tLoin, tMain + .3, E.inOut), sl = p(t, tLoin - .3, tLoin + .2, E.out);
+    at(ug, CX - lerp(0, 260, sl), 520, pop(t, tOu - .2, .35));
+    at(n, CX, lerp(820, 930, sl), pop(t, t37 - .1, .35) * lerp(1, .6, sl), -3);
+    tf(arrow, CX - 260, 520); show(arrow, t > tLoin - .1); arrow.setAttribute('stroke-dashoffset', fmt(-t * 60));
+    at(fr, CX + 260, 520, pop(t, tLoin, .35));
+    at(vi, CX - 260 + 520 * k, 520 - 230 * Math.sin(Math.PI * k) * .9, t > tLoin ? 1 : 0, t * 60);
+    lab.update(CX, 1080, pop(t, tMain - .2), -2);
+    shock(t, t37 + .1, .3, .5); shock(t, tMain + .3, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. 62 CAS EN 2025, 161 CETTE ANNÉE : presque trois fois plus ===========================
+S(T.chiffres, T.morts, (cam, a) => {
+  const t62 = Wt('62'), t161 = Wt('161.'), tTr = Wt('trois');
+  bg(cam);
+  const tag = chip(cam, 'CAS EN FRANCE', INK, CREAM, 50);
+  const base = 930, maxH = 520;
+  const bars = [
+    { top: '2025', n: 62, col: GREEN, x: CX - 200, t0: t62 - .4 },
+    { top: '2026', n: 161, col: RED, x: CX + 200, t0: t161 - .4 },
+  ].map(b => {
+    const g = el('g', {}, cam);
+    const sh = el('rect', { x: -110 + 12, width: 220, fill: INK }, g), r = el('rect', { x: -110, width: 220, fill: b.col, stroke: INK, 'stroke-width': 7 }, g);
+    const v = el('g', {}, g), vS = bigNum(v, 110, CREAM);
+    const l = el('g', {}, g); txt(l, b.top, { size: 64 }); tf(l, 0, base + 80);
+    return { ...b, g, sh, r, v, vS };
+  });
+  const st = stamp(cam, '× 3', RED, 110);
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    bars.forEach(b => {
+      const k = p(t, b.t0, b.t0 + .6, E.out), h = Math.max(1, maxH * b.n / 161 * k);
+      at(b.g, b.x, 0, 1); show(b.g, t >= b.t0 - .05);
+      set(b.r, { y: fmt(base - h), height: fmt(h) }); set(b.sh, { y: fmt(base - h + 12), height: fmt(h) });
+      b.vS.set(String(Math.round(b.n * k))); tf(b.v, 0, base - h - 70, pop(t, b.t0 + .1));
+    });
+    st.update(CX - 210, 470, t, tTr - .05, -10);
+    shock(t, t161 + .2, .3, .6); shock(t, tTr + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 6. CINQ MORTS ; le lien est encore en cours de vérification ===========================
+S(T.morts, T.comment, (cam, a) => {
+  const t5 = Wt('cinq'), tMor = Wt('mortes.'), tLien = Wt('lien'), tVer = Wt('vérification.');
+  bg(cam);
+  const n = el('g', {}, cam), nS = bigNum(n, 380, RED); nS.set('5');
+  const lab = el('g', {}, cam); txt(lab, 'MORTS', { size: 130, sw: 0 });
+  const R = rng(3), skulls = []; for (let i = 0; i < 5; i++) { const g = el('g', {}, cam); emoji(g, '💀', 110); skulls.push({ g, x: (i - 2) * 170, r: (R() - .5) * 20 }); }
+  const note = el('g', {}, cam);
+  card(note, -400, -100, 800, 200, YELLOW, 26, 12, 7);
+  txt(note, 'LIEN AVEC LE VIRUS', { size: 54 }).g.setAttribute('transform', 'translate(0,-15)');
+  txt(note, 'EN COURS DE VÉRIFICATION', { size: 50, fill: RED, sw: 0 }).g.setAttribute('transform', 'translate(0,55)');
+  return t => {
+    at(n, CX, 420, pop(t, t5 - .1, .35), -3);
+    at(lab, CX, 680, pop(t, tMor - .1), -2);
+    skulls.forEach((s, i) => at(s.g, CX + s.x, 860, pop(t, tMor + i * .08), s.r));
+    at(note, CX, 1060, pop(t, tLien - .2, .35), -2);
+    shock(t, t5 + .1, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. COMMENT IL ARRIVE JUSQU'À TOI : oiseau → moustique → toi ===========================
+S(T.comment, T.surprise, (cam, a) => {
+  const tTo = Wt('toi', 1, a), tOis = Wt('oiseau'), tEns = Wt('Ensuite…'), tPi = Wt('pique,', 1, tEns), tToi = Wt('toi.', 1, tEns);
+  bg(cam);
+  const q = title(cam, ['COMMENT', ['IL ARRIVE', RED], "JUSQU'À TOI ?"], { size: 96, shadow: 0, sw: 12 });
+  const bird = el('g', {}, cam); emoji(bird, '🐦', 200);
+  const bv = virus(cam, 26);
+  const you = person(cam, '#3498DB');
+  const mq = mosquito(cam);
+  const l1 = chip(cam, '1. OISEAU INFECTÉ', INK, CREAM, 42), l2 = chip(cam, '2. TOI', RED, CREAM, 42);
+  const dot = el('g', {}, cam); el('circle', { r: 20, fill: RED, stroke: INK, 'stroke-width': 5 }, dot);
+  return t => {
+    const up = p(t, tOis - .6, tOis - .2, E.inOut);
+    at(q, CX, lerp(620, 280, up), lerp(1.2, .9, up) * pop(t, a + .05, .35), -2);
+    at(bird, CX - 260, 760 + Math.sin(t * 4) * 10, pop(t, tOis - .2, .35));
+    at(bv, CX - 200, 700, pop(t, tOis + .3) * (1 + .1 * Math.sin(t * 8)), t * 40);
+    at(you, CX + 270, 760, 1.6 * pop(t, tEns - .2, .35));
+    mq.update(t);
+    const k = p(t, tEns, tPi, E.inOut), fly = t < tOis ? 0 : 1;
+    const x = lerp(CX - 170, CX + 120, k), y = lerp(640, 640, k) - Math.sin(Math.PI * k) * 160;
+    at(mq.g, x + Math.sin(t * 5) * 10 * (1 - k), y + Math.sin(t * 6) * 10, .65 * pop(t, tOis, .35) * fly, k > .5 ? -30 : 0);
+    l1.update(CX - 260, 1010, pop(t, tOis + .2), -2);
+    l2.update(CX + 270, 1010, pop(t, tToi - .3), 2);
+    at(dot, CX + 220, 690, pop(t, tPi + .1) * (1 + .15 * Math.sin(t * 9)));
+    shock(t, tPi + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 8. SURPRISE : toi, tu ne peux le donner à personne ======================================
+S(T.surprise, T.symptome, (cam, a) => {
+  const tSur = Wt('surprise :'), tPers = Wt('personne.'), tSang = Wt('sang'), tAss = Wt('assez'), tAut = Wt('autre');
+  bg(cam);
+  const tag = chip(cam, 'SURPRISE', YELLOW, INK, 64);
+  const you = person(cam, '#3498DB');
+  const drop = el('g', {}, cam); emoji(drop, '🩸', 120);
+  const mq = mosquito(cam);
+  const no = ban(cam, 150);
+  const lab = title(cam, ['TU NE LE', ['TRANSMETS PAS', RED]], { size: 92, shadow: 0, sw: 12 });
+  const note = chip(cam, 'PAS ASSEZ DE VIRUS DANS TON SANG', INK, CREAM, 38);
+  return t => {
+    tag.update(CX, 230, pop(t, tSur - .2), -3);
+    at(lab, CX, 430, pop(t, tPers - .4, .35), -2);
+    at(you, CX - 200, 830, 1.8 * pop(t, a + .1, .35));
+    at(drop, CX - 120, 800, pop(t, tSang - .1) * (1 + .08 * Math.sin(t * 6)));
+    mq.update(t);
+    at(mq.g, CX + 240 + Math.sin(t * 3) * 20, 780 + Math.sin(t * 4) * 15, .7 * pop(t, tAut - .4, .35));
+    at(no, CX + 240, 790, pop(t, tAut, .3));
+    note.update(CX, 1080, pop(t, tAss - .1), 2);
+    shock(t, tPers + .1, .3, .5); shock(t, tAut + .2, .3, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. 8 SUR 10 : rien ; ~1 SUR 100 : le cerveau ============================================
+S(T.symptome, T.remede, (cam, a) => {
+  const tRien = Wt('rien.'), tHuit = Wt('Huit'), tAuc = Wt('aucun'), tCent = Wt('cent,'), tCer = Wt('cerveau.');
+  bg(cam);
+  const head = el('g', {}, cam); txt(head, '8 SUR 10', { size: 150, fill: GREEN, sw: 14 });
+  const sub = el('g', {}, cam); txt(sub, 'AUCUN SYMPTÔME', { size: 70 });
+  const people = []; for (let i = 0; i < 10; i++) { const pp = el('g', {}, cam); person(pp, i < 8 ? GREEN : CREAM); people.push(pp); }
+  const grid = el('g', {}, cam), dots = [];
+  for (let i = 0; i < 100; i++) dots.push(el('circle', { cx: (i % 10 - 4.5) * 58, cy: Math.floor(i / 10) * 58, r: 22, fill: i === 47 ? RED : CREAM, stroke: INK, 'stroke-width': 4 }, grid));
+  const one = el('g', {}, cam); txt(one, '~1 SUR 100', { size: 120, fill: RED, sw: 14 });
+  const brain = el('g', {}, cam); emoji(brain, '🧠', 170);
+  return t => {
+    const out = p(t, tCent - .9, tCent - .5, E.in);
+    at(head, CX, 300, pop(t, tHuit - .1, .35) * (1 - out), -2);
+    at(sub, CX, 450, pop(t, tAuc - .1) * (1 - out));
+    people.forEach((pp, i) => at(pp, CX + (i % 5 - 2) * 150, 700 + Math.floor(i / 5) * 230, 1.1 * pop(t, a + .1 + i * .04, .3) * (1 - out)));
+    at(one, CX, 300, pop(t, tCent - .3, .35), -2);
+    at(grid, CX, 450, pop(t, tCent - .5, .35));
+    dots[47].setAttribute('r', fmt(22 + 6 * hit(t, tCer, .4)));
+    at(brain, CX + 145, 682, pop(t, tCer - .2, .35) * (1 + .06 * Math.sin(t * 8)));
+    shock(t, tCer + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 10. NI VACCIN, NI TRAITEMENT ===========================================================
+S(T.remede, T.eau, (cam, a) => {
+  const tVac = Wt('vaccin,'), tTra = Wt('traitement.');
+  bg(cam);
+  const head = title(cam, ['CONTRE ÇA,', ['IL N\'EXISTE…', RED]], { size: 100, shadow: 0, sw: 12 });
+  const items = [['💉', 'NI VACCIN', tVac, -230], ['💊', 'NI TRAITEMENT', tTra, 230]].map(([e, s, t0, dx]) => {
+    const g = el('g', {}, cam); emoji(g, e, 200);
+    const b = ban(g, 150); const l = el('g', {}, g); txt(l, s, { size: 54 }); tf(l, 0, 230);
+    return { g, b, t0, dx };
+  });
+  return t => {
+    at(head, CX, 320, pop(t, a + .05, .35), -2);
+    items.forEach(o => { at(o.g, CX + o.dx, 800, pop(t, o.t0 - .25, .35)); tf(o.b, 0, 0, pop(t, o.t0 + .15, .3)); });
+    shock(t, tVac + .2, .3, .5); shock(t, tTra + .2, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 11. CE QUI MARCHE : vider l'eau qui stagne (la soucoupe du pot de fleurs) ==============
+S(T.eau, T.cta, (cam, a) => {
+  const tVid = Wt('Vider'), tSou = Wt('soucoupe'), tPot = Wt('pot'), tPon = Wt('pondre.');
+  bg(cam);
+  const tag = chip(cam, 'CE QUI MARCHE', GREEN, CREAM, 56);
+  const lab = title(cam, ["VIDE L'EAU", ['QUI STAGNE', GREEN]], { size: 104, shadow: 0, sw: 12 });
+  const pot = el('g', {}, cam);
+  const fl = el('g', {}, pot); emoji(fl, '🌸', 170); tf(fl, 0, -230);
+  el('path', { d: 'M0,-150 L0,-60', stroke: '#27AE60', 'stroke-width': 12 }, pot);
+  el('path', { d: 'M-120,-70 L120,-70 L95,110 L-95,110 Z', fill: INK, transform: 'translate(12,12)' }, pot);
+  el('path', { d: 'M-120,-70 L120,-70 L95,110 L-95,110 Z', fill: '#D35400', stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, pot);
+  const sauc = el('g', {}, cam);
+  el('path', { d: 'M-200,0 L200,0 L170,45 L-170,45 Z', fill: '#E67E22', stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, sauc);
+  const water = el('rect', { x: -185, y: -2, width: 370, height: 16, rx: 6, fill: WATER, stroke: INK, 'stroke-width': 4 }, sauc);
+  const larvae = []; for (let i = 0; i < 6; i++) larvae.push(el('ellipse', { rx: 12, ry: 5, fill: INK }, sauc));
+  const mq = mosquito(cam);
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    at(lab, CX, 430, pop(t, tVid - .1, .35), -2);
+    const k = p(t, tPon + .2, tPon + .7, E.inOut);
+    at(pot, CX, 830 - 120 * k, pop(t, tSou - .4, .35));
+    at(sauc, CX, 960, pop(t, tSou - .2, .35), -18 * k);
+    water.setAttribute('opacity', fmt(1 - k));
+    larvae.forEach((l, i) => { set(l, { cx: fmt(-150 + i * 60), cy: fmt(5 + Math.sin(t * 6 + i) * 3) }); l.setAttribute('opacity', fmt(p(t, tPon - .5, tPon) * (1 - k))); });
+    mq.update(t);
+    at(mq.g, CX + 260 + Math.sin(t * 3) * 25, 760 + Math.sin(t * 4.2) * 20, .6 * pop(t, tPot, .35) * (1 - k), 0);
+    shock(t, tVid + .1, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 12. FIN : tu t'es fait piquer combien de fois cet été ? ================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tCom = Wt('combien'), tEte = Wt('été ?'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ["TU T'ES FAIT", ['PIQUER', RED], 'COMBIEN DE FOIS', ['CET ÉTÉ ?', GREEN]], { size: 96, shadow: 0, sw: 12 });
+  const R = rng(8), bites = []; for (let i = 0; i < 9; i++) { const g = el('g', {}, cam); el('circle', { r: 26, fill: RED, stroke: INK, 'stroke-width': 5, opacity: .9 }, g); el('circle', { r: 8, fill: CREAM }, g); bites.push({ g, x: (R() - .5) * 800, y: 720 + (R() - .5) * 140, d: R() * 1.2 }); }
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 380, pop(t, a + .05, .35), -2);
+    bites.forEach(b => at(b.g, CX + b.x, b.y + 150, pop(t, tCom + b.d, .25)));
+    at(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 1150, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tEte + .2, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+start();
+})();
+</script>
+</body>
+</html>
