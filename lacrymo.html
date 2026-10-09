@@ -15,7 +15,7 @@
 (async () => {
 const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, rng } = Motion;
 await setup({
-  duration: 59,
+  duration: 57.5,
   words: window.WORDS,
   audio: 'assets/voix_lacrymo.mp3',
   emojis: '🪖☠️🇫🇷🇩🇪🇭🇰🔥😭💦🏠💬👇📋🚫⏱️🧪',
@@ -86,17 +86,18 @@ function sideCard(parent, w, h, fill, l1, l2, col) {
 // --- débuts de scène, calés sur la voix ------------------------------------------
 const T = {
   foule: Wt('Mais') - .25, pq: Wt('Pourquoi ?') - .25, iro: Wt('Ironie :') - .25, poudre: Wt("D'ailleurs,") - .25,
-  wasabi: Wt('Elle') - .25, fr: Wt('Et', 1, 27) - .25, hk: Wt('Hong Kong,') - .5, compte: Wt('Et', 1, 37) - .25,
-  all: Wt('En', 1, 42) - .25, camps: Wt('Pour', 1, 47) - .25, cta: Wt('Alors…') - .25,
+  wasabi: Wt('Elle') - .25, fr: Wt('Et', 1, Wt('brûle.')) - .25, hk: Wt('Hong Kong,') - .5, compte: Wt('Et', 1, Wt('révolte.')) - .25,
+  all: Wt('Allemagne,') - .55, camps: Wt('Pour', 1, Wt('Allemagne,')) - .25, cta: Wt('Alors…') - .25,
 };
 const tDis = Wt('Dis-le');
 
 // ====== 1. ACCROCHE : interdit à la guerre ======================================================
 // Le texte est à l'écran dès la première image (beaucoup regardent sans le son).
 S(0, T.foule, (cam) => {
-  const tGaz = Wt('lacrymogène'), tConv = Wt('convention');
+  const tGaz = Wt('lacrymo'), tConv = Wt('convention');
   bg(cam);
-  const head = title(cam, ['INTERDIT', ['À LA GUERRE', RED]], { size: 130, shadow: 0, sw: 14 });
+  const big = title(cam, [['LACRYMO', CREAM]], { size: 160, sw: 16 });
+  const head = title(cam, ['INTERDIT', ['À LA GUERRE', RED]], { size: 96, shadow: 0, sw: 12 });
   const cl = cloud(cam, 4, 7, 90);
   const helmet = el('g', {}, cam); emoji(helmet, '🪖', 220);
   const gr = grenade(cam);
@@ -105,13 +106,14 @@ S(0, T.foule, (cam) => {
   el('line', { x1: -134, y1: -134, x2: 134, y2: 134, stroke: RED, 'stroke-width': 30 }, ban);
   const tag = chip(cam, 'CONVENTION INTERNATIONALE', INK, CREAM, 44);
   return t => {
-    at(head, CX, 330, lerp(1.2, 1, p(t, 0, .3, E.out)), -2);
-    cl.update(CX + 200, 560, p(t, tGaz - .3, tGaz + .6, E.out), t);
-    at(helmet, CX - 150, 760, pop(t, .2, .35), -8);
-    at(gr, CX + 160, 760, pop(t, .35, .35), 12 + Math.sin(t * 3) * 4);
-    at(ban, CX, 730, pop(t, .6, .3), 0);
+    at(big, CX, 260, lerp(1.1, 1, p(t, 0, .3, E.out)) * (1 + .06 * hit(t, Wt('lacrymo') + .2, .3)), -3);
+    at(head, CX, 480, lerp(1.2, 1, p(t, 0, .3, E.out)), -2);
+    cl.update(CX + 200, 700, p(t, tGaz - .3, tGaz + .6, E.out), t);
+    at(helmet, CX - 150, 860, pop(t, .05, .35), -8);
+    at(gr, CX + 160, 860, pop(t, .15, .35), 12 + Math.sin(t * 3) * 4);
+    at(ban, CX, 830, pop(t, .35, .3), 0);
     tag.update(CX, 1060, pop(t, tConv - .1), -2);
-    shock(t, .7, .3, .6);
+    shock(t, .45, .3, .6);
   };
 });
 
@@ -173,7 +175,7 @@ S(T.iro, T.poudre, (cam, a) => {
 
 // ====== 5. CE N'EST MÊME PAS UN GAZ : une poudre ================================================
 S(T.poudre, T.wasabi, (cam, a) => {
-  const tPas = Wt('pas', 1, a), tPou = Wt('poudre,'), tNua = Wt('nuage.');
+  const tPas = Wt('pas', 1, a), tPou = Wt('poudre,'), tNua = Wt('nuage.', 1, a);
   bg(cam);
   const st = stamp(cam, 'PAS UN GAZ', RED, 96);
   const pile = el('g', {}, cam);
@@ -272,7 +274,7 @@ S(T.hk, T.compte, (cam, a) => {
 
 // ====== 9. PERSONNE NE LES COMPTE : LBD enregistrés, lacrymo non =================================
 S(T.compte, T.all, (cam, a) => {
-  const tPers = Wt('personne'), tLBD = Wt('LBD'), tLac = Wt('lacrymo,'), tNon = Wt('non.');
+  const tPers = Wt('personne'), tLBD = Wt('LBD'), tLac = Wt('lacrymo,', 1, a), tNon = Wt('non.');
   bg(cam);
   const head = title(cam, ['PERSONNE', ['NE LES COMPTE', RED]], { size: 100, shadow: 0, sw: 12 });
   const reg = el('g', {}, cam);
@@ -348,7 +350,7 @@ S(T.camps, T.cta, (cam, a) => {
 
 // ====== 12. FIN : trop de lacrymo, ou le prix pour éviter pire ? =================================
 S(T.cta, M.DUR, (cam, a) => {
-  const tTrop = Wt('trop'), tPrix = Wt('prix'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  const tTrop = Wt('trop', 1, a), tPrix = Wt('prix'), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
   bg(cam, CREAM, false);
   const top = el('g', {}, cam), bot = el('g', {}, cam);
   el('rect', { x: -W, y: -230, width: 2 * W, height: 460, fill: RED }, top);
