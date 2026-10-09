@@ -1,0 +1,22 @@
+# Voix-off de moustique.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources : Santé publique France via Vidal, 8 oct. 2026 : 161 cas autochtones en Hexagone au 5 oct. 2026 (62 en 2025),
+#   5 décès dont l'imputabilité reste à vérifier
+#   (https://www.vidal.fr/actualites/38408-virus-du-nil-occidental-nombre-de-cas-record-dans-l-hexagone-et-cinq-deces-dont-l-imputabilite-est-a-verifier.html) ;
+# vecteur Culex (moustique commun), pas le moustique tigre ; 80 % asymptomatiques, ~1 % de formes neurologiques, ni vaccin ni traitement
+#   (https://www.futura-sciences.com/sante/actualites/virus-annee-2026-marque-tournant-virus-nil-occidental-etend-presence-rythme-inedit-france-137964/) ;
+# oiseaux réservoirs, humain hôte « cul-de-sac », virus isolé en Ouganda en 1937 : aide-mémoire OMS
+#   (https://www.who.int/fr/news-room/fact-sheets/detail/west-nile-virus).
+Le moustique qui tue en France cette année… ce n'est pas le moustique tigre.
+C'est le moustique commun. Celui qui bourdonne dans ta chambre, la nuit.
+Son nom_: le Culex. Et cette année, il transporte le virus du Nil occidental.
+Un virus découvert en Ouganda, en 1937.[mille neuf cent trente-sept.] Très loin de chez nous… jusqu'à maintenant.
+En 2025,[deux mille vingt-cinq,] la France comptait 62[soixante-deux] cas. Cette année_? 161.[Cent soixante et un.] Presque trois fois plus.
+Et cinq personnes sont mortes. Le lien avec le virus est encore en cours de vérification.
+Mais comment il arrive jusqu'à toi_?
+D'abord, le moustique pique un oiseau infecté. Ensuite… il te pique, toi.
+Et là, surprise_: toi, tu ne peux le donner à personne. Ton sang n'en contient pas assez pour contaminer un autre moustique.
+La plupart du temps, tu ne sentiras rien. Huit personnes sur dix n'ont aucun symptôme.
+Mais pour environ une sur cent, le virus s'attaque au cerveau.
+Et contre ça, il n'existe… ni vaccin, ni traitement.
+Ce qui marche_? Vider l'eau qui stagne. Une simple soucoupe sous un pot de fleurs suffit au Culex pour pondre.
+Et toi, tu t'es fait piquer combien de fois cet été_? Dis-le en commentaire.
