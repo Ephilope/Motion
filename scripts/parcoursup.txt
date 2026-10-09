@@ -1,0 +1,22 @@
+# Voix-off de parcoursup.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources : bilan de la phase principale au 11 juillet 2026 : 126 632 candidats sans proposition (17,4 %), contre ~103 000 en 2025 ;
+#   83 000 places vacantes dans 6 000 formations à l'ouverture de la phase complémentaire, surtout des BTS
+#   (CIDJ https://www.cidj.com/s-orienter/avec-parcoursup/parcoursup-126-000-candidats-toujours-sans-proposition-83-000-places-restent-disponibles ;
+#   L'Etudiant https://www.letudiant.fr/etudes/parcoursup/parcoursup-les-formations-disponibles-a-l-ouverture-de-la-phase-complementaire.html :
+#   près de 11 000 BTS disponibles, dont plus de 9 000 en apprentissage) ;
+# le ministère cite le recul des contrats d'apprentissage parmi les causes (Thotis, bilan Parcoursup 2026) ;
+# 2025 : près d'un million de places sur Parcoursup, dont 26 % en apprentissage (8e rapport du Comité éthique et scientifique
+#   de Parcoursup et Mon Master, avril 2026, p. 15) ; en apprentissage, l'admission n'est définitive qu'avec un contrat signé avec un employeur ;
+# décret n° 2025-174 du 22 février 2025 : aide à l'embauche d'un apprenti ramenée de 6 000 € à 5 000 € (< 250 salariés) et 2 000 € (≥ 250).
+Parcoursup_: en juillet, 126_000[cent vingt-six mille] candidats n'avaient aucune place.
+L'an dernier, ils étaient 103_000.[cent trois mille.]
+Et pourtant… 83_000[quatre-vingt-trois mille] places étaient encore vides.
+Alors pourquoi on ne les met pas dedans_?
+D'abord, ces places, ce sont surtout des BTS.[bé té esse.] Souvent dans des villes moyennes… loin de chez toi.
+Ensuite, beaucoup sont en apprentissage. Et là, il y a un piège que peu de gens connaissent.
+Une place en apprentissage… ce n'est pas vraiment une place.
+Tu n'es admis que si tu trouves toi-même une entreprise qui signe ton contrat.
+Or sur Parcoursup, près d'une place sur quatre est en apprentissage.
+Et en 2025,[deux mille vingt-cinq,] l'État a baissé les aides aux entreprises qui prennent des apprentis. Moins d'aides… moins de contrats.
+Sur le papier, il y a de la place. Dans la vraie vie… pas forcément.
+Toi, tu partirais à 300[trois cents] kilomètres juste pour avoir une place_? Dis-le en commentaire.

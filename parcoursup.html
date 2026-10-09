@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parcoursup : sans place</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Parcoursup : 126 000 sans place… et 83 000 places vides » (charte : docs/MODELE.md).
+     Voix-off : scripts/parcoursup.txt → node tools/voix.mjs parcoursup
+     Chiffres et sources : en tête de scripts/parcoursup.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/parcoursup_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, rng } = Motion;
+await setup({
+  duration: 47,
+  words: window.WORDS,
+  audio: 'assets/voix_parcoursup.mp3',
+  emojis: '🎓😞🏠📍🚗⚠️✍️💸📉📄💬👇🏭❓🤔',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BLUE = '#3498DB', GREY = '#B8B2A6';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+const nf = n => Math.round(n).toLocaleString('fr-FR').replace(/\s/g, ' ');
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Lycéen (≈ 70 × 150), avec chapeau de diplômé en option.
+const SHIRTS = [GREEN, RED, YELLOW, BLUE, '#9B59B6', CREAM];
+function person(parent, i, cap = false) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-34,70 V10 Q-34,-20 0,-20 Q34,-20 34,10 V70 Z', fill: SHIRTS[i % SHIRTS.length], stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  el('circle', { cy: -48, r: 26, fill: '#F2C9A0', stroke: INK, 'stroke-width': 6 }, g);
+  if (cap) {
+    el('path', { d: 'M-40,-74 L0,-90 L40,-74 L0,-58 Z', fill: INK }, g);
+    el('line', { x1: 30, y1: -72, x2: 34, y2: -52, stroke: YELLOW, 'stroke-width': 4 }, g);
+  }
+  return g;
+}
+// Siège vide (≈ 120 × 130) : la « place ».
+function seat(parent, fill = GREEN) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -44, y: -62, width: 100, height: 70, rx: 14, fill: INK }, g);
+  el('rect', { x: -50, y: -68, width: 100, height: 70, rx: 14, fill, stroke: INK, 'stroke-width': 6 }, g);
+  el('rect', { x: -58, y: 2, width: 116, height: 30, rx: 10, fill, stroke: INK, 'stroke-width': 6 }, g);
+  el('line', { x1: -42, y1: 32, x2: -42, y2: 66, stroke: INK, 'stroke-width': 8, 'stroke-linecap': 'round' }, g);
+  el('line', { x1: 42, y1: 32, x2: 42, y2: 66, stroke: INK, 'stroke-width': 8, 'stroke-linecap': 'round' }, g);
+  return g;
+}
+const icon = (parent, ch, size) => { const g = el('g', {}, parent); emoji(g, ch, size); return g; };
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  an: Wt("L'an") - .25, pour: Wt('Et') - .2, pq: Wt('Alors') - .2, bts: Wt("D'abord,") - .25,
+  app: Wt('Ensuite,') - .25, place: Wt('Une', 1, Wt('connaissent.')) - .25, quart: Wt('Or') - .25,
+  aides: Wt('Et', 1, Wt('quatre')) - .2, papier: Wt('Sur', 1, Wt('contrats.')) - .25, cta: Wt('Toi,', 1, Wt('forcément.')) - .25,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : Parcoursup, 126 000 sans place ==============================================
+// « PARCOURSUP » et le chiffre sont à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.an, (cam) => {
+  const t126 = Wt('126 000'), tAuc = Wt('aucune');
+  bg(cam);
+  const head = title(cam, [['PARCOURSUP', CREAM]], { size: 118, sw: 16 });
+  const n = el('g', {}, cam), nS = bigNum(n, 230, RED);
+  const lab = el('g', {}, cam); txt(lab, 'CANDIDATS', { size: 84 });
+  const st = stamp(cam, 'SANS AUCUNE PLACE', RED, 76);
+  const R = rng(3), kids = [];
+  for (let i = 0; i < 9; i++) kids.push({ g: person(cam, i, true), x: (i - 4) * 100, y: (i % 2) * 40, ph: R() * 6 });
+  const sad = icon(cam, '😞', 130);
+  return t => {
+    at(head, CX, 250, 1 + .04 * hit(t, .35, .3), -3);
+    nS.set('126 000');
+    at(n, CX, 500, (1 + .07 * hit(t, t126 + .3, .3)), -2);
+    at(lab, CX, 690, 1, 0);
+    kids.forEach((k, i) => at(k.g, CX + k.x, 860 + k.y - Math.abs(Math.sin(t * 4 + k.ph)) * 8, .9 * pop(t, .15 + i * .04, .3)));
+    st.update(CX, 1060, t, tAuc - .15, -5);
+    at(sad, CX + 330, 700, pop(t, tAuc + .2, .35), 10);
+    shock(t, .35, .3, .6); shock(t, tAuc + .05, .25, .6);
+  };
+});
+
+// ====== 2. L'AN DERNIER : 103 000 =================================================================
+S(T.an, T.pour, (cam, a) => {
+  const t103 = Wt('103 000.');
+  bg(cam);
+  const tag = chip(cam, 'SANS PROPOSITION EN JUILLET', INK, CREAM, 42);
+  const base = 1000, maxH = 400;
+  const bars = [
+    { top: '2025', n: 103000, col: GREY, x: CX - 200, t0: t103 - .3 },
+    { top: '2026', n: 126000, col: RED, x: CX + 200, t0: a + .1 },
+  ].map(b => {
+    const g = el('g', {}, cam);
+    const sh = el('rect', { x: -120 + 12, width: 240, fill: INK }, g), r = el('rect', { x: -120, width: 240, fill: b.col, stroke: INK, 'stroke-width': 7 }, g);
+    const v = el('g', {}, g); txt(v, nf(b.n), { size: 70, sw: 12, fill: CREAM });
+    const y = el('g', {}, g); txt(y, b.top, { size: 72 }); tf(y, 0, base + 90);
+    return { ...b, g, sh, r, v };
+  });
+  const up = chip(cam, '+ 23 000', RED, CREAM, 64);
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    bars.forEach(b => {
+      const k = p(t, b.t0, b.t0 + .5, E.out), h = Math.max(1, maxH * b.n / 126000 * k);
+      at(b.g, b.x, 0); show(b.g, t >= b.t0 - .05);
+      set(b.r, { y: fmt(base - h), height: fmt(h) }); set(b.sh, { y: fmt(base - h + 12), height: fmt(h) });
+      tf(b.v, 0, base - h - 55, pop(t, b.t0 + .3));
+    });
+    up.update(CX, 360, pop(t, t103 + .4), 3);
+    shock(t, t103 + .2, .3, .4);
+  };
+}, { swipe: RED });
+
+// ====== 3. ET POURTANT… 83 000 places vides =======================================================
+S(T.pour, T.pq, (cam, a) => {
+  const tPou = Wt('pourtant…'), t83 = Wt('83 000'), tVid = Wt('vides.');
+  bg(cam);
+  const head = title(cam, [['ET POURTANT…', INK]], { size: 110, shadow: 0 });
+  const R = rng(8), seats = [];
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) seats.push({ g: seat(cam, (r + c) % 3 ? GREEN : YELLOW), x: (c - 2.5) * 150, y: r * 135, d: R() * .5 });
+  const n = el('g', {}, cam), nS = bigNum(n, 200, GREEN);
+  const lab = el('g', {}, cam); txt(lab, 'PLACES VIDES', { size: 96, fill: CREAM, sw: 14 });
+  return t => {
+    at(head, CX, 250, pop(t, tPou - .2, .35), -2);
+    seats.forEach(s => at(s.g, CX + s.x, 440 + s.y, .9 * pop(t, t83 - .4 + s.d * .6, .3)));
+    nS.set(nf(lerp(0, 83000, p(t, t83 - .2, t83 + .6, E.out))));
+    at(n, CX, 870, pop(t, t83 - .2, .3), -3);
+    at(lab, CX, 1060, pop(t, tVid - .1), 2);
+    shock(t, tVid + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. ALORS POURQUOI ON NE LES MET PAS DEDANS ? ==============================================
+S(T.pq, T.bts, (cam, a) => {
+  const tMet = Wt('met'), tDed = Wt('dedans ?');
+  bg(cam);
+  const kids = [0, 1, 2].map(i => person(cam, i, true));
+  const seats = [0, 1, 2].map(() => seat(cam, GREEN));
+  const q = title(cam, [['POURQUOI ?', RED]], { size: 150, shadow: 0, sw: 14 });
+  const think = icon(cam, '🤔', 150);
+  const arrow = el('path', { d: 'M-90,0 H60 M30,-34 L80,0 L30,34', fill: 'none', stroke: INK, 'stroke-width': 16, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, cam);
+  return t => {
+    at(q, CX, 300, pop(t, a + .05, .35), -2);
+    kids.forEach((k, i) => at(k, CX - 330, 540 + i * 195, 1.1 * pop(t, a + .1 + i * .05)));
+    seats.forEach((s, i) => at(s, CX + 300, 540 + i * 195, pop(t, a + .2 + i * .05)));
+    at(arrow, CX - 20 + Math.sin(t * 8) * 12, 735, pop(t, tMet - .2));
+    at(think, CX, 1040, pop(t, tDed - .1, .35), Math.sin(t * 4) * 6);
+    shock(t, tDed + .1, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 5. D'ABORD : surtout des BTS, dans des villes moyennes, loin de chez toi ==================
+S(T.bts, T.app, (cam, a) => {
+  const tBts = Wt('BTS.'), tVil = Wt('villes'), tLoin = Wt('loin'), tToi = Wt('toi.');
+  bg(cam);
+  const tag = chip(cam, "1. D'ABORD", INK, CREAM, 52);
+  const bts = title(cam, [['SURTOUT', INK], ['DES BTS', GREEN]], { size: 130, shadow: 0, sw: 14 });
+  const road = el('path', { d: 'M-330,0 C-150,-160 150,160 330,0', fill: 'none', stroke: INK, 'stroke-width': 14, 'stroke-dasharray': '30 22', 'stroke-linecap': 'round' }, cam);
+  const home = icon(cam, '🏠', 130), pin = icon(cam, '📍', 130), car = icon(cam, '🚗', 90);
+  const lt = el('g', {}, cam); txt(lt, 'TOI', { size: 54 });
+  const lv = el('g', {}, cam); txt(lv, 'VILLE MOYENNE', { size: 44 });
+  const far = stamp(cam, 'LOIN', RED, 90);
+  const len = 780;
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    const out = p(t, tVil - .5, tVil - .2, E.in);
+    at(bts, CX, 600, pop(t, a + .15, .35) * (1 + .08 * hit(t, tBts + .2, .3)) * (1 - out) + .001, -2);
+    const k = p(t, tVil - .2, tLoin + .4, E.inOut);
+    show(road, k > 0); at(road, CX, 680); road.setAttribute('stroke-dashoffset', fmt(-t * 60));
+    road.setAttribute('opacity', fmt(Math.min(1, k * 3)));
+    at(home, CX - 330, 640, pop(t, tVil - .2)); at(lt, CX - 330, 780, pop(t, tVil));
+    at(pin, CX + 330, 610, pop(t, tVil + .1)); at(lv, CX + 300, 780, pop(t, tVil + .3));
+    const u = p(t, tLoin - .2, tToi + .3, E.inOut), x = lerp(-330, 330, u), y = Math.sin(Math.PI * u * 2) * -70;
+    show(car, t > tLoin - .2); at(car, CX + x, 650 + y, 1, Math.cos(Math.PI * u * 2) * -18);
+    far.update(CX, 1000, t, tLoin, -6);
+    shock(t, tLoin + .1, .25, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. ENSUITE : l'apprentissage… et un piège =================================================
+S(T.app, T.place, (cam, a) => {
+  const tApp = Wt('apprentissage.'), tPie = Wt('piège'), tPeu = Wt('peu');
+  bg(cam);
+  const tag = chip(cam, '2. ENSUITE', INK, CREAM, 52);
+  const head = title(cam, [['EN', INK], ['APPRENTISSAGE', BLUE]], { size: 108, shadow: 0, sw: 14 });
+  const fac = icon(cam, '🏭', 170);
+  const warn = el('g', {}, cam);
+  el('path', { d: 'M0,-200 L210,160 H-210 Z', fill: INK, transform: 'translate(14,14)', 'stroke-linejoin': 'round' }, warn);
+  el('path', { d: 'M0,-200 L210,160 H-210 Z', fill: YELLOW, stroke: INK, 'stroke-width': 10, 'stroke-linejoin': 'round' }, warn);
+  txt(warn, '!', { size: 260 }).g.setAttribute('transform', 'translate(0,120)');
+  const lab = el('g', {}, cam); txt(lab, 'LE PIÈGE', { size: 120, fill: RED, sw: 14 });
+  const few = chip(cam, 'PEU DE GENS LE SAVENT', INK, CREAM, 44);
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    const out = p(t, tPie - .5, tPie - .2, E.in);
+    at(head, CX, 520, pop(t, tApp - .3, .35) * (1 - out) + .001, -2);
+    at(fac, CX, 820, pop(t, tApp, .35) * (1 - out) + .001);
+    at(warn, CX, 640, pop(t, tPie - .2, .35) * (1 + .05 * Math.sin(t * 10) * (t > tPie ? 1 : 0)), Math.sin(t * 6) * 3);
+    at(lab, CX, 940, pop(t, tPie), -3);
+    few.update(CX, 1090, pop(t, tPeu - .1), 2);
+    shock(t, tPie + .1, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 7. UNE PLACE EN APPRENTISSAGE… PAS VRAIMENT UNE PLACE : il faut un contrat ================
+S(T.place, T.quart, (cam, a) => {
+  const tVrai = Wt('vraiment'), tAdm = Wt('admis'), tTrou = Wt('trouves'), tEnt = Wt('entreprise'), tCon = Wt('contrat.');
+  bg(cam);
+  const s = seat(cam, BLUE);
+  const ast = el('g', {}, cam); txt(ast, '*', { size: 240, fill: RED, sw: 12 });
+  const st = stamp(cam, 'PAS VRAIMENT', RED, 84);
+  const doc = el('g', {}, cam);
+  card(doc, -300, -250, 600, 500, WHITE, 18, 12, 7);
+  txt(doc, "CONTRAT", { size: 64 }).g.setAttribute('transform', 'translate(0,-160)');
+  txt(doc, "D'APPRENTISSAGE", { size: 44 }).g.setAttribute('transform', 'translate(0,-100)');
+  [-30, 20, 70].forEach(y => el('rect', { x: -230, y, width: 460, height: 16, rx: 8, fill: GREY }, doc));
+  el('line', { x1: -230, y1: 190, x2: 230, y2: 190, stroke: INK, 'stroke-width': 5, 'stroke-dasharray': '14 10' }, doc);
+  txt(doc, 'SIGNATURE ENTREPRISE', { size: 30 }).g.setAttribute('transform', 'translate(0,230)');
+  const qm = el('g', {}, doc); txt(qm, '?', { size: 120, fill: RED, sw: 10 }); tf(qm, 0, 160);
+  const lab = el('g', {}, cam); txt(lab, 'TROUVE-LA TOI-MÊME', { size: 72, fill: CREAM, sw: 12 });
+  return t => {
+    const out = p(t, tAdm - .5, tAdm - .2, E.in);
+    at(s, CX, 560, 2.2 * pop(t, a + .1, .35) * (1 - out) + .001);
+    at(ast, CX + 170, 450, pop(t, tVrai - .2) * (1 - out) + .001);
+    st.update(CX, 960, t, tVrai - .1, -6);
+    show(st.g, t >= tVrai - .1 && t < tAdm - .2);
+    at(doc, CX, 640, pop(t, tAdm - .2, .35), 2);
+    tf(qm, 0, 150, pop(t, tEnt) * (1 + .1 * Math.sin(t * 9)));
+    at(lab, CX, 1030, pop(t, tTrou), -2);
+    shock(t, tVrai + .1, .25, .5); shock(t, tCon + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. PRÈS D'UNE PLACE SUR QUATRE ============================================================
+S(T.quart, T.aides, (cam, a) => {
+  const tPres = Wt('près'), tQua = Wt('quatre'), tApp = Wt('apprentissage.', 1, Wt('quatre'));
+  bg(cam);
+  const tag = chip(cam, 'SUR PARCOURSUP', INK, CREAM, 50);
+  const seats = [0, 1, 2, 3].map(i => seat(cam, i === 3 ? BLUE : GREEN));
+  const n = el('g', {}, cam), nS = bigNum(n, 190, BLUE); nS.set('1 SUR 4');
+  const lab = el('g', {}, cam); txt(lab, 'EN APPRENTISSAGE', { size: 78, fill: BLUE, sw: 12, stroke: INK });
+  const note = el('g', {}, cam); txt(note, '26 % DES PLACES EN 2025', { size: 40 });
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    seats.forEach((s, i) => at(s, CX + (i - 1.5) * 200, 560, (i === 3 ? 1.1 + .1 * hit(t, tQua + .2, .3) : 1) * pop(t, tPres - .3 + i * .08)));
+    at(n, CX, 820, pop(t, tQua - .1, .35), -3);
+    at(lab, CX, 990, pop(t, tApp - .2), 2);
+    at(note, CX, 1090, pop(t, tApp + .2));
+    shock(t, tQua + .1, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 9. 2025 : l'État baisse les aides → moins de contrats =====================================
+S(T.aides, T.papier, (cam, a) => {
+  const t25 = Wt('2025,'), tBai = Wt('baissé'), tApp = Wt('apprentis.'), tMoins = Wt('Moins'), tCon = Wt('contrats.');
+  bg(cam);
+  const tag = chip(cam, '2025 : AIDES À L\'EMBAUCHE', INK, CREAM, 44);
+  const old = el('g', {}, cam); const oS = bigNum(old, 150, GREY); oS.set('6 000 €');
+  const bar = el('line', { x1: -260, y1: 0, x2: 260, y2: 0, stroke: RED, 'stroke-width': 18, 'stroke-linecap': 'round' }, cam);
+  const nw = el('g', {}, cam);
+  const n1 = el('g', {}, nw); bigNum(n1, 130, RED).set('5 000 €'); tf(n1, 0, 0);
+  const n2 = el('g', {}, nw); bigNum(n2, 130, RED).set('2 000 €'); tf(n2, 0, 200);
+  const s1 = el('g', {}, nw); txt(s1, 'PME', { size: 36 }); tf(s1, 0, 82);
+  const s2 = el('g', {}, nw); txt(s2, 'GRANDES ENTREPRISES', { size: 36 }); tf(s2, 0, 282);
+  const down = icon(cam, '📉', 150);
+  const lab = title(cam, [['MOINS DE', INK], ['CONTRATS', RED]], { size: 100, shadow: 0, sw: 12 });
+  return t => {
+    tag.update(CX, 230, pop(t, t25 - .3), -2);
+    const out = p(t, tMoins - .3, tMoins, E.in);
+    at(old, CX, 430, pop(t, t25) * (1 - out) + .001, -2);
+    const kb = p(t, tBai - .1, tBai + .2, E.out); show(bar, kb > 0 && out < 1);
+    at(bar, CX, 430, 1 - out + .001, -6); bar.setAttribute('x2', fmt(lerp(-260, 260, kb)));
+    at(nw, CX, 640, pop(t, tBai + .2, .35) * (1 - out) + .001, 2);
+    at(down, CX, 520, pop(t, tMoins - .1, .35));
+    at(lab, CX, 820, pop(t, tCon - .3, .35), -2);
+    shock(t, tBai + .2, .25, .5); shock(t, tCon + .1, .25, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. SUR LE PAPIER… / DANS LA VRAIE VIE… ===================================================
+S(T.papier, T.cta, (cam, a) => {
+  const tPap = Wt('papier,'), tVie = Wt('vie…'), tFor = Wt('forcément.');
+  bg(cam);
+  const L = el('g', {}, cam), Rr = el('g', {}, cam);
+  card(L, -205, -300, 410, 600, GREEN, 30, 12, 7); card(Rr, -205, -300, 410, 600, RED, 30, 12, 7);
+  [['SUR LE', -210], ['PAPIER', -140]].forEach(([s, y]) => txt(L, s, { size: 60, fill: CREAM, sw: 10 }).g.setAttribute('transform', `translate(0,${y})`));
+  [['DANS LA', -210], ['VRAIE VIE', -140]].forEach(([s, y]) => txt(Rr, s, { size: 60, fill: CREAM, sw: 10 }).g.setAttribute('transform', `translate(0,${y})`));
+  const doc = icon(L, '📄', 130); tf(doc, 0, 20);
+  const sL = el('g', {}, L); txt(sL, '83 000', { size: 70 }); tf(sL, 0, 170);
+  const sL2 = el('g', {}, L); txt(sL2, 'PLACES', { size: 50 }); tf(sL2, 0, 230);
+  const sR = el('g', {}, Rr); txt(sR, 'PAS', { size: 90 }); tf(sR, 0, 60);
+  const sR2 = el('g', {}, Rr); txt(sR2, 'FORCÉMENT', { size: 50 }); tf(sR2, 0, 150);
+  const qm = icon(Rr, '❓', 90); tf(qm, 0, 245);
+  return t => {
+    at(L, CX - 220, 720, pop(t, tPap - .4, .35), -2);
+    at(Rr, CX + 220, 720, pop(t, tVie - .4, .35), 2);
+    tf(sR, 0, 60, pop(t, tFor - .2)); tf(sR2, 0, 150, pop(t, tFor)); tf(qm, 0, 245, pop(t, tFor + .3));
+    shock(t, tFor + .1, .25, .5);
+  };
+}, { swipe: RED });
+
+// ====== 11. FIN : tu partirais à 300 km ? =========================================================
+S(T.cta, M.DUR, (cam, a) => {
+  const t300 = Wt('300'), tPla = Wt('place ?', 1, a), tEn = Wt('en', 1, tDis), tCom = Wt('commentaire.');
+  bg(cam, CREAM, false);
+  const q = title(cam, [['TU PARTIRAIS', INK], ['À 300 KM', RED], ['POUR UNE PLACE ?', INK]], { size: 92, shadow: 0, sw: 12 });
+  const road = el('path', { d: 'M-360,0 H360', stroke: INK, 'stroke-width': 14, 'stroke-dasharray': '30 22', 'stroke-linecap': 'round' }, cam);
+  const home = icon(cam, '🏠', 110), pin = icon(cam, '📍', 110), car = icon(cam, '🚗', 90);
+  const bub = icon(cam, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 400, pop(t, a + .05, .35), -2);
+    at(road, CX, 860, pop(t, t300 - .3));
+    at(home, CX - 360, 830, pop(t, t300 - .3)); at(pin, CX + 360, 810, pop(t, t300 - .1));
+    const u = ((t - t300) / 2.2) % 1; show(car, t > t300); at(car, CX + lerp(-300, 300, E.inOut(Math.max(0, u))), 830, 1);
+    at(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 1150, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCom ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCom + .2), 0);
+    shock(t, tPla + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à « Toi, » (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+start();
+})();
+</script>
+</body>
+</html>
