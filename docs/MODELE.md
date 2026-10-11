@@ -62,6 +62,18 @@ node tools/voix.mjs <nom> --audio ma_voix.mp3   # voix déjà faite dans ElevenL
 - **Mode `--audio`** : l'API d'alignement forcé cale le texte sur un MP3 existant ; le fichier n'est pas modifié, à copier soi-même en `assets/voix_<nom>.mp3`.
 - Le texte est envoyé en une seule requête, ce qui couvre largement 60 s de voix.
 
+## Sarah, le personnage de la voix-off (essai)
+
+`lib/sarah.js` ajoute un petit personnage en pastille ronde (facecam) en bas à gauche, hors zones TikTok et sous les sous-titres. Exemple : `ia_embauche_sarah.html`.
+
+1. `node tools/enveloppe.mjs <nom>` : écrit `assets/<nom>_env.js` (volume de la voix, qui fait bouger la bouche). Il faut ffmpeg.
+2. Dans la page, après `lib/motion.js` : `<script src="assets/<nom>_env.js"></script>` et `<script src="lib/sarah.js"></script>`.
+3. Après `captions(...)` et avant `start()` : `Motion.sarah({ env: window.ENV })`. Options : `x`, `y` (centre, 205 × 1515 par défaut), `size`, ou `pos: t => ({ x, y, k })` pour la déplacer ou la faire apparaître.
+
+Ses expressions viennent du texte de la voix-off : `?` = elle interroge (tête penchée, sourcil levé), `…` = elle se penche puis s'étonne sur le mot suivant, un chiffre ou `%` = index levé et sourcils hauts, « Attention » = air sérieux et index levé, dernier mot = sourire et clin d'œil. Elle cligne des yeux et se balance doucement entre deux.
+
+Si une carte de fin descend sous y = 1360, la remonter un peu pour ne pas toucher la pastille.
+
 ## Format
 
 | | |
