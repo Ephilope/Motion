@@ -341,8 +341,8 @@ S(T.cta, M.DUR, (cam, a) => {
   return t => {
     at(q, CX, 340, pop(t, a + .05, .35), -2);
     at(bot, CX, 820 + Math.sin(t * 4) * 10, pop(t, tExp - .2, .35), Math.sin(t * 3) * 6);
-    at(cta, CX, 1250, pop(t, tDis - .1, .35), -2);
-    at(bub, CX + 330, 1100, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 940, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
     w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
     tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
     shock(t, tExp + .2, .25, .4);
@@ -352,7 +352,7 @@ S(T.cta, M.DUR, (cam, a) => {
 // Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
 captions({ until: T.cta + .2 });
 // Sarah entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
-Motion.sarah({ env: window.ENV, pos: t => ({ x: 205, y: 1515, k: E.back(clamp((t - .15) / .4)) }) });
+Motion.sarah({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
 start();
 })();
 </script>
