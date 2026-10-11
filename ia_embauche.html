@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L'IA t'empêche d'être embauché</title>
+</head>
+<body>
+<!-- Vidéo TikTok « L'IA t'empêche d'être embauché » (étude Banque de France, charte : docs/MODELE.md).
+     Voix-off : scripts/ia_embauche.txt → node tools/voix.mjs ia_embauche
+     Chiffres et sources : en tête de scripts/ia_embauche.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/ia_embauche_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, rng } = Motion;
+await setup({
+  duration: 63,
+  words: window.WORDS,
+  audio: 'assets/voix_ia_embauche.mp3',
+  emojis: '🤖🔒🌐📰📊🏦💻⏱️🛡️🩺👶🔧⚠️💬👇',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BLUE = '#3498DB', SKIN = '#F2C9A0';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Silhouette simple (≈ 70 × 150).
+function person(parent, fill = GREEN) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-34,70 V10 Q-34,-20 0,-20 Q34,-20 34,10 V70 Z', fill, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  el('circle', { cy: -48, r: 26, fill: SKIN, stroke: INK, 'stroke-width': 6 }, g);
+  return g;
+}
+// Cercle d'interdiction.
+function ban(parent, r = 150) {
+  const g = el('g', {}, parent), k = r * .707;
+  el('circle', { r, fill: 'none', stroke: RED, 'stroke-width': r * .16 }, g);
+  el('line', { x1: -k, y1: -k, x2: k, y2: k, stroke: RED, 'stroke-width': r * .16 }, g);
+  return g;
+}
+// Pastille ronde verte (✓) ou rouge (✕).
+function mark(parent, ok, r = 46) {
+  const g = el('g', {}, parent);
+  el('circle', { r, fill: ok ? GREEN : RED, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: ok ? 'M-20,2 L-5,18 L22,-16' : 'M-17,-17 L17,17 M17,-17 L-17,17', fill: 'none', stroke: CREAM, 'stroke-width': 12, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', transform: `scale(${r / 46})` }, g);
+  return g;
+}
+
+// Porte fermée (≈ 260 × 420) avec panneau.
+function door(parent, label) {
+  const g = el('g', {}, parent);
+  card(g, -130, -210, 260, 420, '#C0392B', 16, 12, 8);
+  el('rect', { x: -100, y: -180, width: 200, height: 160, rx: 10, fill: 'none', stroke: INK, 'stroke-width': 6 }, g);
+  el('rect', { x: -100, y: 10, width: 200, height: 160, rx: 10, fill: 'none', stroke: INK, 'stroke-width': 6 }, g);
+  el('circle', { cx: 90, cy: 0, r: 14, fill: YELLOW, stroke: INK, 'stroke-width': 5 }, g);
+  const s = chip(g, label, CREAM, INK, 40); s.update(0, -250, 1, -3);
+  return g;
+}
+// Liste de tâches avec cases cochées une à une (k de 0 à 1).
+function tasks(parent, items) {
+  const g = el('g', {}, parent);
+  card(g, -370, -40, 740, items.length * 110 + 40, WHITE, 22, 12, 7);
+  const rows = items.map((s, i) => {
+    const y = i * 110 + 30;
+    el('rect', { x: -330, y: y - 30, width: 60, height: 60, rx: 10, fill: CREAM, stroke: INK, 'stroke-width': 5 }, g);
+    const ck = el('path', { d: `M-320,${y} L-302,${y + 18} L-278,${y - 18}`, fill: 'none', stroke: GREEN, 'stroke-width': 12, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+    txt(g, s, { size: 44, anchor: 'start' }).g.setAttribute('transform', `translate(-240,${y + 16})`);
+    return ck;
+  });
+  return { g, update(k) { rows.forEach((c, i) => c.setAttribute('opacity', k * items.length > i + .3 ? 1 : 0)); } };
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  etude: Wt("C'est") - .25, chiffres: Wt('Depuis') - .25, metiers: Wt('Les', 1, Wt('7,5 %.')) - .25,
+  devs: Wt('Et', 1, Wt('banque.')) - .2, pq: Wt('Pourquoi') - .25, quote: Wt('Un', 1, Wt('secondes.')) - .25,
+  seniors: Wt('Les', 1, Wt('philanthropie ».')) - .25, bloque: Wt('Et', 1, Wt('épargnés.')) - .25,
+  vrai: Wt('Dans', 1, Wt('bloqué.')) - .25, att: Wt('Attention :') - .25, cta: Wt('Et', 1, Wt('cause.')) - .2,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : l'IA ne te vire pas, elle t'empêche d'être embauché ========================
+// Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.etude, (cam) => {
+  const tVire = Wt('vire'), tPire = Wt('pire…'), tEmp = Wt("t'empêche"), tEmb = Wt('embauché.');
+  bg(cam);
+  const head = title(cam, ["L'IA T'EMPÊCHE", ["D'ÊTRE EMBAUCHÉ", RED]], { size: 100, shadow: 0, sw: 12 });
+  const bot = el('g', {}, cam); emoji(bot, '🤖', 230);
+  const d = door(cam, 'RECRUTEMENT');
+  const lock = el('g', {}, cam); emoji(lock, '🔒', 120);
+  const st = stamp(cam, 'PAS VIRÉ…', GREEN, 70);
+  const st2 = stamp(cam, 'PAS EMBAUCHÉ', RED, 76);
+  return t => {
+    at(head, CX, 260, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
+    at(bot, CX - 230, 820 + Math.sin(t * 4) * 10, pop(t, .1, .35), Math.sin(t * 3) * 5);
+    at(d, CX + 200, 820, pop(t, .2, .35));
+    at(lock, CX + 200, 830, pop(t, tEmp, .3));
+    st.update(CX - 230, 1060, t, tVire, -6);
+    show(st.g, t >= tVire && t < tPire);
+    st2.update(CX, 1070, t, tEmb, -5);
+    shock(t, .3, .3, .5); shock(t, tEmb + .15, .3, .7);
+  };
+});
+
+// ====== 2. UNE ÉTUDE DE LA BANQUE DE FRANCE, cette semaine ========================================
+S(T.etude, T.chiffres, (cam, a) => {
+  const tEt = Wt('étude'), tBq = Wt('Banque'), tSem = Wt('semaine.');
+  bg(cam);
+  const doc = el('g', {}, cam);
+  card(doc, -230, -290, 460, 580, WHITE, 18, 12, 7);
+  [-180, -110, -40, 30, 100].forEach((y, i) => el('rect', { x: -170, y, width: i % 2 ? 260 : 340, height: 26, rx: 8, fill: '#D5D8DC' }, doc));
+  const bars = el('g', {}, doc); [[-160, 70], [-90, 120], [-20, 50], [50, 160]].forEach(([x, h]) => el('rect', { x, y: 250 - h - 60, width: 50, height: h, fill: RED, stroke: INK, 'stroke-width': 4 }, bars));
+  const lab = chip(cam, 'BANQUE DE FRANCE', BLUE, CREAM, 58);
+  const n = chip(cam, '1 500 MÉTIERS ÉTUDIÉS', INK, CREAM, 46);
+  const wk = chip(cam, 'CETTE SEMAINE', YELLOW, INK, 50);
+  return t => {
+    at(doc, CX, 690, pop(t, tEt - .3, .35), -3);
+    lab.update(CX, 330, pop(t, tBq - .2), -2);
+    n.update(CX, 1060, pop(t, tBq + .4), 2);
+    wk.update(CX + 220, 430, pop(t, tSem - .2), 8);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. CDI DES 21-29 ANS : −28 % dans les métiers exposés, −7,5 % ailleurs ==================
+S(T.chiffres, T.metiers, (cam, a) => {
+  const tChat = Wt('ChatGPT,'), tCdi = Wt('CDI'), t28 = Wt('28 %…'), tExp = Wt('exposés'), tAil = Wt('Ailleurs ?'), t75 = Wt('7,5 %.');
+  bg(cam);
+  const tag = chip(cam, 'DEPUIS CHATGPT, FIN 2022', INK, CREAM, 46);
+  const who = chip(cam, 'EMBAUCHES EN CDI DES 21-29 ANS', GREEN, CREAM, 42);
+  const base = 580, maxH = 440;
+  el('line', { x1: 120, y1: base, x2: 900, y2: base, stroke: INK, 'stroke-width': 8 }, cam);
+  const bars = [
+    { n: 28.3, s: '−28 %', col: RED, x: CX - 200, t0: t28 - .3, l1: 'MÉTIERS', l2: 'EXPOSÉS À L\'IA', tl: tExp },
+    { n: 7.5, s: '−7,5 %', col: GREEN, x: CX + 200, t0: t75 - .4, l1: 'AUTRES', l2: 'MÉTIERS', tl: tAil },
+  ].map(b => {
+    const g = el('g', {}, cam);
+    const sh = el('rect', { x: -110 + 12, y: base + 12, width: 220, fill: INK }, g), r = el('rect', { x: -110, y: base, width: 220, fill: b.col, stroke: INK, 'stroke-width': 7 }, g);
+    const v = el('g', {}, g), vS = bigNum(v, 100, CREAM); vS.set(b.s);
+    const l = el('g', {}, g); txt(l, b.l1, { size: 44 }).g.setAttribute('transform', 'translate(0,-100)'); txt(l, b.l2, { size: 38, fill: b.col, sw: 0 }).g.setAttribute('transform', 'translate(0,-50)');
+    return { ...b, g, sh, r, v, l };
+  });
+  return t => {
+    tag.update(CX, 230, pop(t, tChat - .2), -2);
+    who.update(CX, 330, pop(t, tCdi - .2), 2);
+    bars.forEach(b => {
+      const k = p(t, b.t0, b.t0 + .6, E.out), h = Math.max(1, maxH * b.n / 28.3 * k);
+      at(b.g, b.x, 0, 1); show(b.g, t >= b.t0 - .05);
+      set(b.r, { height: fmt(h) }); set(b.sh, { height: fmt(h) });
+      tf(b.v, 0, base + h + 70, pop(t, b.t0 + .3));
+      tf(b.l, 0, base, pop(t, b.tl - .2));
+    });
+    shock(t, t28 + .3, .3, .7); shock(t, t75 + .2, .3, .4);
+  };
+}, { swipe: RED });
+
+// ====== 4. LES MÉTIERS TOUCHÉS : ceux qui produisent de l'information =============================
+S(T.metiers, T.devs, (cam, a) => {
+  const tInfo = Wt("l'information :");
+  bg(cam);
+  const head = title(cam, ['LES MÉTIERS', ['TOUCHÉS', RED]], { size: 110, shadow: 0, sw: 12 });
+  const sub = chip(cam, "CEUX QUI PRODUISENT DE L'INFO", INK, CREAM, 42);
+  const rows = [['🌐', 'TRADUCTEURS', 'traducteurs,'], ['📰', 'JOURNALISTES', 'journalistes,'], ['📊', 'ANALYSTES', 'analystes,'], ['🏦', 'EMPLOYÉS DE BANQUE', 'employés']].map(([e, s, w]) => {
+    const g = el('g', {}, cam); const ic = el('g', {}, g); emoji(ic, e, 100); tf(ic, -300, 0);
+    txt(g, s, { size: 62, anchor: 'start' }).g.setAttribute('transform', 'translate(-220,22)');
+    return { g, t0: Wt(w) };
+  });
+  return t => {
+    at(head, CX, 270, pop(t, a + .05, .35), -2);
+    sub.update(CX, 440, pop(t, tInfo - .3), 2);
+    rows.forEach((r, i) => at(r.g, CX, 580 + i * 140, pop(t, r.t0 - .15, .3)));
+  };
+}, { swipe: GREEN });
+
+// ====== 5. LES JEUNES DÉVELOPPEURS : −42 % =======================================================
+S(T.devs, T.pq, (cam, a) => {
+  const tDev = Wt('développeurs…'), t42 = Wt('42 %.');
+  bg(cam);
+  const tag = chip(cam, 'JEUNES DÉVELOPPEURS', INK, CREAM, 56);
+  const pc = el('g', {}, cam); emoji(pc, '💻', 240);
+  const n = el('g', {}, cam), nS = bigNum(n, 260, RED);
+  const lab = chip(cam, 'EMBAUCHES EN CDI', GREEN, CREAM, 50);
+  return t => {
+    tag.update(CX, 260, pop(t, tDev - .3), -2);
+    at(pc, CX, 540, pop(t, tDev - .2, .35));
+    nS.set('−' + Math.round(42 * p(t, t42 - .3, t42 + .3, E.out)) + ' %');
+    at(n, CX, 860, pop(t, t42 - .3, .3), -3);
+    lab.update(CX, 1070, pop(t, t42 + .3), 2);
+    shock(t, t42 + .3, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 6. POURQUOI LES JEUNES ? les tâches simples, que l'IA fait en quelques secondes ===========
+S(T.pq, T.quote, (cam, a) => {
+  const tSim = Wt('simples.'), tIA = Wt("l'IA", 1, a), tSec = Wt('secondes.');
+  bg(cam);
+  const q = title(cam, ['POURQUOI', ['LES JEUNES ?', RED]], { size: 110, shadow: 0, sw: 12 });
+  const list = tasks(cam, ['RÉSUMER UN DOSSIER', 'TRADUIRE UN TEXTE', 'ÉCRIRE DU CODE SIMPLE']);
+  const lab = chip(cam, 'LES TÂCHES DES DÉBUTANTS', INK, CREAM, 44);
+  const clock = chip(cam, '🤖 EN QUELQUES SECONDES', YELLOW, INK, 50);
+  return t => {
+    at(q, CX, 270, pop(t, a + .05, .35), -2);
+    lab.update(CX, 470, pop(t, tSim - .4), -2);
+    at(list.g, CX, 600, pop(t, tSim - .3, .35));
+    list.update(p(t, tIA, tSec + .2));
+    clock.update(CX, 1080, pop(t, tSec - .4), 3);
+    shock(t, tSec + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. « DE LA PHILANTHROPIE » =================================================================
+S(T.quote, T.seniors, (cam, a) => {
+  const tResp = Wt('responsable'), tEmb = Wt('embaucher'), tPhi = Wt('philanthropie ».');
+  bg(cam);
+  const tag = chip(cam, 'UN RESPONSABLE TECH', INK, CREAM, 50);
+  const boss = person(cam, BLUE);
+  const bub = el('g', {}, cam);
+  const bp = 'M-390,-150 H390 Q420,-150 420,-120 V120 Q420,150 390,150 H-80 L-160,240 L-150,150 H-390 Q-420,150 -420,120 V-120 Q-420,-150 -390,-150 Z';
+  el('path', { d: bp, fill: INK, transform: 'translate(12,12)' }, bub);
+  el('path', { d: bp, fill: WHITE, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, bub);
+  txt(bub, 'EMBAUCHER UN DÉBUTANT,', { size: 50 }).g.setAttribute('transform', 'translate(0,-50)');
+  const qq = el('g', {}, bub); txt(qq, "C'EST « DE LA", { size: 50 }).g.setAttribute('transform', 'translate(0,20)');
+  const ph = el('g', {}, bub); txt(ph, 'PHILANTHROPIE »', { size: 78, fill: RED, sw: 0 }).g.setAttribute('transform', 'translate(0,105)');
+  return t => {
+    tag.update(CX, 250, pop(t, tResp - .2), -2);
+    at(bub, CX, 560, pop(t, tEmb - .3, .35), -2);
+    ph.setAttribute('opacity', t > tPhi - .1 ? 1 : 0);
+    at(boss, CX - 160, 960, 2 * pop(t, tResp, .35));
+    shock(t, tPhi + .2, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 8. LES PLUS DE 50 ANS : presque épargnés =================================================
+S(T.seniors, T.bloque, (cam, a) => {
+  const t50 = Wt('50 ans,'), tEp = Wt('épargnés.');
+  bg(cam);
+  const tag = chip(cam, 'LES PLUS DE 50 ANS', INK, CREAM, 56);
+  const old = el('g', {}, cam); person(old, GREEN);
+  el('path', { d: 'M-28,-60 Q0,-92 28,-60 Q20,-80 0,-82 Q-20,-80 -28,-60 Z', fill: '#BDC3C7', stroke: INK, 'stroke-width': 4 }, old);
+  const sh = el('g', {}, cam); emoji(sh, '🛡️', 170);
+  const lab = title(cam, ['PRESQUE', ['ÉPARGNÉS', GREEN]], { size: 100, shadow: 0, sw: 12 });
+  return t => {
+    tag.update(CX, 250, pop(t, t50 - .3), -2);
+    at(old, CX - 120, 620, 2.6 * pop(t, t50 - .1, .35));
+    at(sh, CX + 190, 600, pop(t, tEp - .3, .35), Math.sin(t * 3) * 5);
+    at(lab, CX, 980, pop(t, tEp - .2, .35), -2);
+    shock(t, tEp + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. CEUX QUI ONT UN CDI NE LE LÂCHENT PLUS : démissions −23 %, marché bloqué ===============
+S(T.bloque, T.vrai, (cam, a) => {
+  const tCdi = Wt('CDI', 1, a), tDem = Wt('démissions'), t23 = Wt('23 %.'), tBlo = Wt('bloqué.');
+  bg(cam);
+  const tag = chip(cam, 'ILS NE LÂCHENT PLUS LEUR CDI', INK, CREAM, 46);
+  const d = door(cam, 'SORTIE');
+  const lock = el('g', {}, cam); emoji(lock, '🔒', 120);
+  const lab = el('g', {}, cam); txt(lab, 'DÉMISSIONS', { size: 70 });
+  const n = el('g', {}, cam), nS = bigNum(n, 170, RED); nS.set('−23 %');
+  const st = stamp(cam, 'BLOQUÉ', RED, 110);
+  return t => {
+    tag.update(CX, 250, pop(t, tCdi - .3), -2);
+    at(d, CX - 220, 680, pop(t, tCdi - .1, .35));
+    at(lock, CX - 220, 690, pop(t, tDem, .3));
+    at(lab, CX + 210, 590, pop(t, tDem - .1), -2);
+    at(n, CX + 210, 740, pop(t, t23 - .2, .35), -3);
+    st.update(CX, 1060, t, tBlo, -6);
+    shock(t, tBlo + .15, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 10. LES MÉTIERS OÙ IL FAUT ÊTRE LÀ EN VRAI : pas de baisse ================================
+S(T.vrai, T.att, (cam, a) => {
+  const tVrai = Wt('vrai,'), tBai = Wt('baissé.', 1, a);
+  bg(cam);
+  const head = title(cam, ['LES MÉTIERS', ['EN VRAI', GREEN]], { size: 110, shadow: 0, sw: 12 });
+  const jobs = [['🩺', 'INFIRMIERS', 'infirmiers,'], ['👶', 'ASSISTANTES MATERNELLES', 'assistantes'], ['🔧', 'OUVRIERS QUALIFIÉS', 'ouvriers']].map(([e, s, w]) => {
+    const g = el('g', {}, cam); const ic = el('g', {}, g); emoji(ic, e, 100); tf(ic, -400, 0);
+    txt(g, s, { size: 44, anchor: 'start' }).g.setAttribute('transform', 'translate(-320,17)');
+    return { g, t0: Wt(w) };
+  });
+  const st = stamp(cam, 'PAS DE BAISSE', GREEN, 80);
+  return t => {
+    at(head, CX, 280, pop(t, tVrai - .5, .35), -2);
+    jobs.forEach((j, i) => at(j.g, CX, 520 + i * 150, pop(t, j.t0 - .15, .3)));
+    st.update(CX, 1040, t, tBai - .2, -5);
+    shock(t, tBai, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 11. ATTENTION : un lien, pas une preuve ===================================================
+S(T.att, T.cta, (cam, a) => {
+  const tLien = Wt('lien'), tPre = Wt('preuve'), tSeul = Wt('seule');
+  bg(cam);
+  const tag = chip(cam, '⚠️ ATTENTION', YELLOW, INK, 64);
+  const l1 = el('g', {}, cam); txt(l1, 'UN LIEN AVEC L\'IA', { size: 84, fill: GREEN, sw: 12, shadow: 10 });
+  const l2 = el('g', {}, cam); txt(l2, 'PAS UNE PREUVE', { size: 84, fill: RED, sw: 12, shadow: 10 });
+  const l3 = chip(cam, "QU'ELLE EST LA SEULE CAUSE", INK, CREAM, 46);
+  return t => {
+    tag.update(CX, 300, pop(t, a + .05), -3);
+    at(l1, CX, 560, pop(t, tLien - .2, .35), -2);
+    at(l2, CX, 760, pop(t, tPre - .3, .35), 2);
+    l3.update(CX, 920, pop(t, tSeul - .3), -2);
+  };
+}, { swipe: RED });
+
+// ====== 12. FIN : ton futur métier… il est exposé ? =============================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tExp = Wt('exposé ?'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ['ET TOI,', ['TON FUTUR MÉTIER…', GREEN], ['IL EST EXPOSÉ ?', RED]], { size: 96, shadow: 0, sw: 12 });
+  const bot = el('g', {}, cam); emoji(bot, '🤖', 170);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 340, pop(t, a + .05, .35), -2);
+    at(bot, CX, 820 + Math.sin(t * 4) * 10, pop(t, tExp - .2, .35), Math.sin(t * 3) * 6);
+    at(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 1150, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tExp + .2, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+start();
+})();
+</script>
+</body>
+</html>
