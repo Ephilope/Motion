@@ -64,7 +64,7 @@ node tools/voix.mjs <nom> --audio ma_voix.mp3   # voix déjà faite dans ElevenL
 
 ## Sarah, le personnage de la voix-off (essai)
 
-`lib/sarah.js` ajoute un petit personnage en pied, à tête de lune (robe rouge, étoile en barrette), debout en bas à gauche : pieds juste au-dessus de la zone TikTok du bas, tête sous les sous-titres. Exemple : `ia_embauche_sarah.html`.
+`lib/sarah.js` ajoute un petit personnage en pied, à tête de lune (disque gris clair avec mers, cratères, ombre en croissant, halo et petites étoiles ; robe rouge), debout en bas à gauche : pieds juste au-dessus de la zone TikTok du bas, tête sous les sous-titres. Exemple : `ia_embauche_sarah.html`.
 
 1. `node tools/enveloppe.mjs <nom>` : écrit `assets/<nom>_env.js` (volume de la voix, qui fait bouger la bouche). Il faut ffmpeg.
 2. Dans la page, après `lib/motion.js` : `<script src="assets/<nom>_env.js"></script>` et `<script src="lib/sarah.js"></script>`.
