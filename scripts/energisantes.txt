@@ -1,0 +1,24 @@
+# Voix-off de energisantes.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources : rapport des députés Sandrine Runel et Yannick Neuder, commission des affaires sociales, 7 oct. 2026 : interdire la vente
+#   aux moins de 16 ans, retrait des distributeurs, amende jusqu'à 50 000 €, réaction du syndicat SBSA (« arbitraire »)
+#   (https://echosplus.com/2026/10/07/boissons-energisantes-un-rapport-parlementaire-preconise-linterdiction-aux-moins-de-16-ans/) ;
+# EFSA, avis 2015 : 3 mg de caféine par kg de poids corporel et par jour, repère applicable aux enfants et adolescents
+#   (https://www.efsa.europa.eu/en/topics/topic/caffeine) ;
+# canette de 500 ml : 160 mg de caféine (32 mg/100 ml), fiche produit Monster Energy
+#   (https://www.monsterenergy.com/fr-be/energy-drinks/monster-energy/original-monster-energy-green/) ; expresso ≈ 60 à 100 mg (ordre de grandeur) ;
+# Angleterre : interdiction de vente aux moins de 16 ans annoncée le 16 juil. 2026, prévue pour avril 2027
+#   (https://www.gov.uk/government/news/childrens-health-further-protected-with-energy-drinks-ban).
+Les boissons énergisantes pourraient bientôt être interdites aux moins de 16 ans.[seize ans.]
+C'est ce que proposent deux députés, un de gauche et un de droite… pour une fois d'accord.
+Pourquoi_? Regarde une canette de 50 centilitres. Dedans_: 160[cent soixante] milligrammes de caféine.
+Autant que deux expressos.
+Or, pour un ado, l'Europe fixe une limite_: 3[trois] milligrammes par kilo et par jour.
+Un ado de 50[cinquante] kilos, c'est donc 150[cent cinquante] milligrammes maximum.
+Une seule canette… et il a déjà dépassé sa dose de la journée.
+Les adultes, eux, peuvent en boire sans problème. Les députés ne disent pas que c'est dangereux pour tout le monde.
+Mais un corps plus léger encaisse la même dose. Résultat_: cœur qui s'emballe, nuits trop courtes, anxiété.
+Leur idée_: interdire la vente aux mineurs de moins de 16 ans,[seize ans,] et retirer ces canettes des distributeurs.
+Jusqu'à 50_000[cinquante mille] euros d'amende pour le vendeur.
+Et ce n'est pas une idée folle_: l'Angleterre l'a déjà décidé, pour avril 2027.[deux mille vingt-sept.]
+Les fabricants, eux, parlent d'une mesure arbitraire.
+Et toi, tu en buvais à 14 ans_?[quatorze ans ?] Dis-le en commentaire.

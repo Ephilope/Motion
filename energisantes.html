@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boissons énergisantes interdites aux moins de 16 ans ?</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Boissons énergisantes : bientôt interdites aux moins de 16 ans ? » (charte : docs/MODELE.md).
+     Voix-off : scripts/energisantes.txt → node tools/voix.mjs energisantes
+     Chiffres et sources : en tête de scripts/energisantes.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/energisantes_words.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, rng } = Motion;
+await setup({
+  duration: 56.5,
+  words: window.WORDS,
+  audio: 'assets/voix_energisantes.mp3',
+  emojis: '🇬🇧🇪🇺🏭☕❤️🌙😰💬👇⚡',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BLUE = '#3498DB', PINK = '#E84393', SKIN = '#F2C9A0', STEEL = '#8E9AA0';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Canette générique (≈ 180 × 330), noire avec un éclair vert, sans marque.
+function can(parent) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -90 + 14, y: -165 + 14, width: 180, height: 330, rx: 28, fill: INK }, g);
+  el('rect', { x: -90, y: -165, width: 180, height: 330, rx: 28, fill: '#2B2B2B', stroke: INK, 'stroke-width': 8 }, g);
+  el('rect', { x: -80, y: -178, width: 160, height: 26, rx: 10, fill: STEEL, stroke: INK, 'stroke-width': 6 }, g);
+  el('rect', { x: -90, y: 120, width: 180, height: 16, fill: STEEL }, g);
+  el('path', { d: 'M18,-120 L-48,10 L-6,10 L-26,110 L52,-30 L8,-30 L36,-120 Z', fill: GREEN, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Silhouette simple (≈ 70 × 150).
+function person(parent, fill = GREEN) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-34,70 V10 Q-34,-20 0,-20 Q34,-20 34,10 V70 Z', fill, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  el('circle', { cy: -48, r: 26, fill: SKIN, stroke: INK, 'stroke-width': 6 }, g);
+  return g;
+}
+// Cercle d'interdiction.
+function ban(parent, r = 150) {
+  const g = el('g', {}, parent), k = r * .707;
+  el('circle', { r, fill: 'none', stroke: RED, 'stroke-width': r * .16 }, g);
+  el('line', { x1: -k, y1: -k, x2: k, y2: k, stroke: RED, 'stroke-width': r * .16 }, g);
+  return g;
+}
+// Pastille ronde verte (✓) ou rouge (✕).
+function mark(parent, ok, r = 46) {
+  const g = el('g', {}, parent);
+  el('circle', { r, fill: ok ? GREEN : RED, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: ok ? 'M-20,2 L-5,18 L22,-16' : 'M-17,-17 L17,17 M17,-17 L-17,17', fill: 'none', stroke: CREAM, 'stroke-width': 12, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', transform: `scale(${r / 46})` }, g);
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  deputes: Wt("C'est") - .2, canette: Wt('Pourquoi ?') - .25, expresso: Wt('Autant') - .25, limite: Wt('Or,') - .25,
+  ado: Wt('Un', 1, Wt('jour.')) - .25, seule: Wt('Une', 1, Wt('maximum.')) - .25, adultes: Wt('Les', 1, Wt('journée.')) - .25,
+  leger: Wt('Mais', 1, Wt('monde.')) - .25, idee: Wt('Leur') - .25, amende: Wt("Jusqu'à") - .25,
+  angl: Wt('Et', 1, Wt('vendeur.')) - .2, fab: Wt('Les', 1, Wt('2027.')) - .25, cta: Wt('Et', 1, Wt('arbitraire.')) - .2,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : bientôt interdites aux moins de 16 ans ? ===================================
+// Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.deputes, (cam) => {
+  const tInt = Wt('interdites'), t16 = Wt('16');
+  bg(cam);
+  const head = title(cam, ['BOISSONS', ['ÉNERGISANTES', GREEN]], { size: 118, shadow: 0, sw: 12 });
+  const sub = title(cam, ['BIENTÔT INTERDITES', ['AUX MOINS DE 16 ANS ?', RED]], { size: 70, shadow: 0, sw: 10 });
+  const c = can(cam);
+  const no = ban(cam, 210);
+  const badge = el('g', {}, cam);
+  el('circle', { r: 95, fill: RED, stroke: INK, 'stroke-width': 8 }, badge);
+  txt(badge, '-16', { size: 90, fill: CREAM }).t.setAttribute('y', 32);
+  return t => {
+    at(head, CX, 240, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
+    at(sub, CX, 470, lerp(1.15, 1, p(t, 0, .3, E.out)), 1);
+    at(c, CX, 830, 1.1 * pop(t, .1, .35) * (1 + .03 * Math.sin(t * 6)), -6 + Math.sin(t * 3) * 3);
+    at(no, CX, 830, pop(t, tInt, .3));
+    at(badge, CX + 250, 1010, pop(t, t16 - .1, .35), 10);
+    shock(t, .3, .3, .5); shock(t, tInt + .15, .3, .7);
+  };
+});
+
+// ====== 2. DEUX DÉPUTÉS, un de gauche et un de droite… pour une fois d'accord ====================
+S(T.deputes, T.canette, (cam, a) => {
+  const tDep = Wt('députés,'), tG = Wt('gauche'), tD = Wt('droite…'), tAcc = Wt("d'accord.");
+  bg(cam);
+  const tag = chip(cam, 'DEUX DÉPUTÉS', INK, CREAM, 52);
+  const L = el('g', {}, cam), R = el('g', {}, cam);
+  person(L, PINK); person(R, BLUE);
+  const lL = chip(cam, 'GAUCHE', PINK, CREAM, 46), lR = chip(cam, 'DROITE', BLUE, CREAM, 46);
+  const acc = el('g', {}, cam); txt(acc, "D'ACCORD", { size: 120, fill: GREEN, sw: 14, shadow: 12 });
+  const okL = mark(cam, true, 40), okR = mark(cam, true, 40);
+  const pre = el('g', {}, cam); txt(pre, 'POUR UNE FOIS…', { size: 60 });
+  return t => {
+    tag.update(CX, 250, pop(t, tDep - .3), -2);
+    const k = p(t, tAcc - .5, tAcc, E.inOut);
+    at(L, CX - lerp(260, 120, k), 760, 2.2 * pop(t, tG - .3, .35));
+    at(R, CX + lerp(260, 120, k), 760, 2.2 * pop(t, tD - .3, .35));
+    lL.update(CX - 260, 1010, pop(t, tG - .1) * (1 - k), -3); lR.update(CX + 260, 1010, pop(t, tD - .1) * (1 - k), 3);
+    at(pre, CX, 450, pop(t, Wt('pour', 1, a) - .1), -2);
+    at(acc, CX, 1010, pop(t, tAcc - .05, .35), -3);
+    at(okL, CX - 120, 560, pop(t, tAcc + .1)); at(okR, CX + 120, 560, pop(t, tAcc + .2));
+    shock(t, tAcc + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. POURQUOI ? Une canette de 50 cl : 160 mg de caféine ==================================
+S(T.canette, T.expresso, (cam, a) => {
+  const tReg = Wt('Regarde'), t50 = Wt('50'), t160 = Wt('160'), tCaf = Wt('caféine.');
+  bg(cam);
+  const q = title(cam, [['POURQUOI ?', RED]], { size: 140, shadow: 0, sw: 14 });
+  const c = can(cam);
+  const vol = chip(cam, '50 CL', INK, CREAM, 56);
+  const n = el('g', {}, cam), nS = bigNum(n, 210, RED);
+  const lab = el('g', {}, cam); txt(lab, 'MG DE CAFÉINE', { size: 74 });
+  return t => {
+    at(q, CX, 260, pop(t, a + .05, .35), -2);
+    const sl = p(t, t160 - .5, t160 - .1, E.inOut);
+    at(c, CX - lerp(0, 230, sl), 720, 1.3 * pop(t, tReg - .2, .35), -4);
+    vol.update(CX - lerp(0, 230, sl), 960, pop(t, t50 - .1), -3);
+    nS.set(String(Math.round(160 * p(t, t160 - .2, t160 + .5, E.out))));
+    at(n, CX + 210, 660, pop(t, t160 - .2, .3), -3);
+    at(lab, CX + 210, 820, pop(t, tCaf - .3) , -2);
+    shock(t, t160 + .5, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 4. AUTANT QUE DEUX EXPRESSOS ============================================================
+S(T.expresso, T.limite, (cam, a) => {
+  const tDeux = Wt('deux', 1, a), tExp = Wt('expressos.');
+  bg(cam);
+  const c = can(cam);
+  const eq = el('g', {}, cam); txt(eq, '=', { size: 200, fill: INK });
+  const cups = [0, 1].map(() => { const g = el('g', {}, cam); emoji(g, '☕', 190); return g; });
+  const lab = el('g', {}, cam); txt(lab, '2 EXPRESSOS', { size: 110, fill: CREAM, sw: 14 });
+  return t => {
+    at(c, CX - 300, 700, 1.05 * pop(t, a + .05, .3), -6);
+    at(eq, CX - 110, 700, pop(t, tDeux - .2));
+    cups.forEach((g, i) => at(g, CX + 90 + i * 210, 700, pop(t, tDeux + i * .25, .35), i ? 6 : -6));
+    at(lab, CX, 1010, pop(t, tExp - .1), -2);
+    shock(t, tExp + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. L'EUROPE FIXE UNE LIMITE : 3 mg par kilo et par jour =================================
+S(T.limite, T.ado, (cam, a) => {
+  const tEu = Wt("l'Europe"), tLim = Wt('limite :'), t3 = Wt('3'), tKg = Wt('kilo'), tJ = Wt('jour.');
+  bg(cam);
+  const tag = chip(cam, '🇪🇺 POUR UN ADO', BLUE, CREAM, 54);
+  const lab = el('g', {}, cam); txt(lab, 'LIMITE', { size: 140, fill: RED, sw: 14, shadow: 12 });
+  const n = el('g', {}, cam), nS = bigNum(n, 300, GREEN); nS.set('3 MG');
+  const l1 = chip(cam, 'PAR KILO', INK, CREAM, 64), l2 = chip(cam, 'PAR JOUR', INK, CREAM, 64);
+  return t => {
+    tag.update(CX, 250, pop(t, tEu - .2), -2);
+    at(lab, CX, 460, pop(t, tLim - .1, .35), -3);
+    at(n, CX, 720, pop(t, t3 - .1, .35), -2);
+    l1.update(CX - 190, 980, pop(t, tKg - .1), -4);
+    l2.update(CX + 190, 980, pop(t, tJ - .2), 4);
+    shock(t, t3 + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 6. UN ADO DE 50 KG : 150 mg maximum =====================================================
+S(T.ado, T.seule, (cam, a) => {
+  const t50 = Wt('50', 1, a), t150 = Wt('150'), tMax = Wt('maximum.');
+  bg(cam);
+  const kid = person(cam, YELLOW);
+  const kg = chip(cam, '50 KG', INK, CREAM, 60);
+  const calc = el('g', {}, cam); txt(calc, '50 × 3 =', { size: 100 });
+  const n = el('g', {}, cam), nS = bigNum(n, 220, GREEN); nS.set('150 MG');
+  const max = chip(cam, 'MAXIMUM PAR JOUR', GREEN, CREAM, 56);
+  return t => {
+    at(kid, CX, 470, 2.4 * pop(t, a + .05, .35));
+    kg.update(CX + 220, 420, pop(t, t50 - .1), 6);
+    at(calc, CX, 760, pop(t, t50 + .4), -2);
+    at(n, CX, 920, pop(t, t150 - .1, .35), -3);
+    max.update(CX, 1080, pop(t, tMax - .2), 2);
+    shock(t, t150 + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. UNE SEULE CANETTE… déjà dépassé ======================================================
+S(T.seule, T.adultes, (cam, a) => {
+  const tCan = Wt('canette…', 1, a), tDep = Wt('dépassé'), tJ = Wt('journée.');
+  bg(cam);
+  const tag = chip(cam, 'UNE SEULE CANETTE', INK, CREAM, 52);
+  const c = can(cam);
+  // Jauge : 150 mg = la limite (trait), la canette monte à 160.
+  const gx = CX + 190, gy0 = 1030, gh = 600, gw = 170, lim = gy0 - gh * 150 / 170;
+  const gauge = el('g', {}, cam);
+  el('rect', { x: gx - gw / 2 + 12, y: gy0 - gh + 12, width: gw, height: gh, rx: 20, fill: INK }, gauge);
+  el('rect', { x: gx - gw / 2, y: gy0 - gh, width: gw, height: gh, rx: 20, fill: WHITE, stroke: INK, 'stroke-width': 7 }, gauge);
+  const fill = el('rect', { x: gx - gw / 2 + 7, width: gw - 14, rx: 12, fill: GREEN }, gauge);
+  el('line', { x1: gx - gw / 2 - 30, y1: lim, x2: gx + gw / 2 + 30, y2: lim, stroke: RED, 'stroke-width': 10, 'stroke-dasharray': '22 12' }, gauge);
+  const limL = el('g', {}, gauge); txt(limL, '150', { size: 48, fill: RED, sw: 0 }); tf(limL, gx - gw / 2 - 90, lim + 16);
+  const val = el('g', {}, cam), vS = bigNum(val, 90, RED);
+  const st = stamp(cam, 'DÉPASSÉ', RED, 100);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .05), -2);
+    at(c, CX - 210, 760, 1.25 * pop(t, tCan - .3, .35), -6);
+    show(gauge, t > tCan - .2); at(gauge, 0, 0, 1);
+    const k = p(t, tCan + .1, tDep, E.in), mg = 160 * k, h = (gh - 14) * mg / 170;
+    set(fill, { y: fmt(gy0 - 7 - h), height: fmt(Math.max(0, h)), fill: mg > 150 ? RED : GREEN });
+    vS.set(Math.round(mg) + ' MG'); at(val, gx, gy0 - gh - 70, t > tCan + .1 ? 1 : 0);
+    st.update(CX, 1110, t, tDep + .1, -8);
+    shock(t, tDep + .2, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 8. LES ADULTES : sans problème ; pas dangereux pour tout le monde =======================
+S(T.adultes, T.leger, (cam, a) => {
+  const tAd = Wt('adultes,'), tSans = Wt('sans'), tDep = Wt('députés', 1, a), tDang = Wt('dangereux');
+  bg(cam);
+  const adult = person(cam, GREEN);
+  const ok = mark(cam, true, 60);
+  const lab = chip(cam, 'ADULTES : SANS PROBLÈME', GREEN, CREAM, 50);
+  const note = el('g', {}, cam);
+  card(note, -410, -110, 820, 220, YELLOW, 26, 12, 7);
+  txt(note, 'PAS DANGEREUX', { size: 64 }).g.setAttribute('transform', 'translate(0,-12)');
+  txt(note, 'POUR TOUT LE MONDE', { size: 54, fill: RED, sw: 0 }).g.setAttribute('transform', 'translate(0,60)');
+  return t => {
+    at(adult, CX, 560, 3 * pop(t, tAd - .3, .35));
+    at(ok, CX + 160, 380, pop(t, tSans - .1, .35));
+    lab.update(CX, 820, pop(t, tSans), -2);
+    at(note, CX, 1010, pop(t, tDang - .3, .35), 2);
+    shock(t, tSans + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. UN CORPS PLUS LÉGER, LA MÊME DOSE : cœur, nuits, anxiété =============================
+S(T.leger, T.idee, (cam, a) => {
+  const tCorps = Wt('corps'), tMeme = Wt('même'), tRes = Wt('Résultat :'), tC = Wt('cœur'), tN = Wt('nuits'), tA = Wt('anxiété.');
+  bg(cam);
+  const big = person(cam, GREEN), small = person(cam, YELLOW);
+  const c1 = can(cam), c2 = can(cam);
+  const same = chip(cam, 'MÊME DOSE', RED, CREAM, 60);
+  const icons = [['❤️', 'CŒUR QUI S\'EMBALLE', tC], ['🌙', 'NUITS TROP COURTES', tN], ['😰', 'ANXIÉTÉ', tA]].map(([e, s, t0]) => {
+    const g = el('g', {}, cam); const ic = el('g', {}, g); emoji(ic, e, 130); tf(ic, -270, 0);
+    txt(g, s, { size: 60, anchor: 'start' }).g.setAttribute('transform', 'translate(-170,22)');
+    return { g, ic, t0 };
+  });
+  const tag = chip(cam, 'RÉSULTAT', INK, CREAM, 56);
+  return t => {
+    const out = p(t, tRes - .4, tRes, E.in);
+    at(big, CX - 200, 620, 2.6 * pop(t, a + .05, .35) * (1 - out));
+    at(small, CX + 200, 680, 1.7 * pop(t, tCorps - .1, .35) * (1 - out));
+    at(c1, CX - 70, 760, .45 * pop(t, tMeme - .3) * (1 - out), -8);
+    at(c2, CX + 300, 760, .45 * pop(t, tMeme - .2) * (1 - out), 8);
+    same.update(CX, 1010, pop(t, tMeme - .1) * (1 - out), -3);
+    tag.update(CX, 260, pop(t, tRes - .1), -2);
+    icons.forEach((o, i) => { at(o.g, CX, 480 + i * 230, pop(t, o.t0 - .2, .35)); tf(o.ic, -270, 0, i === 0 ? 1 + .12 * Math.abs(Math.sin(t * 9)) : 1); });
+    shock(t, tC + .1, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 10. LEUR IDÉE : interdire la vente aux moins de 16 ans, retirer des distributeurs ========
+S(T.idee, T.amende, (cam, a) => {
+  const tInt = Wt('interdire'), t16 = Wt('16', 1, a), tRet = Wt('retirer'), tDist = Wt('distributeurs.');
+  bg(cam);
+  const tag = chip(cam, 'LEUR IDÉE', GREEN, CREAM, 56);
+  const st = stamp(cam, 'INTERDIT -16 ANS', RED, 76);
+  const vm = el('g', {}, cam);
+  card(vm, -170, -260, 340, 520, BLUE, 24, 12, 7);
+  card(vm, -130, -220, 200, 340, '#D6EAF8', 12, 0, 6);
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 2; c++) { const g = el('g', {}, vm); can(g); tf(g, -80 + c * 100, -160 + r * 110, .25); }
+  el('rect', { x: 90, y: -200, width: 40, height: 120, rx: 8, fill: CREAM, stroke: INK, 'stroke-width': 5 }, vm);
+  el('rect', { x: -130, y: 160, width: 260, height: 60, rx: 8, fill: INK }, vm);
+  const no = ban(cam, 230);
+  const lab = chip(cam, 'FINI LES DISTRIBUTEURS', INK, CREAM, 50);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .05), -2);
+    st.update(CX, 460, t, t16 - .1, -6);
+    at(vm, CX, 830, pop(t, tRet - .3, .35));
+    at(no, CX, 830, pop(t, tDist - .2, .3));
+    lab.update(CX, 1130, pop(t, tDist), 2);
+    shock(t, t16 + .1, .3, .6); shock(t, tDist + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 11. JUSQU'À 50 000 € D'AMENDE ===========================================================
+S(T.amende, T.angl, (cam, a) => {
+  const t50 = Wt('50 000'), tV = Wt('vendeur.');
+  bg(cam);
+  const tag = chip(cam, "JUSQU'À", INK, CREAM, 56);
+  const n = el('g', {}, cam), nS = bigNum(n, 200, RED);
+  const lab = el('g', {}, cam); txt(lab, "D'AMENDE", { size: 110 });
+  const v = chip(cam, 'POUR LE VENDEUR', YELLOW, INK, 56);
+  return t => {
+    tag.update(CX, 420, pop(t, a + .05), -2);
+    const k = p(t, t50 - .2, t50 + .5, E.out);
+    nS.set(Math.round(50000 * k).toLocaleString('fr-FR').replace(/\s/g, ' ') + ' €');
+    at(n, CX, 640, pop(t, t50 - .2, .3), -3);
+    at(lab, CX, 820, pop(t, t50 + .5), -2);
+    v.update(CX, 1000, pop(t, tV - .3), 3);
+    shock(t, t50 + .5, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 12. L'ANGLETERRE L'A DÉJÀ DÉCIDÉ, pour avril 2027 ========================================
+S(T.angl, T.fab, (cam, a) => {
+  const tFol = Wt('folle :'), tAng = Wt("l'Angleterre"), tDec = Wt('décidé,'), tAv = Wt('avril');
+  bg(cam);
+  const head = title(cam, ['PAS UNE', ['IDÉE FOLLE', GREEN]], { size: 110, shadow: 0, sw: 12 });
+  const flag = el('g', {}, cam); emoji(flag, '🇬🇧', 260);
+  const ok = mark(cam, true, 60);
+  const lab = chip(cam, 'DÉJÀ DÉCIDÉ', GREEN, CREAM, 60);
+  const date = chip(cam, 'AVRIL 2027', RED, CREAM, 80);
+  return t => {
+    at(head, CX, 300, pop(t, tFol - .5, .35), -2);
+    at(flag, CX, 640, pop(t, tAng - .2, .35), Math.sin(t * 3) * 4);
+    at(ok, CX + 170, 540, pop(t, tDec - .1));
+    lab.update(CX, 860, pop(t, tDec - .1), -3);
+    date.update(CX, 1040, pop(t, tAv - .1), 3);
+    shock(t, tAv + .3, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 13. LES FABRICANTS : « mesure arbitraire » ==============================================
+S(T.fab, T.cta, (cam, a) => {
+  const tFab = Wt('fabricants,'), tArb = Wt('arbitraire.');
+  bg(cam);
+  const tag = chip(cam, 'LES FABRICANTS', INK, CREAM, 56);
+  const fac = el('g', {}, cam); emoji(fac, '🏭', 260);
+  const bub = el('g', {}, cam);
+  el('path', { d: 'M-330,-110 H330 Q360,-110 360,-80 V80 Q360,110 330,110 H-120 L-200,190 L-190,110 H-330 Q-360,110 -360,80 V-80 Q-360,-110 -330,-110 Z', fill: INK, transform: 'translate(12,12)' }, bub);
+  el('path', { d: 'M-330,-110 H330 Q360,-110 360,-80 V80 Q360,110 330,110 H-120 L-200,190 L-190,110 H-330 Q-360,110 -360,80 V-80 Q-360,-110 -330,-110 Z', fill: WHITE, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, bub);
+  txt(bub, '« ARBITRAIRE »', { size: 90, fill: RED, sw: 0 }).t.setAttribute('y', 32);
+  return t => {
+    tag.update(CX, 250, pop(t, tFab - .3), -2);
+    at(bub, CX, 520, pop(t, tArb - .2, .35), -2);
+    at(fac, CX - 120, 920, pop(t, tFab - .1, .35));
+    shock(t, tArb + .2, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 14. FIN : tu en buvais à 14 ans ? =======================================================
+S(T.cta, M.DUR, (cam, a) => {
+  const t14 = Wt('14'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ['ET TOI,', ['TU EN BUVAIS', GREEN], ['À 14 ANS ?', RED]], { size: 112, shadow: 0, sw: 12 });
+  const c = can(cam);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 330, pop(t, a + .05, .35), -2);
+    at(c, CX, 860, .75 * pop(t, t14 - .2, .35), Math.sin(t * 4) * 8);
+    at(cta, CX, 1300, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 1150, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, t14 + .2, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+start();
+})();
+</script>
+</body>
+</html>
