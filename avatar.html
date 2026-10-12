@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avatar Sarah</title>
+</head>
+<body>
+<!-- Photo de profil TikTok : Sarah à tête de lune, 1080 × 1080 (TikTok la découpe en rond).
+     ?fond=nuit pour la version ciel de nuit. Rendu : PAGE=avatar.html node tools/render.mjs avatar --stills 2.2 -->
+<script src="lib/motion.js"></script>
+<script src="lib/sarah.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, el, fmt, starPath } = Motion;
+const nuit = new URLSearchParams(location.search).get('fond') === 'nuit';
+M.H = 1080;
+// un seul « mot » : Sarah passe en pose de fin (grand sourire, coucou)
+await setup({ duration: 4, words: [{ w: 'Salut', t0: 1, t1: 1.4 }] });
+document.head.appendChild(Object.assign(document.createElement('style'), { textContent: '#stage { width: 100vh; max-width: 100vw; max-height: 100vw; }' }));
+const { W, H } = M, { GREEN, CREAM, INK } = M.C;
+const SKY = '#1F2A55';
+S(0, M.DUR, cam => {
+  el('rect', { width: W, height: H, fill: nuit ? SKY : GREEN }, cam);
+  const rays = el('g', { opacity: nuit ? .1 : .2, transform: `translate(${W / 2},${H * .42})` }, cam);
+  for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8; el('path', { d: `M0,0 L${fmt(Math.cos(a) * 1100)},${fmt(Math.sin(a) * 1100)} L${fmt(Math.cos(a + .2) * 1100)},${fmt(Math.sin(a + .2) * 1100)}Z`, fill: CREAM }, rays); }
+  if (nuit) [[160, 220, 14], [900, 180, 18], [820, 520, 10], [230, 620, 9], [120, 420, 7], [960, 760, 8]].forEach(([x, y, r]) =>
+    el('path', { d: starPath(r, r * .42, 4), fill: '#FFF3B0', transform: `translate(${x},${y})` }, cam));
+  return () => {};
+});
+Motion.sarah({ x: W / 2, y: 1610, size: 3.6 });
+start();
+})();
+</script>
+</body>
+</html>
