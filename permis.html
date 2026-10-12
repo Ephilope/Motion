@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>200 euros de plus pour ton permis</title>
+</head>
+<body>
+<!-- Vidéo TikTok « 200 euros de plus pour ton permis de conduire » (charte : docs/MODELE.md), avec Sarah en bas à gauche.
+     Voix-off : scripts/permis.txt → node tools/voix.mjs permis ; node tools/enveloppe.mjs permis
+     Chiffres et sources : en tête de scripts/permis.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/permis_words.js"></script>
+<script src="assets/permis_env.js"></script>
+<script src="lib/sarah.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg } = Motion;
+await setup({
+  duration: 55,
+  words: window.WORDS,
+  audio: 'assets/voix_permis.mp3',
+  emojis: '🚗⛽🌍💸🎮💬👇🧑🏫🛞',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BLUE = '#3498DB', PINK = '#F8C8D8', SKIN = '#F2C9A0';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Cercle d'interdiction.
+function ban(parent, r = 150) {
+  const g = el('g', {}, parent), k = r * .707;
+  el('circle', { r, fill: 'none', stroke: RED, 'stroke-width': r * .16 }, g);
+  el('line', { x1: -k, y1: -k, x2: k, y2: k, stroke: RED, 'stroke-width': r * .16 }, g);
+  return g;
+}
+// Permis de conduire rose (≈ 620 × 400).
+function licence(parent) {
+  const g = el('g', {}, parent);
+  card(g, -310, -200, 620, 400, PINK, 30, 14, 8);
+  el('rect', { x: -310, y: -200, width: 620, height: 80, rx: 30, fill: BLUE, stroke: INK, 'stroke-width': 8 }, g);
+  el('rect', { x: -306, y: -150, width: 612, height: 30, fill: BLUE }, g);
+  txt(g, 'PERMIS DE CONDUIRE', { size: 44, fill: CREAM }).g.setAttribute('transform', 'translate(0,-145)');
+  el('rect', { x: -270, y: -90, width: 190, height: 240, rx: 14, fill: CREAM, stroke: INK, 'stroke-width': 6 }, g);
+  el('circle', { cx: -175, cy: -20, r: 45, fill: SKIN, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: 'M-250,150 Q-250,50 -175,50 Q-100,50 -100,150 Z', fill: GREEN, stroke: INK, 'stroke-width': 6 }, g);
+  [-60, 0, 60, 120].forEach((y, i) => el('rect', { x: -40, y, width: i % 2 ? 240 : 310, height: 26, rx: 8, fill: '#E8A5BC' }, g));
+  txt(g, 'B', { size: 90, fill: RED, sw: 8 }).g.setAttribute('transform', 'translate(220,-30)');
+  return g;
+}
+// Pompe à essence avec compteur (≈ 300 × 460).
+function pump(parent) {
+  const g = el('g', {}, parent);
+  card(g, -140, -230, 280, 460, RED, 26, 12, 8);
+  el('rect', { x: -100, y: -190, width: 200, height: 130, rx: 12, fill: INK }, g);
+  const v = el('text', { 'text-anchor': 'middle', 'font-size': 70, y: -100, fill: GREEN, class: 'mono' }, g);
+  el('rect', { x: -100, y: -20, width: 200, height: 60, rx: 10, fill: CREAM, stroke: INK, 'stroke-width': 5 }, g);
+  txt(g, 'SP95', { size: 40 }).g.setAttribute('transform', 'translate(0,24)');
+  el('path', { d: 'M140,-120 Q220,-120 220,-20 V140 Q220,180 190,180', fill: 'none', stroke: INK, 'stroke-width': 16, 'stroke-linecap': 'round' }, g);
+  el('rect', { x: 165, y: 170, width: 50, height: 80, rx: 10, fill: INK }, g);
+  return { g, set(s) { v.textContent = s; } };
+}
+// Voiture d'auto-école vue de profil (≈ 360 × 170), avec le toit « AUTO-ÉCOLE ».
+function car(parent, fill = BLUE) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-170,40 V-10 Q-170,-30 -140,-34 L-90,-40 L-50,-100 Q-40,-110 -20,-110 H80 Q100,-110 115,-95 L160,-40 Q180,-36 180,-10 V40 Z', fill, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M-40,-40 L-10,-92 H40 V-40 Z M55,-40 V-92 H85 L125,-40 Z', fill: '#BFE6FF', stroke: INK, 'stroke-width': 5 }, g);
+  el('rect', { x: -60, y: -150, width: 120, height: 40, rx: 8, fill: YELLOW, stroke: INK, 'stroke-width': 5 }, g);
+  txt(g, 'AUTO-ÉCOLE', { size: 18 }).g.setAttribute('transform', 'translate(0,-123)');
+  [-100, 110].forEach(x => { el('circle', { cx: x, cy: 40, r: 40, fill: INK }, g); el('circle', { cx: x, cy: 40, r: 16, fill: '#BDC3C7' }, g); });
+  return g;
+}
+// Barre horizontale avec étiquette (pour comparer).
+function hbar(parent, label, col, maxW = 600) {
+  const g = el('g', {}, parent);
+  const sh = el('rect', { x: 10, y: 10, height: 100, rx: 16, fill: INK }, g), r = el('rect', { x: 0, y: 0, height: 100, rx: 16, fill: col, stroke: INK, 'stroke-width': 7 }, g);
+  const l = txt(g, label, { size: 48, anchor: 'start' }); l.g.setAttribute('transform', 'translate(0,-30)');
+  const v = el('g', {}, g), vN = bigNum(v, 80, CREAM);
+  return { g, v, vN, setW(w) { w = Math.max(1, w); set(r, { width: fmt(w) }); set(sh, { width: fmt(w) }); } };
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  raison: Wt('La') - .2, km: Wt('Une') - .2, crise: Wt('Depuis') - .25, lecon: Wt('Sur') - .25,
+  aides: Wt('Et', 1, Wt('bénéfice.')) - .2, prix: Wt('Alors') - .25, piege: Wt('Le', 1, Wt('1 800.')) - .2,
+  jeunes: Wt("Aujourd'hui") - .25, simu: Wt('Certaines') - .25, cta: Wt('Et', 1, Wt('goutte')) - .2,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : +200 € pour ton permis =======================================================
+// Le chiffre et le sujet sont à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.raison, (cam) => {
+  const tPermis = Wt('permis'), tCond = Wt('conduire.');
+  bg(cam);
+  const n = el('g', {}, cam), nS = bigNum(n, 220, RED); nS.set('+200 €');
+  const lic = licence(cam);
+  const head = title(cam, ['POUR TON', ['PERMIS', RED]], { size: 110, shadow: 0, sw: 12 });
+  const money = el('g', {}, cam); emoji(money, '💸', 140);
+  return t => {
+    at(n, CX, 330, lerp(1.15, 1, p(t, 0, .3, E.out)), -4);
+    at(lic, CX, 760, pop(t, .15, .35) * (1 + .03 * Math.sin(t * 5)), 4);
+    at(head, CX, 1080, pop(t, .1, .35), -2);
+    at(money, CX + 300, 560 - (t * 60) % 80, pop(t, tCond - .2, .3), Math.sin(t * 6) * 10);
+    shock(t, .25, .3, .7); shock(t, tPermis + .1, .25, .4);
+  };
+});
+
+// ====== 2. LA RAISON : le prix de l'essence ========================================================
+S(T.raison, T.km, (cam, a) => {
+  const tPrix = Wt('prix'), tEss = Wt("l'essence.");
+  bg(cam);
+  const head = title(cam, ['LA RAISON…'], { size: 110, shadow: 0 });
+  const pm = pump(cam);
+  const lab = chip(cam, "LE PRIX DE L'ESSENCE", RED, CREAM, 56);
+  return t => {
+    at(head, CX, 280, pop(t, a + .05, .35), -2);
+    at(pm.g, CX - 50, 680, 1.45 * pop(t, tPrix - .4, .35));
+    pm.set((1.85 + .4 * p(t, tPrix - .2, tEss + .4, E.out)).toFixed(2).replace('.', ',') + '€');
+    lab.update(CX, 1070, pop(t, tEss - .2), 2);
+    shock(t, tEss + .1, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 3. 60 000 KM PAR AN : une fois et demie le tour de la Terre ================================
+S(T.km, T.crise, (cam, a) => {
+  const tVoit = Wt('voiture'), t60 = Wt('60 000'), tFois = Wt('fois', 1, a), tTerre = Wt('Terre.');
+  bg(cam);
+  const tag = chip(cam, "UNE VOITURE D'AUTO-ÉCOLE", INK, CREAM, 46);
+  const globe = el('g', {}, cam); emoji(globe, '🌍', 300);
+  const orbit = el('circle', { r: 230, fill: 'none', stroke: INK, 'stroke-width': 6, 'stroke-dasharray': '18 16' }, cam);
+  const c = el('g', {}, cam); car(c);
+  const n = el('g', {}, cam), nS = bigNum(n, 130, RED);
+  const lab = chip(cam, '1,5 × LE TOUR DE LA TERRE', GREEN, CREAM, 46);
+  return t => {
+    tag.update(CX, 240, pop(t, tVoit - .3), -2);
+    at(globe, CX, 650, pop(t, tFois - .4, .35)); at(orbit, CX, 650, pop(t, tFois - .4, .35));
+    // la voiture roule d'abord en ligne droite, puis fait le tour du globe
+    const ang = -Math.PI / 2 + 2 * Math.PI * 1.5 * p(t, tFois, tTerre + .8, E.inOut);
+    const k = p(t, tFois - .4, tFois);
+    const x = lerp(CX, CX + Math.cos(ang) * 230, k), y = lerp(650, 650 + Math.sin(ang) * 230, k);
+    at(c, x, y, lerp(1, .45, k) * pop(t, tVoit - .1, .35), lerp(0, ang * 180 / Math.PI + 90, k));
+    nS.set(Math.round(60000 * p(t, t60 - .2, t60 + .6, E.out)).toLocaleString('fr-FR').replace(/ | /g, ' ') + ' KM');
+    at(n, CX, 960, pop(t, t60 - .3, .3), -2);
+    lab.update(CX, 1090, pop(t, tFois - .1), 2);
+    shock(t, t60 + .4, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. BUDGET CARBURANT : +30 à 40 % ===========================================================
+S(T.crise, T.lecon, (cam, a) => {
+  const tBud = Wt('budget'), t30 = Wt('30'), t40 = Wt('40 %.');
+  bg(cam);
+  const tag = chip(cam, 'DEPUIS LE DÉBUT DE LA CRISE', INK, CREAM, 46);
+  const fuel = el('g', {}, cam); emoji(fuel, '⛽', 240);
+  const lab = title(cam, ['BUDGET', ['CARBURANT', RED]], { size: 96, shadow: 0, sw: 12 });
+  const n = el('g', {}, cam), nS = bigNum(n, 170, RED); nS.set('+30 À 40 %');
+  return t => {
+    tag.update(CX, 240, pop(t, a + .05), -2);
+    at(fuel, CX, 470, pop(t, tBud - .3, .35), Math.sin(t * 5) * 6);
+    at(lab, CX, 760, pop(t, tBud - .2, .35), -2);
+    at(n, CX, 1020, pop(t, t30 - .2, .35), -3);
+    shock(t, t40 + .2, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 5. UNE LEÇON À 52 € : il reste 2 à 4 € de bénéfice ========================================
+S(T.lecon, T.aides, (cam, a) => {
+  const t52 = Wt('52'), tMon = Wt('moniteur,'), tVoi = Wt('voiture', 1, a), tEss = Wt("l'essence…"), tRes = Wt('reste'), tBen = Wt('bénéfice.');
+  bg(cam);
+  const tag = chip(cam, 'UNE LEÇON DE CONDUITE', INK, CREAM, 50);
+  // barre de 52 € qui se fait grignoter
+  const x0 = 120, full = 800, y0 = 470;
+  const n = el('g', {}, cam), nS = bigNum(n, 140, INK); nS.set('52 €');
+  el('rect', { x: x0 + 12, y: y0 + 12, width: full, height: 130, rx: 20, fill: INK }, cam);
+  const base = el('rect', { x: x0, y: y0, width: full, height: 130, rx: 20, fill: GREEN, stroke: INK, 'stroke-width': 7 }, cam);
+  const parts = [['MONITEUR', tMon, .4], ['VOITURE', tVoi, .27], ['ESSENCE', tEss, .27]];
+  let acc = 0;
+  const segs = parts.map(([s, t0, f]) => {
+    const g = el('g', {}, cam), w = full * f, x = x0 + acc * full; acc += f;
+    el('rect', { x, y: y0, width: w, height: 130, fill: RED, stroke: INK, 'stroke-width': 7 }, g);
+    txt(g, s, { size: 42, fill: CREAM }).g.setAttribute('transform', `translate(${fmt(x + w / 2)},${y0 + 80})`);
+    return { g, t0 };
+  });
+  const rest = el('g', {}, cam); const rN = bigNum(rest, 150, GREEN); rN.set('2 À 4 €');
+  const rl = chip(cam, 'DE BÉNÉFICE', GREEN, CREAM, 56);
+  const arrow = el('path', { d: `M${x0 + full * .97},${y0 + 150} L${x0 + full * .97},${y0 + 280}`, stroke: INK, 'stroke-width': 10, 'stroke-linecap': 'round' }, cam);
+  return t => {
+    tag.update(CX, 240, pop(t, a + .05), -2);
+    at(n, CX, 380, pop(t, t52 - .3, .35), -2);
+    segs.forEach(s => { show(s.g, t >= s.t0 - .1); s.g.setAttribute('opacity', fmt(p(t, s.t0 - .1, s.t0 + .1))); });
+    show(arrow, t >= tRes);
+    at(rest, CX + 100, 870, pop(t, tRes, .35), -3);
+    rl.update(CX + 100, 1050, pop(t, tBen - .2), 2);
+    shock(t, tRes + .4, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. PAS D'AIDES CARBURANT pour les auto-écoles =============================================
+S(T.aides, T.prix, (cam, a) => {
+  const tAides = Wt('aides'), tGouv = Wt('gouvernement.');
+  bg(cam);
+  const tag = chip(cam, 'LES AUTO-ÉCOLES', INK, CREAM, 56);
+  const c = el('g', {}, cam); car(c);
+  const lab = title(cam, ['AIDES', ['CARBURANT', GREEN]], { size: 100, shadow: 0, sw: 12 });
+  const b = ban(cam, 210);
+  const st = stamp(cam, 'EXCLUES', RED, 110);
+  return t => {
+    tag.update(CX, 240, pop(t, a + .05), -2);
+    at(c, CX, 560, 1.1 * pop(t, a + .1, .35));
+    at(lab, CX, 880, pop(t, tAides - .3, .35));
+    at(b, CX, 530, pop(t, tAides + .25, .3)); b.setAttribute('opacity', .9);
+    st.update(CX, 1080, t, tGouv - .1, -6);
+    shock(t, tGouv + .1, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 7. LES PRIX MONTENT : l'heure 52 → 55 €, le forfait 1 600 → 1 800 € =========================
+S(T.prix, T.piege, (cam, a) => {
+  const tH = Wt("l'heure"), t55 = Wt('55'), tFor = Wt('forfait', 1, a), t1800 = Wt('1 800.');
+  bg(cam);
+  const rows = [
+    { lab: "L'HEURE", from: 52, to: 55, t0: tH - .2, t1: t55, y: 420 },
+    { lab: 'LE FORFAIT', from: 1600, to: 1800, t0: tFor - .2, t1: t1800, y: 820 },
+  ].map(r => {
+    const g = el('g', {}, cam);
+    card(g, -420, -150, 840, 300, WHITE, 30, 12, 7);
+    const l = chip(g, r.lab, INK, CREAM, 46); l.update(0, -150, 1, -2);
+    const v = el('g', {}, g), vN = bigNum(v, 150, INK); tf(v, 0, 30);
+    return { ...r, g, vN, v };
+  });
+  const fmtE = n => n.toLocaleString('fr-FR').replace(/ | /g, ' ') + ' €';
+  return t => {
+    rows.forEach(r => {
+      at(r.g, CX, r.y, pop(t, r.t0, .35));
+      const k = p(t, r.t1 - .2, r.t1 + .4, E.out);
+      r.vN.set(fmtE(Math.round(lerp(r.from, r.to, k))));
+      r.vN.t.setAttribute('fill', k > 0 ? RED : INK);
+    });
+    shock(t, t55 + .3, .3, .5); shock(t, t1800 + .3, .3, .8);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. LE PIÈGE : le forfait compte 20 h, il en faut une trentaine ============================
+S(T.piege, T.jeunes, (cam, a) => {
+  const t20 = Wt('20'), tMoy = Wt('moyenne,'), tTr = Wt('trentaine.');
+  bg(cam);
+  const head = title(cam, ['LE PIÈGE ?'], { size: 130, shadow: 0 });
+  const b1 = hbar(cam, 'DANS LE FORFAIT', GREEN), b2 = hbar(cam, 'EN MOYENNE', RED);
+  b1.vN.set('20 H'); b2.vN.set('~30 H');
+  return t => {
+    at(head, CX, 280, pop(t, a + .05, .35), -3);
+    at(b1.g, 110, 560, pop(t, t20 - .4, .3)); at(b2.g, 110, 860, pop(t, tMoy - .2, .3));
+    const w1 = 500 * p(t, t20 - .2, t20 + .4, E.out), w2 = 750 * p(t, tMoy, tTr + .3, E.out);
+    b1.setW(w1); b2.setW(w2);
+    tf(b1.v, w1 / 2, 50, pop(t, t20 + .2)); tf(b2.v, w2 / 2, 50, pop(t, tTr - .1));
+    shock(t, tTr + .2, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 9. SEULS 64 % DES JEUNES ONT LE PERMIS (90 % des Français) ===============================
+S(T.jeunes, T.simu, (cam, a) => {
+  const t64 = Wt('64 %'), t90 = Wt('90 %'), tPrix = Wt('prix.');
+  bg(cam);
+  const tag = chip(cam, 'ONT LE PERMIS', INK, CREAM, 56);
+  const b1 = hbar(cam, 'LES JEUNES', RED), b2 = hbar(cam, 'TOUS LES FRANÇAIS', GREEN);
+  b1.vN.set('64 %'); b2.vN.set('90 %');
+  const st = stamp(cam, 'À CAUSE DU PRIX', RED, 72);
+  return t => {
+    tag.update(CX, 260, pop(t, a + .1), -2);
+    at(b1.g, 110, 500, pop(t, t64 - .4, .3)); at(b2.g, 110, 780, pop(t, t90 - .4, .3));
+    const w1 = 800 * .64 * p(t, t64 - .2, t64 + .5, E.out), w2 = 800 * .9 * p(t, t90 - .2, t90 + .5, E.out);
+    b1.setW(w1); b2.setW(w2);
+    tf(b1.v, w1 / 2, 50, pop(t, t64 + .2)); tf(b2.v, w2 / 2, 50, pop(t, t90 + .2));
+    st.update(CX, 1060, t, tPrix - .5, -5);
+    shock(t, t64 + .4, .3, .6); shock(t, tPrix - .3, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. LES AUTO-ÉCOLES RÉSISTENT : 10 h sur simulateur, sans essence =========================
+S(T.simu, T.cta, (cam, a) => {
+  const tRes = Wt('résistent :'), t10 = Wt('10'), tSans = Wt('sans', 1, a);
+  bg(cam);
+  const tag = chip(cam, 'CERTAINES AUTO-ÉCOLES RÉSISTENT', INK, CREAM, 44);
+  const scr = el('g', {}, cam);
+  card(scr, -300, -190, 600, 380, INK, 26, 12, 7);
+  el('path', { d: 'M-260,150 L-60,-120 H60 L260,150 Z', fill: '#7F8C8D' }, scr);
+  el('path', { d: 'M0,-110 V140', stroke: YELLOW, 'stroke-width': 14, 'stroke-dasharray': '40 30' }, scr);
+  const wheel = el('g', {}, cam); emoji(wheel, '🎮', 130);
+  const n = el('g', {}, cam), nS = bigNum(n, 130, GREEN); nS.set('10 H');
+  const fuel = el('g', {}, cam); emoji(fuel, '⛽', 120);
+  const b = ban(cam, 90);
+  const lab = chip(cam, "0 GOUTTE D'ESSENCE", GREEN, CREAM, 50);
+  const sim = chip(cam, 'SUR SIMULATEUR', INK, CREAM, 40);
+  return t => {
+    tag.update(CX, 240, pop(t, tRes - .3), -2);
+    at(scr, CX, 560, pop(t, t10 - .5, .35));
+    at(wheel, CX - 260, 770, pop(t, t10 - .3, .35), Math.sin(t * 4) * 10);
+    at(n, CX + 150, 840, pop(t, t10 - .1, .35), -3);
+    sim.update(CX + 150, 940, pop(t, t10 + .2), 2);
+    at(fuel, CX - 250, 1060, pop(t, tSans - .2, .3)); at(b, CX - 250, 1050, pop(t, tSans, .3));
+    lab.update(CX + 90, 1060, pop(t, tSans), 2);
+    shock(t, t10 + .2, .3, .4);
+  };
+}, { swipe: RED });
+
+// ====== 11. FIN : ton permis, tu l'as payé combien ? ==============================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tComb = Wt('combien ?'), tTomb = Wt('tomber ?'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ['ET TOI,', ['TON PERMIS…', GREEN], ['COMBIEN ?', RED]], { size: 100, shadow: 0, sw: 12 });
+  const lic = licence(cam);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  const st = stamp(cam, 'OU ABANDONNÉ ?', RED, 60);
+  return t => {
+    at(q, CX, 330, pop(t, a + .05, .35), -2);
+    at(lic, CX, 740, .7 * pop(t, a + .3, .35), 4);
+    st.update(CX + 180, 860, t, tTomb - .4, -8);
+    show(st.g, t >= tTomb - .4 && t < tDis - .1);
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 940, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tComb + .2, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Sarah entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.sarah({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>

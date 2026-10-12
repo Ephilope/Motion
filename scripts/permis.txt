@@ -1,0 +1,21 @@
+# Voix-off de permis.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources : AFP, 10/10/2026, « Flambée du carburant : les auto-écoles augmentent les prix pour ne pas caler »
+#   (https://www.france24.com/fr/info-en-continu/20261010-flamb%C3%A9e-du-carburant-les-auto-%C3%A9coles-augmentent-les-prix-pour-ne-pas-caler) :
+#   +150 à 200 € sur un forfait d'environ 1 600 € (estimation de Patrick Mirouse, président de l'ECF), 45 000 à 60 000 km par voiture et par an,
+#   budget carburant +30 à 40 %, marge de 2 à 4 € par leçon, auto-écoles exclues des aides carburant, heure de 52 à 55 € (Rennes),
+#   jusqu'à 10 h sur simulateur ;
+# Baromètre Wimoov / Ipsos des mobilités du quotidien, sept. 2026 : « Seuls 64 % des jeunes ont le permis, notamment du fait de son coût
+#   (vs 90 % des Français) » (https://www.ipsos.com/sites/default/files/ct/news/documents/2026-09/Wimoov-Barometre-des-mobilites-du-quotidien-2026-infographie.pdf) ;
+# 20 h minimum légal, 31 h en moyenne (Prévention routière, « Les jeunes Français et le permis B », 2013).
+# 60 000 km ≈ 1,5 × la circonférence de la Terre (40 075 km).
+200_euros[Deux cents euros] de plus… pour ton permis de conduire.
+La raison… c'est le prix de l'essence.
+Une voiture d'auto-école roule jusqu'à 60_000[soixante mille] kilomètres par an. Une fois et demie le tour de la Terre.
+Depuis le début de la crise, leur budget carburant a pris 30[trente] à 40_%.[quarante pour cent.]
+Sur une leçon à 52[cinquante-deux] euros, une fois payés le moniteur, la voiture et l'essence… il reste 2[deux] à 4[quatre] euros de bénéfice.
+Et les auto-écoles n'ont pas droit aux aides carburant du gouvernement.
+Alors l'heure passe de 52[cinquante-deux] à 55[cinquante-cinq] euros. Et le forfait à 1_600[mille six cents] euros pourrait monter à 1_800.[mille huit cents.]
+Le piège_? Le forfait compte 20[vingt] heures. En moyenne, il en faut plutôt une trentaine.
+Aujourd'hui déjà, seuls 64_%[soixante-quatre pour cent] des jeunes ont le permis, contre 90_%[quatre-vingt-dix pour cent] des Français. Notamment à cause du prix.
+Certaines auto-écoles résistent_: jusqu'à 10[dix] heures sur simulateur… sans une goutte d'essence.
+Et toi, ton permis, tu l'as payé combien_? Ou tu as laissé tomber_? Dis-le en commentaire.
