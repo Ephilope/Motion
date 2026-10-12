@@ -13,6 +13,7 @@ C'est la direction artistique de « Pourboire : qui a raison ? ». Le moteur l'a
 - **Transitions :** rapides (glissement de 0,16 s avec une bande oblique verte ou rouge).
 - **Sous-titres :** mot à mot, en bas du tiers central, synchronisés sur la voix-off (générée par ElevenLabs depuis le texte, ou fournie).
 - **Zones de sécurité TikTok :** pas de texte important dans les 250 px du bas ni sur les 120 px de droite.
+- **Sarah :** chaque vidéo montre Sarah, le personnage à tête de lune qui dit la voix-off, debout en bas à gauche (voir « Sarah » plus bas). Garder ce coin libre (x < 300, y > 1290).
 - **Procédés récurrents :** accroche choc dans les premières secondes (gros chiffre qui claque avec un tremblement, puis question en zoom), étiquette de section en haut, objets du quotidien stylisés (ticket, fiche de paie, terminal), personnages simples, écran coupé rouge / vert pour opposer deux camps, fin sur « DIS-LE EN COMMENTAIRE 👇 » avec une bulle 💬 qui pulse.
 
 ## Brief type pour une nouvelle vidéo
@@ -39,7 +40,7 @@ SCÈNE N — CALL TO ACTION (dernières 7 s)
 
 1. Copier `modele.html` en `<nom>.html`.
 2. Voix-off : écrire le texte dans `scripts/<nom>.txt` puis lancer `node tools/voix.mjs <nom>` (voir « Voix-off » plus bas). Charger `assets/<nom>_words.js` dans la page et supprimer la liste de démo `window.WORDS`.
-3. Régler `setup({ duration, audio, emojis })`.
+3. Régler `setup({ duration, audio, emojis })`. Lancer `node tools/enveloppe.mjs <nom>` et charger `assets/<nom>_env.js` pour la bouche de Sarah (déjà branchée dans `modele.html`).
 4. Écrire les scènes, puis vérifier quelques images clés :
    `PAGE=<nom>.html node tools/render.mjs stills --stills 1,5,12`
 5. Rendu complet (voir plus bas).
@@ -62,7 +63,7 @@ node tools/voix.mjs <nom> --audio ma_voix.mp3   # voix déjà faite dans ElevenL
 - **Mode `--audio`** : l'API d'alignement forcé cale le texte sur un MP3 existant ; le fichier n'est pas modifié, à copier soi-même en `assets/voix_<nom>.mp3`.
 - Le texte est envoyé en une seule requête, ce qui couvre largement 60 s de voix.
 
-## Sarah, le personnage de la voix-off (essai)
+## Sarah, le personnage de la voix-off
 
 `lib/sarah.js` ajoute un petit personnage en pied, à tête de lune (disque gris clair avec mers, cratères, ombre en croissant, halo et petites étoiles ; robe rouge), debout en bas à gauche : pieds juste au-dessus de la zone TikTok du bas, tête sous les sous-titres. Exemple : `ia_embauche_sarah.html`.
 
