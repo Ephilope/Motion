@@ -6,21 +6,21 @@
 <title>L'IA t'empêche d'être embauché</title>
 </head>
 <body>
-<!-- ESSAI : ia_embauche.html avec Sarah, le personnage de la voix-off (lib/sarah.js), en bas à gauche.
+<!-- ESSAI : ia_embauche.html avec Séléné, le personnage de la voix-off (lib/selene.js), en bas à gauche.
      Vidéo TikTok « L'IA t'empêche d'être embauché » (étude Banque de France, charte : docs/MODELE.md).
      Voix-off : scripts/ia_embauche.txt → node tools/voix.mjs ia_embauche
      Chiffres et sources : en tête de scripts/ia_embauche.txt. -->
 <script src="lib/motion.js"></script>
-<script src="assets/ia_embauche_words.js"></script>
-<script src="assets/ia_embauche_env.js"></script>
-<script src="lib/sarah.js"></script>
+<script src="assets/ia_embauche_selene_words.js"></script>
+<script src="assets/ia_embauche_selene_env.js"></script>
+<script src="lib/selene.js"></script>
 <script>
 (async () => {
 const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, rng } = Motion;
 await setup({
-  duration: 63,
+  duration: 67,
   words: window.WORDS,
-  audio: 'assets/voix_ia_embauche.mp3',
+  audio: 'assets/voix_ia_embauche_selene.mp3',
   emojis: '🤖🔒🌐📰📊🏦💻⏱️🛡️🩺👶🔧⚠️💬👇',
 });
 const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
@@ -351,8 +351,8 @@ S(T.cta, M.DUR, (cam, a) => {
 
 // Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
 captions({ until: T.cta + .2 });
-// Sarah entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
-Motion.sarah({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+// Séléné entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
 start();
 })();
 </script>

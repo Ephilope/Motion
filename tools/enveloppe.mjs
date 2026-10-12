@@ -1,4 +1,4 @@
-// Enveloppe de volume de la voix-off, pour animer la bouche du personnage (lib/sarah.js).
+// Enveloppe de volume de la voix-off, pour animer la bouche du personnage (lib/selene.js).
 //
 //   node tools/enveloppe.mjs <nom>    lit assets/voix_<nom>.mp3, écrit assets/<nom>_env.js (window.ENV)
 //
