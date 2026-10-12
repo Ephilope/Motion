@@ -9,7 +9,7 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const [outDir, fpsArg, a, b] = process.argv.slice(2);
-const url = 'file://' + resolve(process.env.PAGE || 'animation.html') + '?render';
+const url = 'file://' + resolve(process.env.PAGE || 'animation.html') + '?render' + (process.env.QUERY ? '&' + process.env.QUERY : '');   // QUERY=a=b : paramètres de page en plus
 mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
