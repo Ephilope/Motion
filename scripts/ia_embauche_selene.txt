@@ -1,0 +1,21 @@
+# Voix-off de ia_embauche_selene.html (essai de la fin « Moi, c'est Séléné »). Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Source : étude Banque de France et LIFT (HEC), 8 oct. 2026, plus de 1 500 métiers, nov. 2022 à mars 2026
+#   (https://www.journaldunet.com/business/action-publique/1556107-les-embauches-en-cdi-des-jeunes-actifs-reculent-dans-les-metiers-exposes-a-l-ia-generative/) :
+#   embauches en CDI des 21-29 ans −28,3 % dans les métiers les plus exposés à l'IA, −7,5 % dans les moins exposés ; jeunes développeurs −42 % ;
+#   métiers exposés : traducteurs, journalistes, chargés d'études, techniciens de banque ; écart exposés/non exposés 20,8 points (21-29 ans)
+#   contre 3,8 points (plus de 50 ans) ; démissions de CDI des jeunes −23 % (contre −6 %) ; métiers physiques : embauches de jeunes +1 % ;
+#   citation « relevait de la philanthropie » : Pierre Maoui (Qwarry) ; corrélation avec l'exposition, pas une preuve de cause unique.
+L'intelligence artificielle ne te vire pas. Elle fait pire… elle t'empêche d'être embauché.
+C'est ce que montre une étude de la Banque de France, publiée cette semaine.
+Depuis l'arrivée de ChatGPT,[Tchatte-GPT,] fin 2022,[deux mille vingt-deux,] les embauches en CDI des 21-29_ans[vingt-et-un, vingt-neuf ans] ont chuté de 28_%…[vingt-huit pour cent…] dans les métiers les plus exposés à l'IA.
+Ailleurs_? Seulement 7,5_%.[sept virgule cinq pour cent.]
+Les métiers touchés_? Ceux qui produisent de l'information_: traducteurs, journalistes, analystes, employés de banque.
+Et chez les jeunes développeurs… moins 42_%.[quarante-deux pour cent.]
+Pourquoi les jeunes_? Parce qu'on leur confiait les tâches simples. Et ces tâches, l'IA les fait maintenant en quelques secondes.
+Un responsable tech l'a même dit_: embaucher un développeur débutant, c'est «_de la philanthropie_».[de la philanthropie.]
+Les plus de 50_ans,[cinquante ans,] eux, sont presque épargnés.
+Et ceux qui ont déjà un CDI ne le lâchent plus_: les démissions ont baissé de 23_%.[vingt-trois pour cent.] Le marché est bloqué.
+Dans les métiers où il faut être là en vrai, infirmiers, assistantes maternelles, ouvriers qualifiés, les embauches de jeunes n'ont pas baissé.
+Attention_: l'étude montre un lien avec l'IA, pas la preuve qu'elle est la seule cause.
+Et toi, ton futur métier… il est exposé_? Dis-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!

@@ -13,7 +13,7 @@ C'est la direction artistique de « Pourboire : qui a raison ? ». Le moteur l'a
 - **Transitions :** rapides (glissement de 0,16 s avec une bande oblique verte ou rouge).
 - **Sous-titres :** mot à mot, en bas du tiers central, synchronisés sur la voix-off (générée par ElevenLabs depuis le texte, ou fournie).
 - **Zones de sécurité TikTok :** pas de texte important dans les 250 px du bas ni sur les 120 px de droite.
-- **Sarah :** chaque vidéo montre Sarah, le personnage à tête de lune qui dit la voix-off, debout en bas à gauche (voir « Sarah » plus bas). Garder ce coin libre (x < 300, y > 1290).
+- **Séléné :** chaque vidéo montre Séléné, le personnage à tête de lune qui dit la voix-off (voix ElevenLabs « Sarah »), debout en bas à gauche (voir « Séléné » plus bas). Garder ce coin libre (x < 300, y > 1290).
 - **Procédés récurrents :** accroche choc dans les premières secondes (gros chiffre qui claque avec un tremblement, puis question en zoom), étiquette de section en haut, objets du quotidien stylisés (ticket, fiche de paie, terminal), personnages simples, écran coupé rouge / vert pour opposer deux camps, fin sur « DIS-LE EN COMMENTAIRE 👇 » avec une bulle 💬 qui pulse.
 
 ## Brief type pour une nouvelle vidéo
@@ -40,7 +40,7 @@ SCÈNE N — CALL TO ACTION (dernières 7 s)
 
 1. Copier `modele.html` en `<nom>.html`.
 2. Voix-off : écrire le texte dans `scripts/<nom>.txt` puis lancer `node tools/voix.mjs <nom>` (voir « Voix-off » plus bas). Charger `assets/<nom>_words.js` dans la page et supprimer la liste de démo `window.WORDS`.
-3. Régler `setup({ duration, audio, emojis })`. Lancer `node tools/enveloppe.mjs <nom>` et charger `assets/<nom>_env.js` pour la bouche de Sarah (déjà branchée dans `modele.html`).
+3. Régler `setup({ duration, audio, emojis })`. Lancer `node tools/enveloppe.mjs <nom>` et charger `assets/<nom>_env.js` pour la bouche de Séléné (déjà branchée dans `modele.html`).
 4. Écrire les scènes, puis vérifier quelques images clés :
    `PAGE=<nom>.html node tools/render.mjs stills --stills 1,5,12`
 5. Rendu complet (voir plus bas).
@@ -63,17 +63,21 @@ node tools/voix.mjs <nom> --audio ma_voix.mp3   # voix déjà faite dans ElevenL
 - **Mode `--audio`** : l'API d'alignement forcé cale le texte sur un MP3 existant ; le fichier n'est pas modifié, à copier soi-même en `assets/voix_<nom>.mp3`.
 - Le texte est envoyé en une seule requête, ce qui couvre largement 60 s de voix.
 
-## Sarah, le personnage de la voix-off
+## Séléné, le personnage de la voix-off
 
-`lib/sarah.js` ajoute un petit personnage en pied, à tête de lune (disque gris clair avec mers, cratères, ombre en croissant, halo et petites étoiles ; robe rouge), debout en bas à gauche : pieds juste au-dessus de la zone TikTok du bas, tête sous les sous-titres. Exemple : `ia_embauche_sarah.html`.
+`lib/selene.js` ajoute un petit personnage en pied, à tête de lune (disque gris clair avec mers, cratères, ombre en croissant, halo et petites étoiles ; robe rouge), debout en bas à gauche : pieds juste au-dessus de la zone TikTok du bas, tête sous les sous-titres. Exemple : `ia_embauche_selene.html`.
 
 1. `node tools/enveloppe.mjs <nom>` : écrit `assets/<nom>_env.js` (volume de la voix, qui fait bouger la bouche). Il faut ffmpeg.
-2. Dans la page, après `lib/motion.js` : `<script src="assets/<nom>_env.js"></script>` et `<script src="lib/sarah.js"></script>`.
-3. Après `captions(...)` et avant `start()` : `Motion.sarah({ env: window.ENV })`. Options : `x`, `y` (position des pieds, 165 × 1660 par défaut), `size`, ou `pos: t => ({ x, y, k })` pour la déplacer ou la faire apparaître.
+2. Dans la page, après `lib/motion.js` : `<script src="assets/<nom>_env.js"></script>` et `<script src="lib/selene.js"></script>`.
+3. Après `captions(...)` et avant `start()` : `Motion.selene({ env: window.ENV })`. Options : `x`, `y` (position des pieds, 165 × 1660 par défaut), `size`, ou `pos: t => ({ x, y, k })` pour la déplacer ou la faire apparaître.
 
 Ses gestes viennent du texte de la voix-off : `?` = haussement d'épaules, tête penchée ; `…` = mains jointes, penchée, puis bras en l'air et petit saut sur le mot suivant ; chiffre ou `%` = index levé ; « Attention » = index levé, air sérieux ; dernier mot = coucou et clin d'œil. Le reste du temps, une main accompagne la parole.
 
-Elle occupe x < 300 et y > 1290 : y laisser ce coin libre (la carte de fin de `ia_embauche_sarah.html` a été remontée à y = 1090).
+Elle occupe x < 300 et y > 1290 : y laisser ce coin libre (la carte de fin de `ia_embauche_selene.html` a été remontée à y = 1090).
+
+**Fin de chaque vidéo :** après la question « Dis-le en commentaire. », le texte de la voix-off se termine par
+`Moi, c'est Séléné. Abonne-toi pour ne rien rater_!`
+Dès que la voix dit « Séléné », une carte « MOI C'EST SÉLÉNÉ » s'affiche à sa droite (x 350 à 830, y 1310 à 1650), puis un bouton « + ABONNE-TOI » sur « abonne-toi », qu'elle montre du doigt avant de faire coucou. Garder cette zone libre à la fin, et compter environ 1,5 s après le dernier mot dans `duration`.
 
 ## Format
 
