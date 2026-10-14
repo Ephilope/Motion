@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ton éponge de cuisine</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Ton éponge de cuisine, l'objet le plus sale de ta maison » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/eponge.txt → node tools/voix.mjs eponge ; node tools/enveloppe.mjs eponge
+     Chiffres et sources : en tête de scripts/eponge.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/eponge_words.js"></script>
+<script src="assets/eponge_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, hash } = Motion;
+await setup({
+  duration: 57,
+  words: window.WORDS,
+  audio: 'assets/voix_eponge.mp3',
+  emojis: '🔬🌍🤢💬👇⚡📅🧽⚠️',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', SPONGE = '#F9D44A', PORE = '#E0B52E', SCRUB = '#27AE60', PURPLE = '#9B59B6', BLUE = '#3498DB', GREY = '#BDC3C7';
+const BCOLS = [GREEN, PURPLE, BLUE, '#E67E22', '#1ABC9C', '#F06292'];
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Éponge de cuisine vue de face (≈ 440 × 300) : mousse jaune trouée, grattoir vert dessus.
+function sponge(parent, dirty = 0) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -208, y: -128, width: 440, height: 300, rx: 40, fill: INK }, g);
+  el('rect', { x: -220, y: -40, width: 440, height: 200, rx: 36, fill: SPONGE, stroke: INK, 'stroke-width': 8 }, g);
+  el('rect', { x: -220, y: -140, width: 440, height: 110, rx: 30, fill: SCRUB, stroke: INK, 'stroke-width': 8 }, g);
+  for (let i = 0; i < 14; i++) el('path', { d: `M${-190 + i * 28},-125 l20,80`, stroke: '#1E8449', 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+  for (let i = 0; i < 22; i++) {
+    const x = -190 + hash(i) * 380, y = -10 + hash(i + 50) * 150, r = 8 + hash(i + 99) * 12;
+    el('ellipse', { cx: fmt(x), cy: fmt(y), rx: fmt(r), ry: fmt(r * .75), fill: PORE }, g);
+  }
+  const stain = el('g', { opacity: dirty }, g);
+  [[-120, 40, 60], [60, 90, 70], [150, 10, 45], [-30, 120, 40]].forEach(([x, y, r]) => el('ellipse', { cx: x, cy: y, rx: r, ry: r * .6, fill: '#8D6E3F', opacity: .55 }, stain));
+  return { g, stain };
+}
+// Bactérie : bâtonnet coloré avec yeux et petits flagelles.
+function bact(parent, col = GREEN, s = 1, mean = false) {
+  const g = el('g', {}, parent), body = el('g', {}, g);
+  for (let i = 0; i < 4; i++) el('path', { d: `M${-46 + i * 30},28 q-8,22 4,38`, fill: 'none', stroke: INK, 'stroke-width': 5, 'stroke-linecap': 'round' }, body);
+  el('rect', { x: -62, y: -34, width: 124, height: 68, rx: 34, fill: col, stroke: INK, 'stroke-width': 7 }, body);
+  [-20, 20].forEach(x => { el('circle', { cx: x, cy: -6, r: 12, fill: WHITE, stroke: INK, 'stroke-width': 4 }, body); el('circle', { cx: x + 2, cy: -4, r: 5, fill: INK }, body); });
+  if (mean) [-1, 1].forEach(k => el('path', { d: `M${k * 34},-24 L${k * 8},-14`, stroke: INK, 'stroke-width': 6, 'stroke-linecap': 'round' }, body));
+  el('path', { d: mean ? 'M-12,16 q12,-8 24,0' : 'M-12,12 q12,10 24,0', fill: 'none', stroke: INK, 'stroke-width': 5, 'stroke-linecap': 'round' }, body);
+  tf(body, 0, 0, s);
+  return g;
+}
+// Essaim de bactéries qui gigotent autour de (cx, cy).
+function swarm(parent, n, seed, rx, ry, s = .5) {
+  return Array.from({ length: n }, (_, i) => {
+    const g = bact(parent, BCOLS[i % BCOLS.length], s * (.7 + hash(seed + i) * .6));
+    return { g, x: (hash(seed + i * 3) * 2 - 1) * rx, y: (hash(seed + i * 7) * 2 - 1) * ry, ph: hash(seed + i * 11) * 6.28, d: hash(seed + i * 13) };
+  });
+}
+function moveSwarm(sw, t, cx, cy, k, t0 = 0, spread = 1) {
+  sw.forEach(b => at(b.g, cx + b.x * spread + Math.sin(t * 2 + b.ph) * 14, cy + b.y * spread + Math.cos(t * 1.7 + b.ph) * 12, k * pop(t, t0 + b.d * .8, .3), Math.sin(t * 3 + b.ph) * 15));
+}
+// Lignes d'odeur qui ondulent.
+function stink(parent) {
+  const g = el('g', {}, parent);
+  const ps = [-60, 0, 60].map(x => el('path', { fill: 'none', stroke: '#7DA453', 'stroke-width': 12, 'stroke-linecap': 'round' }, g));
+  return { g, update(t) { ps.forEach((pa, i) => { const x = -60 + i * 60, o = t * 4 + i; pa.setAttribute('d', `M${x},0 q${fmt(Math.sin(o) * 25)},-40 0,-80 q${fmt(-Math.sin(o) * 25)},-40 0,-80`); }); } };
+}
+// Micro-ondes (≈ 560 × 340), avec une vitre où l'on pose quelque chose.
+function microwave(parent) {
+  const g = el('g', {}, parent);
+  card(g, -280, -170, 560, 340, '#ECF0F1', 30, 12, 8);
+  const win = el('rect', { x: -240, y: -130, width: 360, height: 260, rx: 18, fill: '#2C3E50', stroke: INK, 'stroke-width': 6 }, g);
+  el('rect', { x: 150, y: -130, width: 90, height: 260, rx: 12, fill: GREY, stroke: INK, 'stroke-width': 5 }, g);
+  [-70, 0, 70].forEach(y => el('circle', { cx: 195, cy: y, r: 18, fill: INK }, g));
+  const inside = el('g', {}, g);
+  return { g, inside, win };
+}
+// Morceau de sucre (cube en perspective, ≈ 160).
+function sugar(parent) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-80,-40 L0,-80 L80,-40 L0,0 Z', fill: WHITE, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M-80,-40 L0,0 V90 L-80,50 Z', fill: '#E8E8E8', stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M80,-40 L0,0 V90 L80,50 Z', fill: '#D5D5D5', stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  cherch: Wt('Des') - .2, res: Wt('Résultat') - .25, cube: Wt('Dans') - .25, moit: Wt('Et', 1, Wt('Terre')) - .2,
+  dis: Wt('Alors') - .25, sauf: Wt('Sauf') - .2, net: Wt('Le', 1, Wt('éponge', 1, Wt('expliquer'))) - .2,
+  conseil: Wt('Leur') - .25, cta: Wt('Et', 1, Wt('semaine')) - .2,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : ton éponge, l'objet le plus sale de ta maison ================================
+// Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.cherch, (cam) => {
+  const tSale = Wt('sale'), tMais = Wt('maison');
+  bg(cam);
+  const head = title(cam, ['TON', ['ÉPONGE', GREEN]], { size: 150, shadow: 0, sw: 14 });
+  const sp = sponge(cam);
+  const sw = swarm(cam, 9, 3, 230, 150, .45);
+  const st = stink(cam);
+  const lab = title(cam, ["L'OBJET LE", ['PLUS SALE', RED], 'DE TA MAISON'], { size: 84, shadow: 0, sw: 12 });
+  return t => {
+    at(head, CX, 300, lerp(1.15, 1, p(t, 0, .3, E.out)), -3);
+    at(sp.g, CX, 700, pop(t, -.35, .35) * (1 + .03 * Math.sin(t * 5)), -4);
+    sp.stain.setAttribute('opacity', fmt(p(t, tSale - .3, tSale + .3)));
+    moveSwarm(sw, t, CX, 700, 1, tSale - .4);
+    at(st.g, CX + 40, 560, pop(t, tSale, .3)); st.update(t);
+    at(lab, CX, 1040, pop(t, tSale - .5, .35), -2);
+    shock(t, .25, .3, .6); shock(t, tSale + .1, .3, .6); shock(t, tMais, .25, .3);
+  };
+});
+
+// ====== 2. 14 ÉPONGES AU MICROSCOPE ===============================================================
+S(T.cherch, T.res, (cam, a) => {
+  const tAll = Wt('allemands'), t14 = Wt('14'), tMic = Wt('microscope');
+  bg(cam);
+  const tag = chip(cam, 'DES CHERCHEURS ALLEMANDS', INK, CREAM, 46);
+  const sps = Array.from({ length: 14 }, (_, i) => { const g = el('g', {}, cam); sponge(g, .4 + hash(i) * .5); return g; });
+  const n = el('g', {}, cam), nS = bigNum(n, 150, RED);
+  const lab = chip(cam, 'ÉPONGES USAGÉES', RED, CREAM, 52);
+  const mic = el('g', {}, cam); emoji(mic, '🔬', 260);
+  return t => {
+    tag.update(CX, 240, pop(t, tAll - .3), -2);
+    const k = p(t, t14 - .2, t14 + .6, E.out), shown = Math.round(14 * k);
+    sps.forEach((g, i) => { show(g, i < shown); at(g, CX - 360 + (i % 5) * 180, 420 + Math.floor(i / 5) * 130 + Math.sin(t * 4 + i) * 5, .3 * pop(t, t14 - .2 + i * .05, .25), (i % 2 ? 8 : -8)); });
+    nS.set(String(shown)); at(n, CX - 170, 850, pop(t, t14 - .3, .3), -3);
+    lab.update(CX - 120, 980, pop(t, t14 + .3), 2);
+    at(mic, CX + 300, 780, pop(t, tMic - .3, .35), Math.sin(t * 3) * 4);
+    shock(t, tMic + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. 362 TYPES DE BACTÉRIES =================================================================
+S(T.res, T.cube, (cam, a) => {
+  const t362 = Wt('362'), tTyp = Wt('types'), tDif = Wt('différents');
+  bg(cam);
+  const tag = chip(cam, 'RÉSULTAT', INK, CREAM, 56);
+  const sw = swarm(cam, 26, 17, 380, 230, .55);
+  const n = el('g', {}, cam), nS = bigNum(n, 260, RED);
+  const lab = title(cam, ['TYPES DE', ['BACTÉRIES', GREEN]], { size: 100, shadow: 0, sw: 12 });
+  return t => {
+    tag.update(CX, 240, pop(t, a + .05), -2);
+    moveSwarm(sw, t, CX, 640, 1, t362 - .3, lerp(.4, 1, p(t, t362, tDif + .5, E.out)));
+    nS.set(String(Math.round(362 * p(t, t362 - .2, t362 + .8, E.out))));
+    at(n, CX, 620, pop(t, t362 - .3, .3), -3);
+    at(lab, CX, 1020, pop(t, tTyp - .2, .35), -2);
+    shock(t, t362 + .8, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 4. UN MORCEAU DE SUCRE : 54 MILLIARDS ≈ 7 × LES HUMAINS ===================================
+S(T.cube, T.moit, (cam, a) => {
+  const tSuc = Wt('sucre'), t54 = Wt('54'), tPres = Wt('Presque'), tTer = Wt('Terre');
+  bg(cam);
+  const tag = chip(cam, 'GROS COMME UN SUCRE', INK, CREAM, 50);
+  const cube = sugar(cam);
+  const mini = el('g', {}, cam); const msp = sponge(mini, .6);
+  const sw = swarm(cam, 14, 41, 120, 100, .3);
+  const n = el('g', {}, cam), nS = bigNum(n, 170, RED); nS.set('54 MILLIARDS');
+  const lab = chip(cam, 'DE BACTÉRIES', RED, CREAM, 54);
+  const earth = el('g', {}, cam); emoji(earth, '🌍', 170);
+  const cmp = title(cam, [['≈ 7 FOIS', GREEN], 'LE NOMBRE', "D'HUMAINS"], { size: 84, shadow: 0, sw: 11 });
+  return t => {
+    tag.update(CX, 240, pop(t, a + .05), -2);
+    const k2 = p(t, tPres - .4, tPres);
+    at(mini, CX - 180, 520, .5 * pop(t, a + .1, .35) * (1 - k2), -6);
+    at(cube, CX + 160, 520, 1.2 * pop(t, tSuc - .3, .35) * (1 - k2), 0);
+    moveSwarm(sw, t, CX - 180, 520, 1 - k2, t54 - .4);
+    at(n, CX, lerp(820, 1000, k2), pop(t, t54 - .3, .3) * lerp(1, .75, k2), -3);
+    lab.update(CX, 950, pop(t, t54 + .3) * (1 - k2), 2);
+    at(earth, CX, 430, pop(t, tPres - .1, .35), Math.sin(t * 2) * 8);
+    at(cmp, CX, 700, pop(t, tPres, .35), -2);
+    shock(t, t54 + .5, .3, .8); shock(t, tTer, .3, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. LA MOITIÉ DES 10 PLUS NOMBREUSES : proches de microbes qui rendent malade ==============
+S(T.moit, T.dis, (cam, a) => {
+  const tDix = Wt('dix'), tMoi = Wt('moitié'), tMal = Wt('malade');
+  bg(cam);
+  const tag = chip(cam, 'LES 10 PLUS NOMBREUSES', INK, CREAM, 50);
+  const bs = Array.from({ length: 10 }, (_, i) => {
+    const bad = i % 2 === 0, g = el('g', {}, cam);
+    const good = bact(g, BCOLS[(i + 1) % BCOLS.length], .8), evil = bact(g, RED, .8, true);
+    const warn = el('g', {}, g); emoji(warn, '⚠️', 54); tf(warn, 0, -70);
+    return { g, bad, good, evil, warn };
+  });
+  const n = el('g', {}, cam), nS = bigNum(n, 170, RED); nS.set('LA MOITIÉ');
+  const lab = title(cam, ['PROCHES DE MICROBES', ['QUI RENDENT MALADE', RED]], { size: 62, shadow: 0, sw: 9 });
+  return t => {
+    tag.update(CX, 240, pop(t, a + .05), -2);
+    const kB = p(t, tMoi - .1, tMoi + .4);
+    bs.forEach((b, i) => {
+      at(b.g, CX - 360 + (i % 5) * 180, 470 + Math.floor(i / 5) * 200 + Math.sin(t * 3 + i) * 8, pop(t, tDix - .3 + i * .04, .25), Math.sin(t * 2 + i) * 6);
+      const turned = b.bad && kB > i / 10;
+      show(b.good, !turned); show(b.evil, turned); show(b.warn, turned);
+    });
+    at(n, CX, 900, pop(t, tMoi - .2, .3), -3);
+    at(lab, CX, 1070, pop(t, tMal - .7, .35), -1);
+    shock(t, tMoi + .2, .3, .6); shock(t, tMal + .1, .3, .4);
+  };
+}, { swipe: RED });
+
+// ====== 6. « JE LA PASSE AU MICRO-ONDES, JE LA RINCE À L'EAU CHAUDE » ============================
+S(T.dis, T.sauf, (cam, a) => {
+  const tMic = Wt('micro-ondes'), tEau = Wt("l'eau"), tCh = Wt('chaude');
+  bg(cam);
+  const head = title(cam, ['ALORS TU TE DIS…'], { size: 90, shadow: 0 });
+  const mw = microwave(cam);
+  const ms = sponge(mw.inside); tf(ms.g, -60, 20, .55);
+  const zap = el('g', {}, cam); emoji(zap, '⚡', 110);
+  const l1 = chip(cam, '✓ MICRO-ONDES', GREEN, CREAM, 52), l2 = chip(cam, "✓ EAU CHAUDE", GREEN, CREAM, 52);
+  const steam = stink(cam);
+  return t => {
+    at(head, CX, 270, pop(t, a + .05, .35), -2);
+    at(mw.g, CX, 620, pop(t, tMic - .5, .35));
+    mw.win.setAttribute('fill', t > tMic && Math.floor(t * 8) % 2 ? '#F39C12' : '#2C3E50');
+    at(zap, CX + 280, 440, pop(t, tMic, .3), Math.sin(t * 10) * 10);
+    l1.update(CX - 110, 920, pop(t, tMic + .1), -2);
+    l2.update(CX + 90, 1050, pop(t, tEau - .1), 2);
+    at(steam.g, CX - 60, 470, pop(t, tCh - .2, .3)); steam.update(t);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. SAUF QUE… nettoyées = encore plus de Moraxella, l'odeur =================================
+S(T.sauf, T.net, (cam, a) => {
+  const tQue = Wt('que'), tNet = Wt('nettoyées'), tMor = Wt('Moraxella'), tOd = Wt("l'odeur");
+  bg(cam);
+  const st = stamp(cam, 'SAUF QUE…', RED, 100);
+  const sp = sponge(cam, .3);
+  const lab = chip(cam, 'NETTOYÉE RÉGULIÈREMENT', GREEN, CREAM, 46);
+  const sw = swarm(cam, 18, 77, 210, 120, .45);
+  const name = title(cam, ['ENCORE PLUS DE', ['MORAXELLA', PURPLE]], { size: 84, shadow: 0, sw: 12 });
+  const stk = stink(cam);
+  const sick = el('g', {}, cam); emoji(sick, '🤢', 130);
+  const od = chip(cam, "L'ODEUR ?", RED, CREAM, 56);
+  return t => {
+    st.update(CX, 260, t, a + .1, -6);
+    at(sp.g, CX, 620, pop(t, tNet - .4, .35), -3);
+    lab.update(CX, 820, pop(t, tNet - .1), 2);
+    moveSwarm(sw, t, CX, 620, 1, tMor - .8);
+    sw.forEach(b => b.g.querySelector('rect').setAttribute('fill', t > tMor ? PURPLE : GREEN));
+    at(name, CX, 1010, pop(t, tMor - .2, .35), -2);
+    at(stk.g, CX - 40, 470, pop(t, tOd - .3, .3)); stk.update(t);
+    at(sick, CX + 300, 440, pop(t, tOd - .1, .35), Math.sin(t * 5) * 8);
+    od.update(CX - 260, 440, pop(t, tOd), -4);
+    shock(t, a + .2, .3, .7); shock(t, tMor + .2, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 8. LE NETTOYAGE N'EN TUE QU'UNE PARTIE : les survivantes reprennent la place ==============
+S(T.net, T.conseil, (cam, a) => {
+  const tTue = Wt('tue'), tSurv = Wt('survivent'), tRep = Wt('reprennent'), tPl = Wt('place', 1, a);
+  bg(cam);
+  const head = title(cam, ['LE NETTOYAGE…'], { size: 100, shadow: 0 });
+  const sw = Array.from({ length: 24 }, (_, i) => {
+    const strong = i % 3 === 0, g = bact(cam, strong ? PURPLE : BCOLS[i % 2 ? 0 : 2], strong ? .6 : .45, strong);
+    return { g, strong, x: (hash(i * 3 + 1) * 2 - 1) * 360, y: (hash(i * 7 + 2) * 2 - 1) * 230, ph: hash(i + 5) * 6.28 };
+  });
+  const flash = el('rect', { x: 0, y: 0, width: W, height: H, fill: WHITE, opacity: 0 }, cam);
+  const l1 = chip(cam, "N'EN TUE QU'UNE PARTIE", RED, CREAM, 48);
+  const l2 = title(cam, ['LES SURVIVANTES', ['PRENNENT LA PLACE', PURPLE]], { size: 70, shadow: 0, sw: 10 });
+  return t => {
+    at(head, CX, 260, pop(t, a + .05, .35), -2);
+    const kill = p(t, tTue, tTue + .4), grow = p(t, tRep - .2, tPl + .4, E.out);
+    sw.forEach((b, i) => {
+      if (b.strong) {
+        // les survivantes s'étalent dans tout le cadre
+        at(b.g, CX + b.x * lerp(.6, 1, grow) + Math.sin(t * 2 + b.ph) * 10, 660 + b.y * lerp(.6, 1, grow), lerp(1, 2.2, grow) * pop(t, a + .1 + i * .01, .25), Math.sin(t * 3 + b.ph) * 10);
+      } else {
+        at(b.g, CX + b.x * .6 + Math.sin(t * 2 + b.ph) * 10, 660 + b.y * .6, (1 - kill) * pop(t, a + .1 + i * .01, .25));
+        show(b.g, kill < 1);
+      }
+    });
+    flash.setAttribute('opacity', fmt(hit(t, tTue + .05, .2) * .8));
+    l1.update(CX, 960, pop(t, tTue + .2), -2);
+    at(l2, CX, 1115, pop(t, tSurv, .35), -1);
+    shock(t, tTue + .05, .3, .8); shock(t, tPl, .3, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. LEUR CONSEIL : changer d'éponge chaque semaine =========================================
+S(T.conseil, T.cta, (cam, a) => {
+  const tCh = Wt('Changer'), tSem = Wt('semaine');
+  bg(cam);
+  const head = title(cam, ['LEUR', ['CONSEIL ?', GREEN]], { size: 120, shadow: 0, sw: 12 });
+  const old = sponge(cam, 1), neu = sponge(cam, 0);
+  const cal = el('g', {}, cam); emoji(cal, '📅', 170);
+  const lab = title(cam, ['UNE NEUVE', ['CHAQUE SEMAINE', GREEN]], { size: 80, shadow: 0, sw: 11 });
+  return t => {
+    at(head, CX, 290, pop(t, a + .05, .35), -2);
+    const k = p(t, tCh, tCh + .6, E.inOut);
+    at(old.g, CX - lerp(0, 700, k), 640, .9 * pop(t, a + .2, .35), -lerp(4, 40, k));
+    at(neu.g, CX + lerp(700, 0, k), 640, .9, 3);
+    at(cal, CX + 300, 860, pop(t, tSem - .3, .35), Math.sin(t * 4) * 5);
+    at(lab, CX - 40, 1040, pop(t, tSem - .2, .35), -2);
+    shock(t, tSem + .2, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 10. FIN : la tienne, elle a quel âge ? ===================================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tAge = Wt('âge'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire');
+  bg(cam);
+  const q = title(cam, ['ET TOI,', ['TON ÉPONGE…', GREEN], ['QUEL ÂGE ?', RED]], { size: 100, shadow: 0, sw: 12 });
+  const sp = sponge(cam, .7);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 330, pop(t, a + .05, .35), -2);
+    at(sp.g, CX, 730, .75 * pop(t, a + .3, .35) * (1 + .03 * Math.sin(t * 5)), 5);
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 940, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tAge + .2, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Séléné entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>
