@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Miniature : ton éponge</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Ton éponge de cuisine, l'objet le plus sale de ta maison » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/eponge.txt → node tools/voix.mjs eponge ; node tools/enveloppe.mjs eponge
+     Chiffres et sources : en tête de scripts/eponge.txt. -->
+<script src="lib/motion.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, hash } = Motion;
+await setup({ duration: 1, words: [{ w: 'Bonjour', t0: 5, t1: 6 }], emojis: '😱🦠' });
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', SPONGE = '#F9D44A', PORE = '#E0B52E', SCRUB = '#27AE60', PURPLE = '#9B59B6', BLUE = '#3498DB', GREY = '#BDC3C7';
+const BCOLS = [GREEN, PURPLE, BLUE, '#E67E22', '#1ABC9C', '#F06292'];
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Éponge de cuisine vue de face (≈ 440 × 300) : mousse jaune trouée, grattoir vert dessus.
+function sponge(parent, dirty = 0) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -208, y: -128, width: 440, height: 300, rx: 40, fill: INK }, g);
+  el('rect', { x: -220, y: -40, width: 440, height: 200, rx: 36, fill: SPONGE, stroke: INK, 'stroke-width': 8 }, g);
+  el('rect', { x: -220, y: -140, width: 440, height: 110, rx: 30, fill: SCRUB, stroke: INK, 'stroke-width': 8 }, g);
+  for (let i = 0; i < 14; i++) el('path', { d: `M${-190 + i * 28},-125 l20,80`, stroke: '#1E8449', 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+  for (let i = 0; i < 22; i++) {
+    const x = -190 + hash(i) * 380, y = -10 + hash(i + 50) * 150, r = 8 + hash(i + 99) * 12;
+    el('ellipse', { cx: fmt(x), cy: fmt(y), rx: fmt(r), ry: fmt(r * .75), fill: PORE }, g);
+  }
+  const stain = el('g', { opacity: dirty }, g);
+  [[-120, 40, 60], [60, 90, 70], [150, 10, 45], [-30, 120, 40]].forEach(([x, y, r]) => el('ellipse', { cx: x, cy: y, rx: r, ry: r * .6, fill: '#8D6E3F', opacity: .55 }, stain));
+  return { g, stain };
+}
+// Bactérie : bâtonnet coloré avec yeux et petits flagelles.
+function bact(parent, col = GREEN, s = 1, mean = false) {
+  const g = el('g', {}, parent), body = el('g', {}, g);
+  for (let i = 0; i < 4; i++) el('path', { d: `M${-46 + i * 30},28 q-8,22 4,38`, fill: 'none', stroke: INK, 'stroke-width': 5, 'stroke-linecap': 'round' }, body);
+  el('rect', { x: -62, y: -34, width: 124, height: 68, rx: 34, fill: col, stroke: INK, 'stroke-width': 7 }, body);
+  [-20, 20].forEach(x => { el('circle', { cx: x, cy: -6, r: 12, fill: WHITE, stroke: INK, 'stroke-width': 4 }, body); el('circle', { cx: x + 2, cy: -4, r: 5, fill: INK }, body); });
+  if (mean) [-1, 1].forEach(k => el('path', { d: `M${k * 34},-24 L${k * 8},-14`, stroke: INK, 'stroke-width': 6, 'stroke-linecap': 'round' }, body));
+  el('path', { d: mean ? 'M-12,16 q12,-8 24,0' : 'M-12,12 q12,10 24,0', fill: 'none', stroke: INK, 'stroke-width': 5, 'stroke-linecap': 'round' }, body);
+  tf(body, 0, 0, s);
+  return g;
+}
+// Essaim de bactéries qui gigotent autour de (cx, cy).
+function swarm(parent, n, seed, rx, ry, s = .5) {
+  return Array.from({ length: n }, (_, i) => {
+    const g = bact(parent, BCOLS[i % BCOLS.length], s * (.7 + hash(seed + i) * .6));
+    return { g, x: (hash(seed + i * 3) * 2 - 1) * rx, y: (hash(seed + i * 7) * 2 - 1) * ry, ph: hash(seed + i * 11) * 6.28, d: hash(seed + i * 13) };
+  });
+}
+function moveSwarm(sw, t, cx, cy, k, t0 = 0, spread = 1) {
+  sw.forEach(b => at(b.g, cx + b.x * spread + Math.sin(t * 2 + b.ph) * 14, cy + b.y * spread + Math.cos(t * 1.7 + b.ph) * 12, k * pop(t, t0 + b.d * .8, .3), Math.sin(t * 3 + b.ph) * 15));
+}
+// Lignes d'odeur qui ondulent.
+function stink(parent) {
+  const g = el('g', {}, parent);
+  const ps = [-60, 0, 60].map(x => el('path', { fill: 'none', stroke: '#7DA453', 'stroke-width': 12, 'stroke-linecap': 'round' }, g));
+  return { g, update(t) { ps.forEach((pa, i) => { const x = -60 + i * 60, o = t * 4 + i; pa.setAttribute('d', `M${x},0 q${fmt(Math.sin(o) * 25)},-40 0,-80 q${fmt(-Math.sin(o) * 25)},-40 0,-80`); }); } };
+}
+// Micro-ondes (≈ 560 × 340), avec une vitre où l'on pose quelque chose.
+function microwave(parent) {
+  const g = el('g', {}, parent);
+  card(g, -280, -170, 560, 340, '#ECF0F1', 30, 12, 8);
+  const win = el('rect', { x: -240, y: -130, width: 360, height: 260, rx: 18, fill: '#2C3E50', stroke: INK, 'stroke-width': 6 }, g);
+  el('rect', { x: 150, y: -130, width: 90, height: 260, rx: 12, fill: GREY, stroke: INK, 'stroke-width': 5 }, g);
+  [-70, 0, 70].forEach(y => el('circle', { cx: 195, cy: y, r: 18, fill: INK }, g));
+  const inside = el('g', {}, g);
+  return { g, inside, win };
+}
+// Morceau de sucre (cube en perspective, ≈ 160).
+function sugar(parent) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M-80,-40 L0,-80 L80,-40 L0,0 Z', fill: WHITE, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M-80,-40 L0,0 V90 L-80,50 Z', fill: '#E8E8E8', stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M80,-40 L0,0 V90 L80,50 Z', fill: '#D5D5D5', stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+
+
+// ====== Miniature (couverture TikTok) : une seule image, t = 0,9 s =======================
+S(0, M.DUR, (cam) => {
+  bg(cam);
+  const head = title(cam, ['TON', ['ÉPONGE', GREEN]], { size: 150, shadow: 0, sw: 15 });
+  const sp = sponge(cam, 1);
+  const sw = swarm(cam, 11, 3, 190, 90, .5);
+  const lab = title(cam, ["L'OBJET LE", ['PLUS SALE', RED], 'DE TA MAISON'], { size: 90, shadow: 0, sw: 12 });
+  const badge = stamp(cam, '54 MILLIARDS DE BACTÉRIES', RED, 34);
+  const scream = el('g', {}, cam); emoji(scream, '😱', 150);
+  return t => {
+    at(head, CX, 280, 1, -3);
+    at(sp.g, CX - 20, 700, 1.1, -5);
+    sw.forEach(b => at(b.g, CX - 20 + b.x, 730 + b.y, 1, Math.sin(b.ph) * 20));
+    at(scream, CX + 370, 520, 1, 10);
+    at(lab, CX, 1090, 1, -2);
+    badge.update(CX + 135, 1350, t, 0, -4);
+  };
+});
+Motion.selene({ pos: t => ({ x: 165, y: 1660, k: 1 }) });
+start();
+})();
+</script>
+</body>
+</html>
