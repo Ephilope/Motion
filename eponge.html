@@ -17,10 +17,10 @@
 (async () => {
 const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, hash } = Motion;
 await setup({
-  duration: 57,
+  duration: 69,
   words: window.WORDS,
   audio: 'assets/voix_eponge.mp3',
-  emojis: '🔬🌍🤢💬👇⚡📅🧽⚠️',
+  emojis: '🔬🌍🤢💬👇⚡📅🧽⚠️🪥👑🏠🗑️🍽️',
 });
 const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
 const YELLOW = '#FFD23F', SPONGE = '#F9D44A', PORE = '#E0B52E', SCRUB = '#27AE60', PURPLE = '#9B59B6', BLUE = '#3498DB', GREY = '#BDC3C7';
@@ -108,15 +108,15 @@ function sugar(parent) {
 
 // --- débuts de scène, calés sur la voix ------------------------------------------
 const T = {
-  cherch: Wt('Des') - .2, res: Wt('Résultat') - .25, cube: Wt('Dans') - .25, moit: Wt('Et', 1, Wt('Terre')) - .2,
+  etude: Wt('Et') - .2, cherch: Wt('Des') - .2, res: Wt('Résultat') - .25, cube: Wt('Dans', 1, Wt('Résultat')) - .25, moit: Wt('Et', 1, Wt('Terre')) - .2,
   dis: Wt('Alors') - .25, sauf: Wt('Sauf') - .2, net: Wt('Le', 1, Wt('éponge', 1, Wt('expliquer'))) - .2,
-  conseil: Wt('Leur') - .25, cta: Wt('Et', 1, Wt('semaine')) - .2,
+  conseil: Wt('Leur') - .25, ancien: Wt('Et', 1, Wt('semaine')) - .2, cta: Wt('Et', 1, Wt('assiettes')) - .2,
 };
 const tDis = Wt('Dis-le');
 
 // ====== 1. ACCROCHE : ton éponge, l'objet le plus sale de ta maison ================================
 // Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
-S(0, T.cherch, (cam) => {
+S(0, T.etude, (cam) => {
   const tSale = Wt('sale'), tMais = Wt('maison');
   bg(cam);
   const head = title(cam, ['TON', ['ÉPONGE', GREEN]], { size: 150, shadow: 0, sw: 14 });
@@ -129,11 +129,46 @@ S(0, T.cherch, (cam) => {
     at(sp.g, CX, 700, pop(t, -.35, .35) * (1 + .03 * Math.sin(t * 5)), -4);
     sp.stain.setAttribute('opacity', fmt(p(t, tSale - .3, tSale + .3)));
     moveSwarm(sw, t, CX, 700, 1, tSale - .4);
-    at(st.g, CX + 40, 560, pop(t, tSale, .3)); st.update(t);
+    at(st.g, CX + 40, 560, .7 * pop(t, tSale, .3)); st.update(t);
     at(lab, CX, 1040, pop(t, tSale - .5, .35), -2);
     shock(t, .25, .3, .6); shock(t, tSale + .1, .3, .6); shock(t, tMais, .25, .3);
   };
 });
+
+// ====== 1 bis. ÉTUDE AMÉRICAINE : 30 objets, 22 maisons, le pari du porte-brosse à dents ==========
+S(T.etude, T.cherch, (cam, a) => {
+  const tUS = Wt('États-Unis'), t30 = Wt('30'), t22 = Wt('22'), tCont = Wt('contaminé'), tPari = Wt('pariaient'), tRate = Wt('Raté'), tEp = Wt("l'éponge", 1, tRate);
+  bg(cam);
+  const tag = chip(cam, 'ÉTUDE AUX ÉTATS-UNIS', INK, CREAM, 50);
+  const n1 = el('g', {}, cam), n1S = bigNum(n1, 120, RED); n1S.set('30 OBJETS');
+  const n2 = el('g', {}, cam), n2S = bigNum(n2, 120, GREEN); n2S.set('22 MAISONS');
+  const house = el('g', {}, cam); emoji(house, '🏠', 150);
+  const q = title(cam, ['LE PLUS', ['CONTAMINÉ ?', RED]], { size: 110, shadow: 0, sw: 12 });
+  const brush = el('g', {}, cam); emoji(brush, '🪥', 200);
+  const bet = chip(cam, 'LEUR PARI', INK, CREAM, 38);
+  const cross = el('g', {}, cam);
+  [[-1, 1], [1, 1]].forEach(([k]) => el('line', { x1: -110 * k, y1: -110, x2: 110 * k, y2: 110, stroke: RED, 'stroke-width': 26, 'stroke-linecap': 'round' }, cross));
+  const sp = sponge(cam, .6);
+  const crown = el('g', {}, cam); emoji(crown, '👑', 130);
+  const win = chip(cam, "C'ÉTAIT L'ÉPONGE", GREEN, CREAM, 38);
+  const proof = stamp(cam, 'PROUVÉ', GREEN, 110);
+  return t => {
+    tag.update(CX, 240, pop(t, a + .05), -2);
+    const out = 1 - p(t, tCont - .4, tCont - .1);
+    proof.update(CX, 620, t, a + .3, -8); show(proof.g, t >= a + .3 && t < t30 - .3);
+    at(n1, CX, 470, pop(t, t30 - .3, .3) * out, -3);
+    at(n2, CX, 650, pop(t, t22 - .3, .3) * out, 2);
+    at(house, CX, 860, pop(t, t22, .35) * out, Math.sin(t * 4) * 4);
+    at(q, CX, 450, pop(t, tCont - .2, .35), -2);
+    at(brush, CX - 220, 760, pop(t, tPari - .2, .35), Math.sin(t * 3) * 6);
+    bet.update(CX - 250, 950, pop(t, tPari + .1), -3);
+    at(cross, CX - 220, 760, pop(t, tRate - .1, .25));
+    at(sp.g, CX + 210, 780, .55 * pop(t, tEp - .3, .35), 4);
+    at(crown, CX + 210, 640, pop(t, tEp, .35), Math.sin(t * 5) * 8);
+    win.update(CX + 220, 950, pop(t, tEp + .1), 2);
+    shock(t, t30 + .2, .25, .4); shock(t, tRate, .3, .6); shock(t, tEp + .2, .3, .6);
+  };
+}, { swipe: RED });
 
 // ====== 2. 14 ÉPONGES AU MICROSCOPE ===============================================================
 S(T.cherch, T.res, (cam, a) => {
@@ -146,11 +181,11 @@ S(T.cherch, T.res, (cam, a) => {
   const mic = el('g', {}, cam); emoji(mic, '🔬', 260);
   return t => {
     tag.update(CX, 240, pop(t, tAll - .3), -2);
-    const k = p(t, t14 - .2, t14 + .6, E.out), shown = Math.round(14 * k);
-    sps.forEach((g, i) => { show(g, i < shown); at(g, CX - 360 + (i % 5) * 180, 420 + Math.floor(i / 5) * 130 + Math.sin(t * 4 + i) * 5, .3 * pop(t, t14 - .2 + i * .05, .25), (i % 2 ? 8 : -8)); });
+    const k = p(t, a + .3, t14 + .2, E.lin), shown = Math.round(14 * k);
+    sps.forEach((g, i) => { show(g, i < shown); at(g, CX - 360 + (i % 5) * 180, 420 + Math.floor(i / 5) * 130 + Math.sin(t * 4 + i) * 5, .3 * pop(t, a + .3 + i * (t14 - a - .1) / 14, .25), (i % 2 ? 8 : -8)); });
     nS.set(String(shown)); at(n, CX - 170, 850, pop(t, t14 - .3, .3), -3);
-    lab.update(CX - 120, 980, pop(t, t14 + .3), 2);
-    at(mic, CX + 300, 780, pop(t, tMic - .3, .35), Math.sin(t * 3) * 4);
+    lab.update(CX - 160, 980, pop(t, t14 + .3), 2);
+    at(mic, CX + 320, 870, pop(t, tMic - .3, .35), Math.sin(t * 3) * 4);
     shock(t, tMic + .1, .3, .5);
   };
 }, { swipe: GREEN });
@@ -160,7 +195,8 @@ S(T.res, T.cube, (cam, a) => {
   const t362 = Wt('362'), tTyp = Wt('types'), tDif = Wt('différents');
   bg(cam);
   const tag = chip(cam, 'RÉSULTAT', INK, CREAM, 56);
-  const sw = swarm(cam, 26, 17, 380, 230, .55);
+  const sw = swarm(cam, 22, 17, 0, 0, .5);
+  sw.forEach((b, i) => { const ang = i / sw.length * 2 * Math.PI; b.x = Math.cos(ang) * 390; b.y = Math.sin(ang) * 250; });
   const n = el('g', {}, cam), nS = bigNum(n, 260, RED);
   const lab = title(cam, ['TYPES DE', ['BACTÉRIES', GREEN]], { size: 100, shadow: 0, sw: 12 });
   return t => {
@@ -181,7 +217,7 @@ S(T.cube, T.moit, (cam, a) => {
   const cube = sugar(cam);
   const mini = el('g', {}, cam); const msp = sponge(mini, .6);
   const sw = swarm(cam, 14, 41, 120, 100, .3);
-  const n = el('g', {}, cam), nS = bigNum(n, 170, RED); nS.set('54 MILLIARDS');
+  const n = el('g', {}, cam), nS = bigNum(n, 125, RED); nS.set('54 MILLIARDS');
   const lab = chip(cam, 'DE BACTÉRIES', RED, CREAM, 54);
   const earth = el('g', {}, cam); emoji(earth, '🌍', 170);
   const cmp = title(cam, [['≈ 7 FOIS', GREEN], 'LE NOMBRE', "D'HUMAINS"], { size: 84, shadow: 0, sw: 11 });
@@ -240,7 +276,7 @@ S(T.dis, T.sauf, (cam, a) => {
     at(head, CX, 270, pop(t, a + .05, .35), -2);
     at(mw.g, CX, 620, pop(t, tMic - .5, .35));
     mw.win.setAttribute('fill', t > tMic && Math.floor(t * 8) % 2 ? '#F39C12' : '#2C3E50');
-    at(zap, CX + 280, 440, pop(t, tMic, .3), Math.sin(t * 10) * 10);
+    at(zap, CX + 330, 380, pop(t, tMic, .3), Math.sin(t * 10) * 10);
     l1.update(CX - 110, 920, pop(t, tMic + .1), -2);
     l2.update(CX + 90, 1050, pop(t, tEau - .1), 2);
     at(steam.g, CX - 60, 470, pop(t, tCh - .2, .3)); steam.update(t);
@@ -260,15 +296,15 @@ S(T.sauf, T.net, (cam, a) => {
   const sick = el('g', {}, cam); emoji(sick, '🤢', 130);
   const od = chip(cam, "L'ODEUR ?", RED, CREAM, 56);
   return t => {
-    st.update(CX, 260, t, a + .1, -6);
+    st.update(CX - 40, 220, t, a + .1, -6);
     at(sp.g, CX, 620, pop(t, tNet - .4, .35), -3);
     lab.update(CX, 820, pop(t, tNet - .1), 2);
     moveSwarm(sw, t, CX, 620, 1, tMor - .8);
     sw.forEach(b => b.g.querySelector('rect').setAttribute('fill', t > tMor ? PURPLE : GREEN));
     at(name, CX, 1010, pop(t, tMor - .2, .35), -2);
-    at(stk.g, CX - 40, 470, pop(t, tOd - .3, .3)); stk.update(t);
-    at(sick, CX + 300, 440, pop(t, tOd - .1, .35), Math.sin(t * 5) * 8);
-    od.update(CX - 260, 440, pop(t, tOd), -4);
+    at(stk.g, CX - 40, 470, .7 * pop(t, tOd - .3, .3)); stk.update(t);
+    at(sick, CX - 300, 420, pop(t, tOd - .1, .35), Math.sin(t * 5) * 8);
+    od.update(CX + 230, 410, pop(t, tOd), -4);
     shock(t, a + .2, .3, .7); shock(t, tMor + .2, .3, .5);
   };
 }, { swipe: RED });
@@ -291,21 +327,21 @@ S(T.net, T.conseil, (cam, a) => {
     sw.forEach((b, i) => {
       if (b.strong) {
         // les survivantes s'étalent dans tout le cadre
-        at(b.g, CX + b.x * lerp(.6, 1, grow) + Math.sin(t * 2 + b.ph) * 10, 660 + b.y * lerp(.6, 1, grow), lerp(1, 2.2, grow) * pop(t, a + .1 + i * .01, .25), Math.sin(t * 3 + b.ph) * 10);
+        at(b.g, CX + b.x * lerp(.6, 1, grow) + Math.sin(t * 2 + b.ph) * 10, 600 + b.y * lerp(.55, .85, grow), lerp(1, 1.7, grow) * pop(t, a + .1 + i * .01, .25), Math.sin(t * 3 + b.ph) * 10);
       } else {
-        at(b.g, CX + b.x * .6 + Math.sin(t * 2 + b.ph) * 10, 660 + b.y * .6, (1 - kill) * pop(t, a + .1 + i * .01, .25));
+        at(b.g, CX + b.x * .6 + Math.sin(t * 2 + b.ph) * 10, 600 + b.y * .55, (1 - kill) * pop(t, a + .1 + i * .01, .25));
         show(b.g, kill < 1);
       }
     });
     flash.setAttribute('opacity', fmt(hit(t, tTue + .05, .2) * .8));
-    l1.update(CX, 960, pop(t, tTue + .2), -2);
-    at(l2, CX, 1115, pop(t, tSurv, .35), -1);
+    l1.update(CX, 920, pop(t, tTue + .2), -2);
+    at(l2, CX, 1050, pop(t, tSurv, .35), -1);
     shock(t, tTue + .05, .3, .8); shock(t, tPl, .3, .4);
   };
 }, { swipe: GREEN });
 
 // ====== 9. LEUR CONSEIL : changer d'éponge chaque semaine =========================================
-S(T.conseil, T.cta, (cam, a) => {
+S(T.conseil, T.ancien, (cam, a) => {
   const tCh = Wt('Changer'), tSem = Wt('semaine');
   bg(cam);
   const head = title(cam, ['LEUR', ['CONSEIL ?', GREEN]], { size: 120, shadow: 0, sw: 12 });
@@ -317,11 +353,36 @@ S(T.conseil, T.cta, (cam, a) => {
     const k = p(t, tCh, tCh + .6, E.inOut);
     at(old.g, CX - lerp(0, 700, k), 640, .9 * pop(t, a + .2, .35), -lerp(4, 40, k));
     at(neu.g, CX + lerp(700, 0, k), 640, .9, 3);
-    at(cal, CX + 300, 860, pop(t, tSem - .3, .35), Math.sin(t * 4) * 5);
+    at(cal, CX + 340, 830, pop(t, tSem - .3, .35), Math.sin(t * 4) * 5);
     at(lab, CX - 40, 1040, pop(t, tSem - .2, .35), -2);
     shock(t, tSem + .2, .3, .6);
   };
 }, { swipe: RED });
+
+// ====== 9 bis. L'ANCIENNE : pour la poubelle, pas pour les assiettes ===========================
+S(T.ancien, T.cta, (cam, a) => {
+  const tAnc = Wt("l'ancienne"), tPoub = Wt('poubelle'), tAss = Wt('assiettes');
+  bg(cam);
+  const tag = chip(cam, "ET L'ANCIENNE ?", INK, CREAM, 56);
+  const sp = sponge(cam, 1);
+  const bin = el('g', {}, cam); emoji(bin, '🗑️', 200);
+  const plate = el('g', {}, cam); emoji(plate, '🍽️', 200);
+  const b = el('g', {}, cam);
+  el('circle', { r: 130, fill: 'none', stroke: RED, 'stroke-width': 20 }, b);
+  el('line', { x1: -92, y1: -92, x2: 92, y2: 92, stroke: RED, 'stroke-width': 20 }, b);
+  const l1 = chip(cam, '✓ POUBELLE', GREEN, CREAM, 46), l2 = chip(cam, '✗ ASSIETTES', RED, CREAM, 46);
+  return t => {
+    tag.update(CX, 240, pop(t, a + .05), -2);
+    const k = p(t, tPoub - .2, tPoub + .4, E.inOut);
+    at(sp.g, lerp(CX, CX - 220, k), lerp(480, 720, k), lerp(.55, .3, k) * pop(t, tAnc - .2, .35) * (1 - p(t, tPoub + .4, tPoub + .6)), lerp(-4, 20, k));
+    at(bin, CX - 220, 820, pop(t, tPoub - .4, .35));
+    l1.update(CX - 220, 1000, pop(t, tPoub + .1), -2);
+    at(plate, CX + 220, 820, pop(t, tAss - .5, .35));
+    at(b, CX + 220, 820, pop(t, tAss - .1, .3));
+    l2.update(CX + 220, 1000, pop(t, tAss + .1), 2);
+    shock(t, tPoub + .3, .3, .5); shock(t, tAss, .3, .5);
+  };
+}, { swipe: GREEN });
 
 // ====== 10. FIN : la tienne, elle a quel âge ? ===================================================
 S(T.cta, M.DUR, (cam, a) => {
@@ -339,9 +400,9 @@ S(T.cta, M.DUR, (cam, a) => {
   const point = el('g', {}, cta); emoji(point, '👇', 90);
   return t => {
     at(q, CX, 330, pop(t, a + .05, .35), -2);
-    at(sp.g, CX, 730, .75 * pop(t, a + .3, .35) * (1 + .03 * Math.sin(t * 5)), 5);
+    at(sp.g, CX - 60, 730, .75 * pop(t, a + .3, .35) * (1 + .03 * Math.sin(t * 5)), 5);
     at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
-    at(bub, CX + 330, 940, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    at(bub, CX + 370, 820, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
     w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
     tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
     shock(t, tAge + .2, .25, .4);
