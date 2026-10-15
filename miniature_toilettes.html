@@ -117,23 +117,77 @@ function floor(parent, x0, x1, y) {
 }
 
 
+// Nuage toxique : grappe de bulles vertes à contour noir (rx × ry autour de 0, 0), avec des virus dedans.
+function toxic(parent, n, seed, rx, ry, rmin = 40, rmax = 90) {
+  const g = el('g', {}, parent), back = el('g', {}, g), front = el('g', {}, g);
+  for (let i = 0; i < n; i++) {
+    const x = (hash(seed + i) * 2 - 1) * rx, y = (hash(seed + i * 5) * 2 - 1) * ry, r = rmin + hash(seed + i * 9) * (rmax - rmin);
+    el('circle', { cx: fmt(x), cy: fmt(y), r: fmt(r + 9), fill: INK }, back);
+    el('circle', { cx: fmt(x), cy: fmt(y), r: fmt(r), fill: '#8EE07A' }, front);
+    el('circle', { cx: fmt(x - r * .3), cy: fmt(y - r * .3), r: fmt(r * .25), fill: '#C8F5B8' }, front);
+  }
+  return g;
+}
+const V = new URLSearchParams(location.search).get('v') || 'a';
+
 // ====== Miniature (couverture TikTok) : une seule image, t = 0,9 s =======================
 S(0, M.DUR, (cam) => {
-  bg(cam);
-  const head = title(cam, ['TU FERMES', ["L'ABATTANT ?", BLUE]], { size: 100, shadow: 0, sw: 13 });
-  const fl = floor(cam, 60, 1020, 0);
-  const wc = toilet(cam); wc.setLid(1);
-  const arrows = [0, 1].map(() => arrow(cam, BLUE));
-  const vs = viruses(cam, 7, 91, 110, 70, .6);
-  const lab = title(cam, ['LES VIRUS', ['SORTENT', RED], 'QUAND MÊME'], { size: 78, shadow: 0, sw: 11 });
-  const s = .75, ox = CX - 60, oy = 740;
+  if (V === 'a') {
+    // A : fond rouge, « FERMER L'ABATTANT », nuage toxique qui sort quand même, tampon « INUTILE ? »
+    bg(cam, RED, false);
+    const head = title(cam, [['FERMER', CREAM], ["L'ABATTANT", YELLOW]], { size: 128, shadow: 0, sw: 16 });
+    const fl = floor(cam, 330, 1000, 0);
+    const wc = toilet(cam); wc.setLid(1);
+    const cl = toxic(cam, 16, 7, 170, 120, 45, 85);
+    const vs = viruses(cam, 6, 11, 150, 100, .75);
+    const st = stamp(cam, 'INUTILE ?', INK, 105);
+    const s = 1, ox = CX - 60, oy = 930;
+    return t => {
+      at(head, CX - 50, 330, 1, -4);
+      at(wc.g, ox, oy, s); at(fl, 0, oy + 310 * s + 4, 1);
+      at(cl, ox + 300, oy - 230, 1);
+      vs.forEach(v => at(v.g, ox + 300 + v.x, oy - 230 + v.y, 1, v.ph * 30));
+      st.update(CX + 170, 1500, t, 0, -8);
+    };
+  }
+  if (V === 'b') {
+    // B : avant / après. Ce que tu crois (abattant fermé, protégé) vs la réalité (les virus sortent).
+    bg(cam);
+    const head = title(cam, ['ABATTANT', ['FERMÉ', BLUE], '= PROTÉGÉ ?'], { size: 100, shadow: 0, sw: 13 });
+    const L = toilet(cam), R = toilet(cam); L.setLid(1); R.setLid(1);
+    const cL = chip(cam, 'CE QUE TU CROIS', GREEN, CREAM, 38), cR = chip(cam, 'LA RÉALITÉ', RED, CREAM, 44);
+    const ok = el('g', {}, cam), okS = bigNum(ok, 170, GREEN); okS.set('✓');
+    const cl = toxic(cam, 12, 21, 110, 90, 35, 65);
+    const vs = viruses(cam, 5, 31, 100, 70, .6);
+    const lab = title(cam, ['LES VIRUS', ['PASSENT', RED], 'QUAND MÊME'], { size: 72, shadow: 0, sw: 10 });
+    const sep = el('line', { x1: 0, y1: 0, x2: 0, y2: 640, stroke: INK, 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': '30 26' }, cam);
+    return t => {
+      at(head, CX - 20, 320, 1, -3);
+      at(sep, 520, 560, 1);
+      cL.update(270, 600, 1, -3); cR.update(760, 600, 1, 3);
+      at(L.g, 300, 1040, .62); at(R.g, 770, 1040, .62);
+      at(lab, 640, 1480, 1, -3);
+      at(ok, 290, 760, 1, 0);
+      at(cl, 800, 790, 1);
+      vs.forEach(v => at(v.g, 800 + v.x, 790 + v.y, 1, v.ph * 30));
+    };
+  }
+  // C : fond bleu nuit, le chiffre choc « 1,50 M EN 8 SECONDES », nuage qui monte du WC
+  bg(cam, '#2C3E50', false);
+  const big = el('g', {}, cam), bigS = bigNum(big, 250, YELLOW); bigS.set('1,50 M');
+  const sub = title(cam, [['EN 8 SECONDES', CREAM]], { size: 84, shadow: 0, sw: 0 });
+  const wc = toilet(cam); wc.setLid(0);
+  const cl = toxic(cam, 22, 41, 150, 190, 40, 75);
+  const vs = viruses(cam, 7, 51, 130, 170, .65);
+  const st = stamp(cam, 'TU FERMES L\'ABATTANT ?', RED, 40);
+  const s = .85, ox = CX + 60, oy = 1150;
   return t => {
-    at(head, CX, 250, 1, -3);
-    at(wc.g, ox, oy, s); at(fl, 0, oy + 310 * s + 4, 1);
-    arrows[0].set(ox + 190 * s, oy - 18 * s, ox + 330, oy - 140, -.25, 1);
-    arrows[1].set(ox + 200 * s, oy - 4 * s, ox + 360, oy + 150, .2, 1);
-    vs.forEach(v => at(v.g, ox + 300 + v.x * .8, oy - 260 + v.y * .8, 1, v.ph * 30));
-    at(lab, CX + 40, 1150, 1, -2);
+    at(big, CX - 30, 310, 1, -4);
+    at(sub, CX - 30, 470, 1, -4);
+    at(wc.g, ox, oy, s);
+    at(cl, ox + 30, oy - 300, 1);
+    vs.forEach(v => at(v.g, ox + 30 + v.x, oy - 300 + v.y, 1, v.ph * 30));
+    st.update(CX + 150, 1570, t, 0, -5);
   };
 });
 Motion.selene({ pos: t => ({ x: 165, y: 1660, k: 1 }) });
