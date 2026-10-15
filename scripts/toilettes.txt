@@ -10,9 +10,6 @@
 #   désinfectant : ~99,99 % de virus en moins dans la cuvette, ~98 % sur la brosse.
 #   (https://cales.arizona.edu/news/preventing-viral-spread-restroom-and-why-closing-lid-not-enough,
 #    https://www.healthday.com/health-news/infectious-disease/putting-the-lid-down-wont-cut-germ-spread-from-a-toilet-flush)
-# - Hartmann et al., Frontiers in Microbiomes (oct. 2024), Northwestern : plus de 600 virus différents sur brosses à dents et
-#   pommeaux de douche, surtout des bactériophages, qui infectent les bactéries et pas les humains
-#   (https://news.northwestern.edu/stories/2024/10/viruses-are-teeming-on-your-toothbrush-showerhead/).
 Quand tu tires la chasse, un nuage de gouttelettes invisibles sort de tes toilettes.
 Des chercheurs américains l'ont filmé au laser_: en 8[huit] secondes, il monte jusqu'à 1,50_m[un mètre cinquante]. Presque à hauteur de ton visage.
 Alors on t'a appris à fermer l'abattant avant de tirer. Logique, non_?
@@ -25,6 +22,5 @@ Et la surface la plus touchée… c'était la lunette.
 Attention, l'abattant n'est pas inutile_: il retient les bactéries, qui sont plus grosses. Mais les virus, eux, passent.
 Alors, qu'est-ce qui marche vraiment_? Frotter la cuvette avec la brosse… et un désinfectant. Là, 99,99_%[quatre-vingt-dix-neuf virgule quatre-vingt-dix-neuf pour cent] des virus disparaissent.
 La brosse toute seule_? Elle en laisse beaucoup… et elle les garde sur ses poils.
-Et ta brosse à dents, juste à côté_? Des chercheurs y ont trouvé plus de 600[six cents] virus différents. Rassure-toi_: ceux-là attaquent les bactéries… pas toi.
 Et toi, tu fermes l'abattant… ou pas_? Dis-le en commentaire.
 Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
