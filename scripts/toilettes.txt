@@ -13,10 +13,10 @@
 # - Hartmann et al., Frontiers in Microbiomes (oct. 2024), Northwestern : plus de 600 virus différents sur brosses à dents et
 #   pommeaux de douche, surtout des bactériophages, qui infectent les bactéries et pas les humains
 #   (https://news.northwestern.edu/stories/2024/10/viruses-are-teeming-on-your-toothbrush-showerhead/).
-Fermer l'abattant des toilettes avant de tirer la chasse… ça ne protège presque pas des virus.
-Je t'explique. Quand tu tires la chasse, l'eau projette un nuage de gouttelettes invisibles.
+Quand tu tires la chasse, un nuage de gouttelettes invisibles sort de tes toilettes.
 Des chercheurs américains l'ont filmé au laser_: en 8[huit] secondes, il monte jusqu'à 1,50_m[un mètre cinquante]. Presque à hauteur de ton visage.
-Alors on t'a appris à fermer l'abattant. Logique, non_?
+Alors on t'a appris à fermer l'abattant avant de tirer. Logique, non_?
+Sauf que… ça ne protège presque pas des virus.
 Une équipe de l'université d'Arizona a voulu vérifier. Ils ont mis un virus inoffensif dans des cuvettes… puis tiré la chasse, abattant ouvert, puis abattant fermé.
 Résultat_: à peu près autant de virus autour des toilettes, dans les deux cas.
 Pourquoi_? Parce que l'air poussé par la chasse s'échappe quand même… sur les côtés, entre la lunette et le couvercle.
