@@ -11,7 +11,7 @@
 #   (https://cales.arizona.edu/news/preventing-viral-spread-restroom-and-why-closing-lid-not-enough,
 #    https://www.healthday.com/health-news/infectious-disease/putting-the-lid-down-wont-cut-germ-spread-from-a-toilet-flush)
 Quand tu tires la chasse, un nuage de gouttelettes invisibles sort de tes toilettes.
-Des chercheurs américains l'ont filmé au laser_: en 8[huit] secondes, il monte jusqu'à 1,50_m[un mètre cinquante]. Presque à hauteur de ton visage.
+Des chercheurs américains l'ont filmé au laser_: en 8[huit] secondes, il monte jusqu'à 1,50_m.[un mètre cinquante.] Presque à hauteur de ton visage.
 Alors on t'a appris à fermer l'abattant avant de tirer. Logique, non_?
 Sauf que… ça ne protège presque pas des virus.
 Une équipe de l'université d'Arizona a voulu vérifier. Ils ont mis un virus inoffensif dans des cuvettes… puis tiré la chasse, abattant ouvert, puis abattant fermé.
