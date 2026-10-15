@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abattant des toilettes et virus</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Fermer l'abattant des toilettes ne protège presque pas des virus » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/toilettes.txt → node tools/voix.mjs toilettes ; node tools/enveloppe.mjs toilettes
+     Chiffres et sources : en tête de scripts/toilettes.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/toilettes_words.js"></script>
+<script src="assets/toilettes_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, hash } = Motion;
+await setup({
+  duration: 72,
+  words: window.WORDS,
+  audio: 'assets/voix_toilettes.mp3',
+  emojis: '🔬😮💬👇🧴👑⏱️🦠',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const PORC = '#FFFFFF', SHADE = '#DCE3E8', WATER = '#5DADE2', VIR = '#9B59B6', LASER = '#39FF6A', YELLOW = '#FFD23F', BLUE = '#3498DB';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Toilettes vues de profil, tournées vers la droite (≈ 420 × 480). Origine : centre du bord de la cuvette.
+// setLid(k) : 0 = abattant levé contre le réservoir, 1 = abattant fermé.
+function toilet(parent) {
+  const g = el('g', {}, parent);
+  const st = { stroke: INK, 'stroke-width': 9, 'stroke-linejoin': 'round' };
+  card(g, -250, -330, 120, 290, PORC, 20, 10, 9);                                   // réservoir
+  el('rect', { x: -262, y: -350, width: 144, height: 30, rx: 12, fill: PORC, ...st }, g);
+  el('rect', { x: -170, y: -315, width: 26, height: 12, rx: 5, fill: SHADE, stroke: INK, 'stroke-width': 5 }, g); // poignée
+  el('path', { d: 'M-150,0 L-150,160 Q-150,200 -100,215 L-70,225 L-70,310 L60,310 L60,225 Q170,190 190,40 L190,0 Z', fill: PORC, ...st }, g); // cuvette + pied
+  el('path', { d: 'M-130,20 L170,20', stroke: SHADE, 'stroke-width': 12, 'stroke-linecap': 'round' }, g);
+  const seat = el('rect', { x: -165, y: -26, width: 370, height: 28, rx: 12, fill: PORC, ...st }, g);
+  const lidG = el('g', {}, g), lid = el('g', {}, lidG);
+  el('rect', { x: 0, y: -26, width: 380, height: 26, rx: 13, fill: PORC, ...st }, lid);
+  el('rect', { x: -186, y: -14, width: 34, height: 26, rx: 8, fill: SHADE, stroke: INK, 'stroke-width': 6 }, g); // charnière
+  return { g, seat, lid, setLid(k) { tf(lid, -170, -26, 1, lerp(-90, 0, k)); } };
+}
+// Virus : boule à piquants avec petits yeux (≈ 90 de large à s = 1).
+function virus(parent, col = VIR, s = 1) {
+  const g = el('g', {}, parent), b = el('g', {}, g);
+  for (let i = 0; i < 9; i++) {
+    const a = i / 9 * 2 * Math.PI, c = Math.cos(a), sn = Math.sin(a);
+    el('line', { x1: fmt(c * 28), y1: fmt(sn * 28), x2: fmt(c * 46), y2: fmt(sn * 46), stroke: INK, 'stroke-width': 6, 'stroke-linecap': 'round' }, b);
+    el('circle', { cx: fmt(c * 48), cy: fmt(sn * 48), r: 8, fill: col, stroke: INK, 'stroke-width': 4 }, b);
+  }
+  el('circle', { r: 32, fill: col, stroke: INK, 'stroke-width': 7 }, b);
+  [-11, 11].forEach(x => { el('circle', { cx: x, cy: -4, r: 8, fill: WHITE, stroke: INK, 'stroke-width': 3 }, b); el('circle', { cx: x + 1, cy: -3, r: 3.5, fill: INK }, b); });
+  el('path', { d: 'M-9,12 q9,7 18,0', fill: 'none', stroke: INK, 'stroke-width': 4, 'stroke-linecap': 'round' }, b);
+  tf(b, 0, 0, s);
+  return g;
+}
+// Bactérie : bâtonnet vert, bien plus grosse qu'un virus.
+function bact(parent, col = GREEN, s = 1) {
+  const g = el('g', {}, parent), body = el('g', {}, g);
+  el('rect', { x: -62, y: -34, width: 124, height: 68, rx: 34, fill: col, stroke: INK, 'stroke-width': 7 }, body);
+  [-20, 20].forEach(x => { el('circle', { cx: x, cy: -6, r: 12, fill: WHITE, stroke: INK, 'stroke-width': 4 }, body); el('circle', { cx: x + 2, cy: -4, r: 5, fill: INK }, body); });
+  el('path', { d: 'M-12,12 q12,10 24,0', fill: 'none', stroke: INK, 'stroke-width': 5, 'stroke-linecap': 'round' }, body);
+  tf(body, 0, 0, s);
+  return g;
+}
+// Nuage de gouttelettes qui monte depuis (0, 0) : k = 0 → au ras de la cuvette, 1 → en haut (hauteur h).
+function plume(parent, n, seed, h = 500, spread = 170) {
+  const g = el('g', {}, parent);
+  const d = Array.from({ length: n }, (_, i) => ({ c: el('circle', { r: fmt(5 + hash(seed + i) * 9), fill: WATER, stroke: INK, 'stroke-width': 3, opacity: .85 }, g), u: hash(seed + i * 3), x: hash(seed + i * 7) * 2 - 1, ph: hash(seed + i * 11) * 6.28 }));
+  return { g, update(t, k) {
+    d.forEach(o => {
+      const kk = clamp(k * (.55 + .6 * o.u));
+      tf(o.c, o.x * spread * (.3 + .7 * kk) + Math.sin(t * 2 + o.ph) * 10, -kk * h * (.5 + .5 * o.u) + Math.cos(t * 1.7 + o.ph) * 8, kk > 0 ? 1 : 0);
+    });
+  } };
+}
+// Groupe de virus qui flottent autour d'une position.
+function viruses(parent, n, seed, rx, ry, s = .5) {
+  return Array.from({ length: n }, (_, i) => ({ g: virus(parent, VIR, s * (.75 + hash(seed + i) * .5)), x: (hash(seed + i * 3) * 2 - 1) * rx, y: (hash(seed + i * 7) * 2 - 1) * ry, ph: hash(seed + i * 11) * 6.28, d: hash(seed + i * 13) }));
+}
+function moveV(vs, t, cx, cy, k, t0 = 0) {
+  vs.forEach(v => at(v.g, cx + v.x + Math.sin(t * 2 + v.ph) * 10, cy + v.y + Math.cos(t * 1.6 + v.ph) * 9, k * pop(t, t0 + v.d * .6, .3), Math.sin(t * 2.5 + v.ph) * 20));
+}
+// Flèche épaisse (de x1,y1 vers x2,y2, légère courbe c).
+function arrow(parent, col = BLUE) {
+  const g = el('g', {}, parent);
+  const pa = el('path', { fill: 'none', stroke: col, 'stroke-width': 18, 'stroke-linecap': 'round' }, g);
+  const pa0 = el('path', { fill: 'none', stroke: INK, 'stroke-width': 30, 'stroke-linecap': 'round' }, g); g.insertBefore(pa0, pa);
+  const head = el('path', { d: 'M0,-26 L40,0 L0,26 Z', fill: col, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return { g, set(x1, y1, x2, y2, c = 0, k = 1) {
+    const mx = (x1 + x2) / 2 - (y2 - y1) * c, my = (y1 + y2) / 2 + (x2 - x1) * c;
+    const ex = lerp(x1, x2, k), ey = lerp(y1, y2, k);
+    const d = `M${fmt(x1)},${fmt(y1)} Q${fmt(lerp(x1, mx, k))},${fmt(lerp(y1, my, k))} ${fmt(ex)},${fmt(ey)}`;
+    pa.setAttribute('d', d); pa0.setAttribute('d', d);
+    const ang = Math.atan2(ey - lerp(y1, my, k), ex - lerp(x1, mx, k)) * 180 / Math.PI;
+    tf(head, ex, ey, k > .05 ? 1 : 0, ang);
+  } };
+}
+// Sol carrelé sous les toilettes (de x0 à x1, à la hauteur y).
+function floor(parent, x0, x1, y) {
+  const g = el('g', {}, parent);
+  el('rect', { x: x0, y, width: x1 - x0, height: 26, rx: 8, fill: '#D5B895', stroke: INK, 'stroke-width': 7 }, g);
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  labo: Wt('Des') - .2, alors: Wt('Alors') - .2, sauf: Wt('Sauf') - .2, une: Wt('Une') - .2, res: Wt('Résultat') - .25,
+  pq: Wt('Pourquoi') - .2, pire: Wt('Pire') - .2, surf: Wt('Et', 1, Wt('contaminé')) - .2, att: Wt('Attention') - .2,
+  marche: Wt('Alors', 1, Wt('passent')) - .2, brosse: Wt('La', 1, Wt('disparaissent')) - .2, cta: Wt('Et', 1, Wt('poils')) - .2,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : quand tu tires la chasse, un nuage invisible sort de tes toilettes ===========
+// Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.labo, (cam) => {
+  const tCh = Wt('chasse'), tNu = Wt('nuage'), tInv = Wt('invisibles'), tToi = Wt('toilettes');
+  bg(cam);
+  const head = title(cam, ['QUAND TU TIRES', ['LA CHASSE…', BLUE]], { size: 100, shadow: 0, sw: 13 });
+  const fl = floor(cam, 120, 960, 0);
+  const wc = toilet(cam); wc.setLid(0);
+  const pl = plume(cam, 46, 5, 330, 125);
+  const lab = title(cam, ['UN NUAGE', ['INVISIBLE', RED]], { size: 92, shadow: 0, sw: 12 });
+  return t => {
+    at(head, CX, 300, lerp(1.15, 1, p(t, 0, .3, E.out)), -2);
+    const s = pop(t, -.35, .35) * .95;
+    at(wc.g, CX - 180, 820, s); at(fl, 0, 820 + 310 * .95 + 4, 1);
+    at(pl.g, CX - 180 + 20 * .95, 820 - 26 * .95, 1); pl.update(t, p(t, tCh, tToi + .6, E.out));
+    pl.g.setAttribute('opacity', fmt(lerp(1, .55, p(t, tInv - .2, tInv + .3))));
+    at(lab, CX + 250, 620, pop(t, tNu - .2, .35), 4);
+    shock(t, tCh + .1, .3, .7); shock(t, tInv + .2, .3, .4);
+  };
+});
+
+// ====== 2. FILMÉ AU LASER : 1,50 m en 8 secondes, à hauteur de ton visage ======================
+S(T.labo, T.alors, (cam, a) => {
+  const tLas = Wt('laser'), t8 = Wt('8'), tSec = Wt('secondes'), t150 = Wt('1,50 m.'), tVis = Wt('visage');
+  bg(cam);
+  const tag = chip(cam, 'CHERCHEURS AMÉRICAINS', INK, CREAM, 46);
+  const fl = floor(cam, 60, 760, 0);
+  const sheet = el('rect', { x: -12, y: -600, width: 24, height: 600, fill: LASER, opacity: .55 }, cam);
+  const wc = toilet(cam); wc.setLid(0);
+  const pl = plume(cam, 50, 21, 520, 150);
+  const rule = el('g', {}, cam);
+  el('rect', { x: -14, y: -560, width: 28, height: 560, rx: 8, fill: YELLOW, stroke: INK, 'stroke-width': 6 }, rule);
+  for (let i = 1; i < 10; i++) el('line', { x1: -14, y1: -i * 56, x2: i % 5 ? 0 : 14, y2: -i * 56, stroke: INK, 'stroke-width': 5 }, rule);
+  const hN = el('g', {}, cam), hS = bigNum(hN, 90, RED); hS.set('1,50 M');
+  const face = el('g', {}, cam); emoji(face, '😮', 120);
+  const clock = el('g', {}, cam);
+  card(clock, -150, -70, 300, 140, INK, 30, 10, 7);
+  const cS = el('text', { 'text-anchor': 'middle', 'font-size': 100, y: 36, fill: LASER }, clock);
+  const s = .8, ox = CX - 250, oy = 900;
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    at(wc.g, ox, oy, s * pop(t, a, .3)); at(fl, 0, oy + 310 * s + 4, 1);
+    const k = p(t, t8 - .1, t150 + .5, E.out);
+    at(sheet, ox + 16, oy - 20, pop(t, tLas - .3, .25)); sheet.setAttribute('opacity', fmt(.35 + .2 * Math.sin(t * 20)));
+    at(pl.g, ox + 16, oy - 22, 1); pl.update(t, k);
+    at(rule, ox + 300, oy + 310 * s, pop(t, t150 - .4, .3));
+    at(hN, 800, 640, pop(t, t150 - .2, .3), -3);
+    at(clock, 800, 820, pop(t, t8 - .3, .3), 2);
+    cS.textContent = (Math.min(8, Math.max(0, (t - t8) / (tSec + .4 - t8) * 8))).toFixed(0) + ' S';
+    at(face, ox + 300, 510, pop(t, tVis - .4, .35), Math.sin(t * 3) * 6);
+    shock(t, t150 + .3, .3, .7); shock(t, tVis, .3, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. ON T'A APPRIS À FERMER L'ABATTANT. LOGIQUE, NON ? =====================================
+S(T.alors, T.sauf, (cam, a) => {
+  const tFer = Wt('fermer'), tLog = Wt('Logique');
+  bg(cam);
+  const head = title(cam, ['ALORS ON', ['FERME', GREEN], "L'ABATTANT"], { size: 110, shadow: 0, sw: 13 });
+  const fl = floor(cam, 120, 960, 0);
+  const wc = toilet(cam);
+  const ok = chip(cam, '✓ LOGIQUE ?', GREEN, CREAM, 56);
+  return t => {
+    at(head, CX, 400, pop(t, a + .05, .35), -2);
+    at(wc.g, CX - 120, 860, .7 * pop(t, a + .1, .35)); at(fl, 0, 860 + 310 * .7 + 4, 1);
+    wc.setLid(p(t, tFer, Wt("l'abattant") + .4, E.inOut));
+    ok.update(CX + 260, 800, pop(t, tLog - .1), -3);
+    shock(t, Wt("l'abattant") + .4, .25, .5);
+  };
+}, { swipe: RED });
+
+// ====== 4. SAUF QUE… ça ne protège presque pas des virus ==========================================
+S(T.sauf, T.une, (cam, a) => {
+  const tPro = Wt('protège'), tVir = Wt('virus', 1, a);
+  bg(cam);
+  const st = stamp(cam, 'SAUF QUE…', RED, 110);
+  const lab = title(cam, ['ÇA NE PROTÈGE', ['PRESQUE PAS', RED], 'DES VIRUS'], { size: 96, shadow: 0, sw: 12 });
+  const vs = viruses(cam, 9, 31, 380, 110, .9);
+  return t => {
+    st.update(CX, 300, t, a + .1, -6);
+    at(lab, CX, 620, pop(t, tPro - .3, .35), -2);
+    moveV(vs, t, CX, 960, 1, tVir - .5);
+    shock(t, a + .2, .3, .7); shock(t, tVir + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. L'ÉQUIPE DE L'UNIVERSITÉ D'ARIZONA : virus inoffensif, chasse ouvert puis fermé ==========
+S(T.une, T.res, (cam, a) => {
+  const tAri = Wt("d'Arizona"), tInof = Wt('inoffensif'), tOuv = Wt('ouvert'), tFer = Wt('fermé', 1, tOuv);
+  bg(cam);
+  const tag = chip(cam, "UNIVERSITÉ D'ARIZONA", INK, CREAM, 50);
+  const mic = el('g', {}, cam); emoji(mic, '🔬', 150);
+  const v = virus(cam, VIR, 1.4);
+  const vl = chip(cam, 'VIRUS INOFFENSIF', VIR, CREAM, 40);
+  const L = toilet(cam), R = toilet(cam); L.setLid(0); R.setLid(1);
+  const fl = floor(cam, 60, 1020, 0);
+  const lO = chip(cam, 'OUVERT', GREEN, CREAM, 44), lF = chip(cam, 'FERMÉ', RED, CREAM, 44);
+  const pL = plume(cam, 22, 51, 260, 100), pR = plume(cam, 22, 61, 200, 120);
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    const out = 1 - p(t, tOuv - .5, tOuv - .2);
+    at(mic, CX - 200, 560, pop(t, tAri - .3, .35) * out, Math.sin(t * 3) * 4);
+    at(v, CX + 160, 540, pop(t, tInof - .3, .35) * out, Math.sin(t * 2) * 10);
+    vl.update(CX + 160, 720, pop(t, tInof) * out, 2);
+    const s = .55, y = 850;
+    at(L.g, CX - 230, y, s * pop(t, tOuv - .3, .3)); at(R.g, CX + 260, y, s * pop(t, tFer - .4, .3));
+    at(fl, 0, y + 310 * s + 4, pop(t, tOuv - .3, .3) ? 1 : 0);
+    lO.update(CX - 230, 540, pop(t, tOuv - .1), -3); lF.update(CX + 260, 540, pop(t, tFer - .1), 3);
+    at(pL.g, CX - 230 + 10, y - 15, 1); pL.update(t, p(t, tOuv, tOuv + 1.2, E.out));
+    at(pR.g, CX + 260 + 10, y - 30, 1); pR.update(t, p(t, tFer, tFer + 1.2, E.out));
+  };
+}, { swipe: RED });
+
+// ====== 6. RÉSULTAT : à peu près autant de virus dans les deux cas ================================
+S(T.res, T.pq, (cam, a) => {
+  const tAut = Wt('autant'), tDeux = Wt('deux', 1, a);
+  bg(cam);
+  const tag = chip(cam, 'RÉSULTAT', INK, CREAM, 56);
+  const L = toilet(cam), R = toilet(cam); L.setLid(0); R.setLid(1);
+  const fl = floor(cam, 60, 1020, 0);
+  const lO = chip(cam, 'OUVERT', GREEN, CREAM, 44), lF = chip(cam, 'FERMÉ', RED, CREAM, 44);
+  const vL = viruses(cam, 7, 71, 150, 90, .55), vR = viruses(cam, 7, 81, 150, 90, .55);
+  const eq = el('g', {}, cam), eqS = bigNum(eq, 170, RED); eqS.set('=');
+  const lab = title(cam, ['≈ AUTANT', ['DE VIRUS', VIR]], { size: 96, shadow: 0, sw: 12 });
+  return t => {
+    tag.update(CX, 230, pop(t, a + .05), -2);
+    const s = .5, y = 880;
+    at(L.g, CX - 240, y, s); at(R.g, CX + 250, y, s); at(fl, 0, y + 310 * s + 4, 1);
+    lO.update(CX - 240, 1100, 1, -3); lF.update(CX + 250, 1100, 1, 3);
+    moveV(vL, t, CX - 240, 670, 1, tAut - .6); moveV(vR, t, CX + 250, 670, 1, tAut - .6);
+    at(eq, CX, 700, pop(t, tDeux - .3, .3));
+    at(lab, CX, 420, pop(t, tAut - .2, .35), -2);
+    shock(t, tAut + .2, .3, .6); shock(t, tDeux, .3, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. POURQUOI ? l'air s'échappe sur les côtés, entre la lunette et le couvercle ==============
+S(T.pq, T.pire, (cam, a) => {
+  const tAir = Wt("l'air"), tCot = Wt('côtés'), tLun = Wt('lunette', 1, a), tCou = Wt('couvercle');
+  bg(cam);
+  const head = title(cam, ['POURQUOI ?'], { size: 120, shadow: 0 });
+  const fl = floor(cam, 60, 1020, 0);
+  const wc = toilet(cam); wc.setLid(1);
+  const arrows = [0, 1].map(() => arrow(cam, BLUE));
+  const vs = viruses(cam, 6, 91, 90, 40, .4);
+  const lab = title(cam, ["L'AIR SORT", ['PAR LA FENTE', BLUE]], { size: 76, shadow: 0, sw: 10 });
+  const gap = el('rect', { x: -8, y: -20, width: 16, height: 40, rx: 6, fill: RED }, cam);
+  const s = .9, ox = CX - 40, oy = 680;
+  return t => {
+    at(head, CX, 280, pop(t, a + .05, .35), -2);
+    at(wc.g, ox, oy, s); at(fl, 0, oy + 310 * s + 4, 1);
+    const k1 = p(t, tAir, tCot + .2, E.out), k2 = p(t, tAir + .3, tCot + .5, E.out);
+    arrows[0].set(ox + 190 * s, oy - 18 * s, ox + 400, oy - 120, -.25, k1);
+    arrows[1].set(ox - 150 * s, oy - 18 * s, ox - 330, oy - 130, .25, k2);
+    moveV(vs, t, ox + 360, oy - 200, p(t, tCot - .3, tCot), 0);
+    at(gap, ox + 200 * s, oy - 14 * s, pop(t, tLun - .3, .25) * (1 + .3 * Math.sin(t * 10)));
+    at(lab, CX, 1080, pop(t, tCou - .6, .35), -1);
+    shock(t, tCot, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 8. PIRE : abattant fermé, le sol devant encore plus contaminé =============================
+S(T.pire, T.surf, (cam, a) => {
+  const tFer = Wt('fermé', 1, a), tSol = Wt('sol'), tCon = Wt('contaminé', 1, a);
+  bg(cam);
+  const st = stamp(cam, 'PIRE', RED, 110);
+  const fl = floor(cam, 60, 1020, 0);
+  const wc = toilet(cam); wc.setLid(1);
+  const zone = el('rect', { x: 0, y: -10, width: 360, height: 46, rx: 16, fill: RED, opacity: .5 }, cam);
+  const vs = viruses(cam, 8, 101, 160, 20, .45);
+  const lab = title(cam, ['LE SOL DEVANT', ['ENCORE PLUS', RED], 'CONTAMINÉ'], { size: 68, shadow: 0, sw: 10 });
+  const s = .75, ox = CX - 200, oy = 600;
+  return t => {
+    st.update(CX + 200, 300, t, a + .1, -6);
+    at(wc.g, ox, oy, s * pop(t, a, .3)); const fy = oy + 310 * s + 4; at(fl, 0, fy, 1);
+    at(zone, ox + 200 * s, fy - 22, pop(t, tSol - .2, .3)); zone.setAttribute('opacity', fmt(.35 + .2 * Math.sin(t * 6)));
+    moveV(vs, t, ox + 200 * s + 180, fy - 50, 1, tSol - .2);
+    at(lab, CX, 1030, pop(t, tCon - .6, .35), -1);
+    shock(t, a + .2, .3, .7); shock(t, tCon + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. LA SURFACE LA PLUS TOUCHÉE… LA LUNETTE ==================================================
+S(T.surf, T.att, (cam, a) => {
+  const tTou = Wt('touchée'), tLun = Wt('lunette', 1, a);
+  bg(cam);
+  const head = title(cam, ['LA PLUS', ['TOUCHÉE…', RED]], { size: 110, shadow: 0, sw: 13 });
+  const fl = floor(cam, 120, 960, 0);
+  const wc = toilet(cam); show(wc.lid, false);
+  const glow = el('rect', { x: -175, y: -40, width: 390, height: 56, rx: 18, fill: 'none', stroke: RED, 'stroke-width': 14 }, cam);
+  const crown = el('g', {}, cam); emoji(crown, '👑', 130);
+  const vs = viruses(cam, 7, 121, 170, 18, .4);
+  const lab = chip(cam, 'LA LUNETTE', RED, CREAM, 62);
+  const s = .9, ox = CX - 20, oy = 720;
+  return t => {
+    at(head, CX, 300, pop(t, a + .05, .35), -2);
+    at(wc.g, ox, oy, s); at(fl, 0, oy + 310 * s + 4, 1);
+    wc.seat.setAttribute('fill', t > tLun ? '#F5B7B1' : PORC);
+    at(glow, ox, oy, s * pop(t, tLun - .1, .3));
+    moveV(vs, t, ox + 20, oy - 60, 1, tLun - .2);
+    at(crown, ox + 20, oy - 190, pop(t, tLun, .35), Math.sin(t * 5) * 8);
+    lab.update(CX, 1090, pop(t, tLun + .1), -2);
+    shock(t, tLun + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 10. ATTENTION : l'abattant retient les bactéries (plus grosses), pas les virus =============
+S(T.att, T.marche, (cam, a) => {
+  const tRet = Wt('retient'), tGro = Wt('grosses'), tVir = Wt('virus', 1, tGro), tPas = Wt('passent');
+  bg(cam);
+  const tag = chip(cam, "L'ABATTANT N'EST PAS INUTILE", INK, CREAM, 42);
+  const lid = el('g', {}, cam);
+  el('rect', { x: -330, y: -22, width: 660, height: 44, rx: 22, fill: PORC, stroke: INK, 'stroke-width': 9 }, lid);
+  const bs = [0, 1, 2].map(i => bact(cam, GREEN, .9));
+  const vs = [0, 1, 2, 3].map(i => virus(cam, VIR, .5));
+  const lB = chip(cam, '✓ BACTÉRIES BLOQUÉES', GREEN, CREAM, 42), lV = chip(cam, '✗ LES VIRUS PASSENT', RED, CREAM, 42);
+  const ly = 700;
+  return t => {
+    tag.update(CX, 240, pop(t, a + .05), -2);
+    at(lid, CX, ly, pop(t, a + .1, .3));
+    bs.forEach((b, i) => { const k = p(t, tRet - .2 + i * .15, tRet + .4 + i * .15, E.out); at(b, CX - 220 + i * 220, lerp(1000, ly + 75, k) + (k >= 1 ? Math.sin(t * 8 + i) * 5 : 0), pop(t, tRet - .3 + i * .15, .25), Math.sin(t * 3 + i) * 8); });
+    vs.forEach((v, i) => {
+      // les virus montent le long de l'abattant et s'échappent par le côté
+      const k = p(t, tVir - .1 + i * .2, tVir + 1.2 + i * .2, E.inOut), x = CX + 380 + i * 22 * (i % 2 ? 1 : -1), xs = lerp(CX + 340, x, k);
+      at(v, xs, lerp(1000, 390, k), pop(t, tVir - .2 + i * .2, .25) * (1 - p(t, tVir + 1.4 + i * .2, tVir + 1.6 + i * .2)), t * 90);
+    });
+    lB.update(CX - 120, 920 + 40, pop(t, tGro - .3), -2);
+    lV.update(CX - 120, 1075, pop(t, tPas - .2), 2);
+    shock(t, tRet + .4, .25, .4); shock(t, tPas + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 11. CE QUI MARCHE : brosse + désinfectant = 99,99 % des virus en moins =====================
+S(T.marche, T.brosse, (cam, a) => {
+  const tFro = Wt('Frotter'), tDes = Wt('désinfectant'), t99 = Wt('99,99 %'), tDisp = Wt('disparaissent');
+  bg(cam);
+  const head = title(cam, ['CE QUI MARCHE', ['VRAIMENT ?', GREEN]], { size: 100, shadow: 0, sw: 12 });
+  const brush = el('g', {}, cam);
+  el('rect', { x: -14, y: -260, width: 28, height: 250, rx: 12, fill: BLUE, stroke: INK, 'stroke-width': 7 }, brush);
+  el('ellipse', { cx: 0, cy: 20, rx: 70, ry: 50, fill: WHITE, stroke: INK, 'stroke-width': 7 }, brush);
+  for (let i = 0; i < 9; i++) el('line', { x1: -60 + i * 15, y1: 40, x2: -64 + i * 16, y2: 72, stroke: INK, 'stroke-width': 5, 'stroke-linecap': 'round' }, brush);
+  const bottle = el('g', {}, cam); emoji(bottle, '🧴', 190);
+  const plus = el('g', {}, cam), plS = bigNum(plus, 120, GREEN); plS.set('+');
+  const vs = viruses(cam, 10, 141, 300, 70, .45);
+  const n = el('g', {}, cam), nS = bigNum(n, 170, GREEN);
+  const lab = chip(cam, 'DES VIRUS EN MOINS', GREEN, CREAM, 50);
+  return t => {
+    at(head, CX, 290, pop(t, a + .05, .35), -2);
+    const up = p(t, t99 - .5, t99 - .1, E.inOut);
+    at(brush, CX - 240, lerp(700, 560, up), pop(t, tFro - .3, .35) * lerp(1, .6, up), Math.sin(t * 9) * 10 * (t > tFro && t < t99 ? 1 : 0));
+    at(plus, CX, lerp(640, 520, up), pop(t, tDes - .5, .3) * lerp(1, .6, up));
+    at(bottle, CX + 240, lerp(650, 530, up), pop(t, tDes - .3, .35) * lerp(1, .6, up), Math.sin(t * 3) * 6);
+    const gone = p(t, tDes + .1, t99 - .25);
+    vs.forEach((v, i) => { const kk = clamp((gone - hash(i + 3) * .5) * 2); at(v.g, CX + v.x + Math.sin(t * 2 + v.ph) * 10, 830 + v.y, (1 - kk) * pop(t, a + .2 + v.d * .6, .3), t * 40); });
+    nS.set(t < t99 - .2 ? '' : (99.99 * p(t, t99 - .2, t99 + .9, E.out)).toFixed(2).replace('.', ',') + ' %');
+    at(n, CX, 830, pop(t, t99 - .2, .3), -3);
+    lab.update(CX, 1040, pop(t, tDisp - .2), 2);
+    shock(t, t99 + .9, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 12. LA BROSSE TOUTE SEULE : elle en laisse beaucoup et les garde sur ses poils ==============
+S(T.brosse, T.cta, (cam, a) => {
+  const tSeu = Wt('seule'), tLai = Wt('laisse'), tPoi = Wt('poils');
+  bg(cam);
+  const head = title(cam, ['LA BROSSE', ['TOUTE SEULE ?', RED]], { size: 100, shadow: 0, sw: 12 });
+  const brush = el('g', {}, cam);
+  el('rect', { x: -18, y: -330, width: 36, height: 320, rx: 14, fill: BLUE, stroke: INK, 'stroke-width': 8 }, brush);
+  el('ellipse', { cx: 0, cy: 30, rx: 110, ry: 74, fill: WHITE, stroke: INK, 'stroke-width': 8 }, brush);
+  for (let i = 0; i < 11; i++) el('line', { x1: -95 + i * 19, y1: 56, x2: -100 + i * 20, y2: 104, stroke: INK, 'stroke-width': 6, 'stroke-linecap': 'round' }, brush);
+  const vs = viruses(cam, 9, 161, 120, 60, .42);
+  const x = el('g', {}, cam), xS = bigNum(x, 150, RED); xS.set('✗');
+  const lab = title(cam, ['LES VIRUS RESTENT', ['SUR LES POILS', RED]], { size: 70, shadow: 0, sw: 10 });
+  return t => {
+    at(head, CX, 290, pop(t, a + .05, .35), -2);
+    at(brush, CX, 760, pop(t, a + .15, .35), Math.sin(t * 2) * 4);
+    moveV(vs, t, CX, 820, 1, tLai - .4);
+    at(x, CX + 300, 600, pop(t, tSeu, .3), 6);
+    at(lab, CX, 1040, pop(t, tPoi - .7, .35), -1);
+    shock(t, tSeu + .1, .3, .5); shock(t, tPoi, .3, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 13. FIN : et toi, tu fermes l'abattant… ou pas ? ==========================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tFer = Wt('fermes'), tPas = Wt('pas', 1, tFer), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire');
+  bg(cam);
+  const q = title(cam, ['ET TOI,', ['TU FERMES', GREEN], ["L'ABATTANT ?", RED]], { size: 100, shadow: 0, sw: 12 });
+  const wc = toilet(cam);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 330, pop(t, a + .05, .35), -2);
+    at(wc.g, CX - 60, 770, .5 * pop(t, a + .3, .35));
+    wc.setLid(.5 + .5 * Math.sin(t * 3));                         // l'abattant hésite
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 340, 760, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tPas + .2, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Séléné entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>

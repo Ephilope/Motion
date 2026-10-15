@@ -1,0 +1,26 @@
+# Voix-off de toilettes.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources :
+# - Crimaldi et al., « Commercial toilets emit energetic and rapidly spreading aerosol plumes », Scientific Reports 12, 20493 (2022),
+#   DOI 10.1038/s41598-022-24686-5 : toilette publique sans abattant filmée au laser vert ; jet d'air > 2 m/s, gouttelettes
+#   jusqu'à 1,5 m au-dessus de la cuvette en 8 s (https://physicstoday.aip.org/news/public-toilets-eject-energetic-aerosol-plumes).
+# - Gerba et al., American Journal of Infection Control (2024), Université d'Arizona : virus non pathogène (bactériophage) mis dans
+#   des cuvettes ; contamination des surfaces pas significativement différente abattant ouvert / fermé ; sol devant et à gauche
+#   PLUS contaminé abattant fermé ; lunette = surface la plus contaminée ; l'air sort sur les côtés entre lunette et couvercle
+#   (citation Gerba) ; l'abattant fermé limite les bactéries ; brosse seule = contamination importante restante ; brosse +
+#   désinfectant : ~99,99 % de virus en moins dans la cuvette, ~98 % sur la brosse.
+#   (https://cales.arizona.edu/news/preventing-viral-spread-restroom-and-why-closing-lid-not-enough,
+#    https://www.healthday.com/health-news/infectious-disease/putting-the-lid-down-wont-cut-germ-spread-from-a-toilet-flush)
+Quand tu tires la chasse, un nuage de gouttelettes invisibles sort de tes toilettes.
+Des chercheurs américains l'ont filmé au laser_: en 8[huit] secondes, il monte jusqu'à 1,50_m.[un mètre cinquante.] Presque à hauteur de ton visage.
+Alors on t'a appris à fermer l'abattant avant de tirer. Logique, non_?
+Sauf que… ça ne protège presque pas des virus.
+Une équipe de l'université d'Arizona a voulu vérifier. Ils ont mis un virus inoffensif dans des cuvettes… puis tiré la chasse, abattant ouvert, puis abattant fermé.
+Résultat_: à peu près autant de virus autour des toilettes, dans les deux cas.
+Pourquoi_? Parce que l'air poussé par la chasse s'échappe quand même… sur les côtés, entre la lunette et le couvercle.
+Pire_: avec l'abattant fermé, le sol devant les toilettes était encore plus contaminé.
+Et la surface la plus touchée… c'était la lunette.
+Attention, l'abattant n'est pas inutile_: il retient les bactéries, qui sont plus grosses. Mais les virus, eux, passent.
+Alors, qu'est-ce qui marche vraiment_? Frotter la cuvette avec la brosse… et un désinfectant. Là, 99,99_%[quatre-vingt-dix-neuf virgule quatre-vingt-dix-neuf pour cent] des virus disparaissent.
+La brosse toute seule_? Elle en laisse beaucoup… et elle les garde sur ses poils.
+Et toi, tu fermes l'abattant… ou pas_? Dis-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
