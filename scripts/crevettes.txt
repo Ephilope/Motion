@@ -1,0 +1,29 @@
+# Voix-off de crevettes.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources :
+# - Rapport de l'ONG ICAW (International Council for Animal Welfare), publié le 16/10/2026 (Journée mondiale de l'alimentation) :
+#   épédonculation des femelles reproductrices (un ou deux pédoncules oculaires sectionnés, lame de rasoir ou ciseaux chauffés,
+#   sans anesthésie) pour accélérer la ponte ; abattage dans la glace ; engagements Intermarché/Netto, U, Auchan (2030), Aldi (2035).
+#   (https://vert.eco/label-vert/on-leur-arrache-les-yeux-pour-plus-de-productivite-la-face-cachee-des-crevettes-de-supermarche/,
+#    https://renseignementeconomique.fr/grande-distribution-l-ong-denonce-l-arrachage-des-yeux-et-demande-des-engagements-fermes-sur-les-crevettes)
+# - Vert (16/10/2026) : crevette = produit de la mer le plus consommé en France, ~9 milliards d'animaux/an, presque tous importés ;
+#   descendance des femelles épédonculées : immunité plus faible, mortalité bien plus élevée ; EFSA reconnaît depuis 2005 la
+#   capacité des crustacés décapodes à ressentir douleur et détresse ; E.Leclerc n'a jamais répondu favorablement à l'ICAW.
+# - CNR BEA / Reporterre (24/12/2025) : glande du pédoncule qui influence le cycle ovarien ; ablation interdite en bio depuis 2018 ;
+#   84 000 t importées/an (Équateur, Inde, Vietnam, Madagascar) ; ~440 milliards de crevettes d'élevage tuées/an dans le monde.
+#   (https://www.cnr-bea.fr/en/2025/12/24/arrachage-des-yeux-pratique-cruelle-generalisee-dans-les-elevages-de-crevettes/)
+# - Université de Stirling (résumé Center for Responsible Seafood) : dans une bouillie de glace ordinaire, 4 crevettes sur 5
+#   atteignent le seuil d'inconscience cérébrale après 28 min (la 5e pas en 30 min) ; à -2,5 °C, en moins de 4 min.
+# - Planet.fr : l'ONG critique E.Leclerc pour son absence de prise de position.
+Les crevettes de ton supermarché… on a coupé les yeux de leur mère.
+Et ce n'est pas une image. Dans beaucoup d'élevages, les femelles qui pondent ont les yeux coupés. À la lame de rasoir… ou aux ciseaux chauffés. Sans anesthésie.
+Pourquoi_? Parce que dans la tige qui porte leur œil, il y a une glande qui freine la ponte. On l'enlève… et elles pondent plus vite.
+Plus de bébés, donc. Mais des bébés plus fragiles_: leurs défenses sont plus faibles, et ils meurent beaucoup plus.
+Et cette pratique… elle est interdite en bio depuis 2018. Mais pas dans le reste du rayon.
+En France, la crevette, c'est le produit de la mer qu'on mange le plus. Environ 9[neuf] milliards par an. Et presque toutes viennent de l'autre bout du monde_: Équateur, Inde, Vietnam.
+Et à la fin, comment on les tue_? Dans de l'eau glacée. Certaines mettent près d'une demi-heure à perdre conscience.
+Est-ce qu'elles ont mal_? Depuis 2005, l'autorité européenne de sécurité des aliments estime que les crustacés peuvent ressentir la douleur.
+Aujourd'hui, une ONG demande aux supermarchés français d'arrêter. Intermarché, U, Auchan et Aldi ont promis de le faire.
+Leclerc, lui… n'a pris aucun engagement.
+Alors la prochaine fois, regarde l'étiquette. Le logo bio te garantit au moins une chose_: pas d'yeux coupés.
+Et toi, tu regardes d'où viennent tes crevettes_? Dis-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
