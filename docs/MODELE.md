@@ -55,7 +55,7 @@ node tools/voix.mjs <nom>                       # texte → assets/voix_<nom>.mp
 node tools/voix.mjs <nom> --audio ma_voix.mp3   # voix déjà faite dans ElevenLabs : horodatage seul
 ```
 
-- **Texte** (`scripts/<nom>.txt`) : une phrase par ligne, les lignes en `#` sont ignorées. `mot[forme parlée]` affiche `mot` en sous-titre et fait prononcer la forme parlée, utile pour les chiffres et symboles : `20_%[vingt pourcent]`, `1987,[mille neuf cent quatre-vingt-sept]`. Un `_` dans le mot affiché devient une espace (`Alors_?` → « Alors ? »). Exemple complet : `scripts/pourboire.txt`.
+- **Texte** (`scripts/<nom>.txt`) : une phrase par ligne, les lignes en `#` sont ignorées. `mot[forme parlée]` affiche `mot` en sous-titre et fait prononcer la forme parlée, utile pour les chiffres et symboles : `20_%[vingt pourcent]`, `1987,[mille neuf cent quatre-vingt-sept]`. Un `_` dans le mot affiché devient une espace (`Alors_?` → « Alors ? »). Exemple complet : `scripts/pourboire.txt`. `{tag}` envoie une balise d'émotion à eleven_v3 (`{sad}`, `{softly}`, `{sighs}`…) sans l'afficher en sous-titre ; exemple : `scripts/crevettes.txt`.
 - **Réglages** (`voix.config.json`) : `voice_id` (identifiant de la voix, visible dans la bibliothèque de voix ElevenLabs), `model_id`, `output_format`, et si besoin `voice_settings` (`stability`, `similarity_boost`, `style`, `speed`) et `language_code`. `--voice <id>` ou `ELEVENLABS_VOICE_ID` remplacent la voix pour une vidéo.
 - **Voix par défaut** : Sarah (`t8BrjWUT5Z23DLLBzbuY`) avec le modèle `eleven_v3`, stabilité 0,5 (naturel). La v3 suit beaucoup la ponctuation : une idée par phrase, `:` après un chiffre annoncé (« Trois : la cage. »), `…` avant une révélation, une question pour relancer. Elle varie d'une prise à l'autre : si une phrase sonne faux, `--force` refait une prise.
 - **Environnement cloud** : si la clé est ajoutée par le proxy du réseau (en-tête `xi-api-key`), laisser `ELEVENLABS_API_KEY` vide ; le script passe alors par le proxy sans envoyer de clé.
@@ -70,6 +70,8 @@ node tools/voix.mjs <nom> --audio ma_voix.mp3   # voix déjà faite dans ElevenL
 1. `node tools/enveloppe.mjs <nom>` : écrit `assets/<nom>_env.js` (volume de la voix, qui fait bouger la bouche). Il faut ffmpeg.
 2. Dans la page, après `lib/motion.js` : `<script src="assets/<nom>_env.js"></script>` et `<script src="lib/selene.js"></script>`.
 3. Après `captions(...)` et avant `start()` : `Motion.selene({ env: window.ENV })`. Options : `x`, `y` (position des pieds, 165 × 1660 par défaut), `size`, ou `pos: t => ({ x, y, k })` pour la déplacer ou la faire apparaître.
+
+Sujet triste : `Motion.selene({ env: window.ENV, mood: 'sad' })` lui donne la bouche tombante, les sourcils relevés au centre, la tête basse, des gestes plus lents, pas de saut, et une larme de temps en temps (exemple : `crevettes.html`).
 
 Ses gestes viennent du texte de la voix-off : `?` = haussement d'épaules, tête penchée ; `…` = mains jointes, penchée, puis bras en l'air et petit saut sur le mot suivant ; chiffre ou `%` = index levé ; « Attention » = index levé, air sérieux ; dernier mot = coucou et clin d'œil. Le reste du temps, une main accompagne la parole.
 
