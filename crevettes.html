@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crevettes d'élevage aux yeux coupés</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Les crevettes de ton supermarché : on a coupé les yeux de leur mère » (charte : docs/MODELE.md),
+     avec Séléné en bas à gauche, en mode triste (sujet grave, demande de Benoit).
+     Voix-off : scripts/crevettes.txt → node tools/voix.mjs crevettes ; node tools/enveloppe.mjs crevettes
+     Chiffres et sources : en tête de scripts/crevettes.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/crevettes_words.js"></script>
+<script src="assets/crevettes_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, hash } = Motion;
+await setup({
+  duration: 80,
+  words: window.WORDS,
+  audio: 'assets/voix_crevettes.mp3',
+  emojis: '🦐✂️🪒🔥🛡️🌍🧊⏱️🔍🍃💬👇',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const SHR = '#FF8A65', SHR_D = '#E0603F', EGG = '#FFB347', WATER = '#9DD9F3', GLAND = '#FFD23F', GREY = '#B8B2A7', BLUE = '#3498DB';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+// sujet triste : secousses discrètes
+const shock = (t, t0, w = .3, k = .25) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis se pose à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -6) { const k = clamp((t - t0) / .25); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.2, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Crevette femelle de profil, tête à gauche (≈ 510 × 470 à s = 1, origine au milieu du dos).
+// setEye(k) : 1 = œil en place, 0 = pédoncule coupé (l'œil tombe et disparaît).
+function shrimp(parent, o = {}) {
+  const g = el('g', {}, parent);
+  const st = { stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
+  // antennes et rostre derrière le corps
+  el('path', { d: 'M-235,-8 C-330,-120 -210,-270 60,-235', fill: 'none', stroke: INK, 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+  el('path', { d: 'M-235,4 C-360,-60 -330,-200 -120,-250', fill: 'none', stroke: INK, 'stroke-width': 5, 'stroke-linecap': 'round' }, g);
+  // queue en éventail
+  [-38, 0, 38].forEach(r => el('ellipse', { cx: 0, cy: 34, rx: 22, ry: 46, fill: SHR, ...st, transform: `translate(140,178) rotate(${r + 30})` }, g));
+  // pattes et œufs sous l'abdomen
+  for (let i = 0; i < 7; i++) el('line', { x1: -200 + i * 45, y1: 40, x2: -215 + i * 45, y2: 92, ...st, 'stroke-width': 6 }, g);
+  const eggs = el('g', {}, g);
+  for (let i = 0; i < 16; i++) el('circle', { cx: fmt(-90 + (i % 8) * 24 + (i > 7 ? 12 : 0)), cy: fmt(62 + (i > 7 ? 20 : 0) + Math.sin(i) * 4), r: 11, fill: EGG, stroke: INK, 'stroke-width': 4 }, eggs);
+  // abdomen : segments de la queue vers la tête
+  [[165, 140, 36, 70], [170, 85, 42, 50], [140, 30, 48, 30], [85, -5, 52, 10], [15, -15, 56, -2], [-60, -5, 60, -10]].forEach(([x, y, r, a]) => {
+    const sg = el('g', { transform: `translate(${x},${y}) rotate(${a})` }, g);
+    el('ellipse', { rx: r * 1.15, ry: r, fill: SHR, ...st }, sg);
+    el('path', { d: `M${fmt(-r * .7)},${fmt(-r * .55)} Q0,${fmt(-r * .85)} ${fmt(r * .7)},${fmt(-r * .55)}`, fill: 'none', stroke: SHR_D, 'stroke-width': 8, 'stroke-linecap': 'round' }, sg);
+  });
+  // pédoncule (moignon toujours visible) puis partie coupable : tige + glande + œil
+  el('path', { d: 'M-205,-40 L-214,-62', ...st, 'stroke-width': 16 }, g);
+  el('path', { d: 'M-205,-40 L-214,-62', stroke: SHR, 'stroke-width': 7, 'stroke-linecap': 'round' }, g);
+  const cut = el('ellipse', { cx: -214, cy: -63, rx: 10, ry: 6, fill: '#B03A2E', stroke: INK, 'stroke-width': 3 }, g);
+  const eyeG = el('g', {}, g);
+  el('path', { d: 'M-214,-62 L-228,-98', ...st, 'stroke-width': 16 }, eyeG);
+  el('path', { d: 'M-214,-62 L-228,-98', stroke: SHR, 'stroke-width': 7, 'stroke-linecap': 'round' }, eyeG);
+  const gland = el('circle', { cx: -220, cy: -78, r: 7, fill: GLAND, stroke: INK, 'stroke-width': 3 }, eyeG);
+  el('circle', { cx: -232, cy: -108, r: 17, fill: INK }, eyeG);
+  el('circle', { cx: -237, cy: -113, r: 5, fill: WHITE }, eyeG);
+  // carapace de la tête par-dessus, avec le rostre
+  el('path', { d: 'M-235,-22 L-300,-48 L-228,-40 Z', fill: SHR, ...st }, g);
+  el('path', { d: 'M-240,-10 C-235,-55 -150,-70 -95,-50 C-60,-38 -60,30 -95,42 C-150,58 -230,40 -240,-10 Z', fill: SHR, ...st }, g);
+  el('path', { d: 'M-200,-30 Q-150,-50 -110,-30', fill: 'none', stroke: SHR_D, 'stroke-width': 8, 'stroke-linecap': 'round' }, g);
+  return {
+    g, eggs, gland, eyeG,
+    setEye(k) {                                     // k : 1 en place → 0 tombé
+      const f = 1 - k;
+      eyeG.setAttribute('transform', `translate(${fmt(-f * 40)},${fmt(f * f * 260)}) rotate(${fmt(-f * 160)},-221,-80)`);
+      eyeG.setAttribute('opacity', fmt(clamp(k * 3)));
+      show(cut, k < 1);
+    },
+  };
+}
+// Barquette de supermarché avec des crevettes (≈ 360 × 230).
+function tray(parent, label, col = INK, n = 3) {
+  const g = el('g', {}, parent);
+  card(g, -180, -100, 360, 210, WHITE, 26, 10, 8);
+  el('rect', { x: -150, y: -70, width: 300, height: 150, rx: 18, fill: '#DDEFF7', stroke: INK, 'stroke-width': 5 }, g);
+  for (let i = 0; i < n; i++) { const e = el('g', { transform: `translate(${-90 + i * 90},${i % 2 ? 20 : -5}) rotate(${i % 2 ? 15 : -10})` }, g); emoji(e, '🦐', 90); }
+  if (label) { const c = chip(g, label, col, CREAM, 40); c.update(0, -118, 1, -3); }
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  img: Wt('Et') - .2, pq: Wt('Pourquoi') - .2, bb: Wt('Plus', 1, Wt('vite')) - .2, bio: Wt('cette') - .3,
+  fr: Wt('En', 1, Wt('rayon')) - .2, monde: Wt('presque') - .3, ice: Wt('Et', 1, Wt('Vietnam')) - .2,
+  mal: Wt('Est-ce') - .2, ong: Wt("Aujourd'hui") - .2, lec: Wt('Leclerc') - .3, eti: Wt('Alors') - .2,
+  cta: Wt('Et', 1, Wt('garantit')) - .2,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : les crevettes de ton supermarché… on a coupé les yeux de leur mère ===========
+// Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.img, (cam) => {
+  const tOn = Wt('on'), tMer = Wt('mère');
+  bg(cam);
+  const head = title(cam, ['LES CREVETTES', ['DE TON', RED], ['SUPERMARCHÉ', RED]], { size: 92, shadow: 0, sw: 12 });
+  const tr = tray(cam, null);
+  const lab = title(cam, ['ON A COUPÉ', ['LES YEUX', RED], 'DE LEUR MÈRE'], { size: 90, shadow: 0, sw: 12 });
+  return t => {
+    at(head, CX, 330, lerp(1.1, 1, p(t, 0, .3, E.out)), -2);
+    at(tr, CX, 650, 1.3 * pop(t, -.3, .35) * (1 - .25 * p(t, tOn - .2, tOn + .2)), Math.sin(t * 1.5) * 2);
+    at(lab, CX, 980, pop(t, tOn - .15, .4), -1);
+    shock(t, tMer, .3, .25);
+  };
+});
+
+// ====== 2. CE N'EST PAS UNE IMAGE : les femelles ont les yeux coupés, rasoir ou ciseaux chauffés ====
+S(T.img, T.pq, (cam, a) => {
+  const tEle = Wt("d'élevages"), tFem = Wt('femelles'), tCoup = Wt('coupés'), tRas = Wt('rasoir…'), tCis = Wt('ciseaux'), tSans = Wt('Sans');
+  bg(cam);
+  const tag = chip(cam, "DANS BEAUCOUP D'ÉLEVAGES", INK, CREAM, 44);
+  const st = stamp(cam, 'SANS ANESTHÉSIE', RED, 70);
+  const sh = shrimp(cam);
+  const fem = chip(cam, 'FEMELLE QUI POND', SHR_D, CREAM, 36);
+  const sc = el('g', {}, cam); emoji(sc, '✂️', 110);
+  const c1 = chip(cam, '🪒 LAME DE RASOIR', INK, CREAM, 44), c2 = chip(cam, '✂️🔥 CISEAUX CHAUFFÉS', RED, CREAM, 44);
+  const s = 1.1, ox = CX + 20, oy = 690;
+  const ex = ox - 221 * s, ey = oy - 80 * s;                     // milieu du pédoncule
+  return t => {
+    const kSt = t >= tSans - .1;
+    tag.update(CX, 235, pop(t, tEle - .4) * (kSt ? 0 : 1), -2);
+    st.update(CX, 240, t, tSans - .1, -4);
+    at(sh.g, ox, oy, s * pop(t, a + .05, .4), Math.sin(t * 1.4) * 1.5);
+    sh.setEye(1 - p(t, tCoup + .05, tCoup + .9, E.in));
+    fem.update(ox + 230, oy + 140, pop(t, tFem - .1) * (1 - p(t, tRas - .3, tRas)), 3);
+    // les ciseaux arrivent sur le pédoncule, coupent, puis repartent
+    const kIn = p(t, tCoup - .8, tCoup - .1, E.out), kOut = p(t, tCoup + .4, tCoup + .9, E.in);
+    const snip = Math.abs(Math.sin(clamp((t - tCoup + .15) / .3) * Math.PI)) * 18;
+    at(sc, lerp(ex - 250, ex - 20, kIn) - kOut * 400, ey - 10, kIn > 0 && kOut < 1 ? 1 : 0, -20 + snip);
+    c1.update(CX, 990, pop(t, tRas - .5), -2);
+    c2.update(CX, 1100, pop(t, tCis - .3), 2);
+    shock(t, tCoup + .1, .25, .3);
+  };
+}, { swipe: RED });
+
+// ====== 3. POURQUOI ? une glande dans la tige freine la ponte ; on l'enlève, elles pondent plus vite ==
+S(T.pq, T.bb, (cam, a) => {
+  const tTig = Wt('tige'), tGla = Wt('glande'), tEnl = Wt("l'enlève…"), tVit = Wt('vite');
+  bg(cam);
+  const head = title(cam, ['POURQUOI ?'], { size: 120, shadow: 0 });
+  // loupe : vue grossie du pédoncule
+  const LX = CX, LY = 660, LR = 290;
+  const clip = Motion.newId('loupe');
+  el('circle', { cx: LX, cy: LY, r: LR }, el('clipPath', { id: clip }, M.defs));
+  el('circle', { cx: LX + 14, cy: LY + 14, r: LR + 12, fill: INK }, cam);
+  const view = el('g', { 'clip-path': `url(#${clip})` }, cam);
+  el('rect', { x: LX - LR, y: LY - LR, width: LR * 2, height: LR * 2, fill: '#DDEFF7' }, view);
+  const sh = shrimp(view);
+  el('circle', { cx: LX, cy: LY, r: LR, fill: 'none', stroke: INK, 'stroke-width': 14 }, cam);
+  const ring = el('circle', { r: 30, fill: 'none', stroke: RED, 'stroke-width': 8 }, cam);
+  const l1 = chip(cam, 'UNE GLANDE QUI FREINE LA PONTE', GLAND, INK, 40);
+  const l2 = chip(cam, 'ON L\'ENLÈVE → PONTE PLUS RAPIDE', RED, CREAM, 34);
+  const s = 2.8;
+  return t => {
+    at(head, CX, 250, pop(t, a + .05, .35), -2);
+    // la vue glisse de la tête vers la tige
+    const k = p(t, a + .2, tTig + .3, E.inOut);
+    at(sh.g, LX + lerp(150, 221, k) * s, LY + lerp(20, 80, k) * s, s);
+    const kG = pop(t, tGla - .2, .3);
+    sh.gland.setAttribute('r', fmt(7 * (1 + .25 * Math.sin(t * 8) * kG)));
+    at(ring, LX + (-220 + 221) * s, LY + (-78 + 80) * s, kG * (1 - p(t, tEnl - .2, tEnl)) * (1 + .1 * Math.sin(t * 8)));
+    sh.setEye(1 - p(t, tEnl + .1, tEnl + .8, E.in));
+    l1.update(CX, 1060, kG * (1 - p(t, tEnl - .1, tEnl + .1)), -2);
+    l2.update(CX, 1060, pop(t, Wt('et', 1, tEnl) - .2), 2);
+    shock(t, tEnl + .2, .25, .25);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. PLUS DE BÉBÉS… MAIS PLUS FRAGILES : défenses faibles, ils meurent beaucoup plus ==========
+S(T.bb, T.bio, (cam, a) => {
+  const tBeb = Wt('bébés'), tFra = Wt('fragiles'), tDef = Wt('défenses'), tMeu = Wt('ils', 1, tDef);
+  bg(cam);
+  const h1 = title(cam, ['PLUS DE BÉBÉS…'], { size: 100, shadow: 0 });
+  const h2 = title(cam, [['MAIS PLUS FRAGILES', RED]], { size: 84, shadow: 0, sw: 11 });
+  const babies = Array.from({ length: 12 }, (_, i) => { const g = el('g', {}, cam), inner = el('g', {}, g); emoji(inner, '🦐', 84); return { g, inner, i, x: CX - 330 + (i % 4) * 220, y: 560 + Math.floor(i / 4) * 140, dies: [1, 4, 6, 9, 11].includes(i) }; });
+  const def = chip(cam, '🛡️ DÉFENSES PLUS FAIBLES', INK, CREAM, 44);
+  const mort = chip(cam, 'ILS MEURENT BEAUCOUP PLUS', RED, CREAM, 44);
+  return t => {
+    at(h1, CX, 270, pop(t, a + .05, .35), -2);
+    at(h2, CX, 390, pop(t, tFra - .2, .35), 1);
+    babies.forEach(b => {
+      const d = b.dies ? p(t, tMeu - .1 + b.i * .03, tMeu + .5 + b.i * .03, E.inOut) : 0;
+      at(b.g, b.x + Math.sin(t * 1.5 + b.i) * 8, b.y + d * 25, pop(t, tBeb - .3 + b.i * .05, .3), (b.i % 2 ? 1 : -1) * 8 + d * 160);
+      b.g.setAttribute('opacity', fmt(1 - .75 * d));
+      b.inner.setAttribute('filter', d > .2 ? 'grayscale(1)' : 'none');
+    });
+    def.update(CX, 1000, pop(t, tDef - .2) * (1 - p(t, tMeu - .2, tMeu)), -2);
+    mort.update(CX, 1000, pop(t, tMeu - .1), 2);
+  };
+}, { swipe: RED });
+
+// ====== 5. INTERDITE EN BIO DEPUIS 2018… MAIS PAS DANS LE RESTE DU RAYON =============================
+S(T.bio, T.fr, (cam, a) => {
+  const tInt = Wt('interdite'), t2018 = Wt('2018.'), tMais = Wt('Mais', 1, t2018), tRes = Wt('reste');
+  bg(cam);
+  const h1 = title(cam, ['CETTE PRATIQUE…'], { size: 96, shadow: 0 });
+  const h2 = title(cam, [['INTERDITE EN BIO', GREEN], 'DEPUIS 2018'], { size: 86, shadow: 0, sw: 12 });
+  const L = tray(cam, '🍃 BIO', GREEN), R = tray(cam, 'LE RESTE', INK);
+  const cL = chip(cam, '✓ INTERDIT', GREEN, CREAM, 46), cR = chip(cam, '✗ AUTORISÉ', RED, CREAM, 46);
+  return t => {
+    const sw = p(t, tInt - .3, tInt);
+    at(h1, CX, 300, pop(t, a + .05, .35) * (1 - sw), -2);
+    at(h2, CX, 330, pop(t, tInt - .1, .35), -2);
+    at(L, CX - 215, 700, .95 * pop(t, tInt, .35), -3);
+    cL.update(CX - 215, 920, pop(t, t2018 - .2), -2);
+    at(R, CX + 215, 700, .95 * pop(t, tMais - .1, .35), 3);
+    cR.update(CX + 215, 920, pop(t, tMais + .3), 2);
+    shock(t, tRes, .3, .2);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. EN FRANCE : n°1 des produits de la mer, environ 9 milliards par an ======================
+S(T.fr, T.monde, (cam, a) => {
+  const tCre = Wt('crevette,'), tPro = Wt('produit'), tEnv = Wt('Environ'), t9 = Wt('9');
+  bg(cam);
+  const tag = chip(cam, 'EN FRANCE', INK, CREAM, 50);
+  const head = title(cam, ['LA CREVETTE', ['N°1', RED], 'DES PRODUITS DE LA MER'], { size: 72, shadow: 0, sw: 10 });
+  const rain = Array.from({ length: 16 }, (_, i) => { const g = el('g', { opacity: .3 }, cam); emoji(g, '🦐', 70); return { g, x: 120 + hash(i * 3 + 1) * 760, sp: .6 + hash(i * 5 + 2) * .6, ph: hash(i * 7 + 3) }; });
+  const nG = el('g', {}, cam), n = bigNum(nG, 118, RED);
+  const pa = chip(cam, 'DE CREVETTES PAR AN', INK, CREAM, 44);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(head, CX, 470, pop(t, tCre - .2, .35), -1);
+    const kR = p(t, tEnv - .3, tEnv);
+    rain.forEach((r, i) => { const y = ((t - tEnv) * 260 * r.sp + r.ph * 600) % 520; at(r.g, r.x, 640 + y, kR * (t > tEnv - .3 ? 1 : 0), i % 2 ? 20 : -20); });
+    n.set((t < t9 ? 0 : Math.round(9 * p(t, t9 - .1, t9 + .3))) + ' MILLIARDS');
+    at(nG, CX, 860, pop(t, tEnv - .2, .35), -2);
+    pa.update(CX, 1020, pop(t, tEnv + .1), 2);
+    shock(t, t9 + .2, .25, .25);
+  };
+}, { swipe: RED });
+
+// ====== 7. PRESQUE TOUTES VIENNENT DE L'AUTRE BOUT DU MONDE : Équateur, Inde, Vietnam ================
+S(T.monde, T.ice, (cam, a) => {
+  const tVie = Wt('viennent'), tEq = Wt('Équateur,'), tIn = Wt('Inde,'), tVn = Wt('Vietnam.');
+  bg(cam);
+  const head = title(cam, ['PRESQUE TOUTES', ['IMPORTÉES', RED]], { size: 96, shadow: 0, sw: 12 });
+  const globe = el('g', {}, cam); emoji(globe, '🌍', 300);
+  const sub = chip(cam, "DE L'AUTRE BOUT DU MONDE", INK, CREAM, 40);
+  const cs = [['ÉQUATEUR', tEq, CX - 210, 990], ['INDE', tIn, CX + 230, 990], ['VIETNAM', tVn, CX, 1100]].map(([s, t0, x, y]) => ({ c: chip(cam, s, SHR_D, CREAM, 48), t0, x, y }));
+  return t => {
+    at(head, CX, 290, pop(t, a + .05, .35), -2);
+    at(globe, CX, 700, pop(t, tVie - .3, .4), t * 6);
+    sub.update(CX, 450, pop(t, Wt('bout') - .3), 2);
+    cs.forEach((o, i) => o.c.update(o.x, o.y, pop(t, o.t0 - .15), i % 2 ? 3 : -3));
+  };
+}, { swipe: GREEN });
+
+// ====== 8. COMMENT ON LES TUE ? Dans de l'eau glacée : près d'une demi-heure pour perdre conscience ===
+S(T.ice, T.mal, (cam, a) => {
+  const tTue = Wt('tue'), tGla = Wt('glacée.'), tMet = Wt('mettent'), tDem = Wt('demi-heure');
+  bg(cam);
+  const head = title(cam, ['COMMENT', ['ON LES TUE ?', RED]], { size: 100, shadow: 0, sw: 12 });
+  const bowl = el('g', {}, cam);
+  el('path', { d: 'M-300,-120 L300,-120 Q290,140 0,150 Q-290,140 -300,-120 Z', fill: WHITE, stroke: INK, 'stroke-width': 9, 'stroke-linejoin': 'round', transform: 'translate(12,12)' }, bowl).setAttribute('fill', INK);
+  el('path', { d: 'M-300,-120 L300,-120 Q290,140 0,150 Q-290,140 -300,-120 Z', fill: WHITE, stroke: INK, 'stroke-width': 9, 'stroke-linejoin': 'round' }, bowl);
+  el('path', { d: 'M-282,-80 L282,-80 Q270,124 0,132 Q-270,124 -282,-80 Z', fill: WATER, stroke: INK, 'stroke-width': 5 }, bowl);
+  const shs = [[-120, 20, -20], [40, 60, 15], [150, -10, 30]].map(([x, y, r]) => { const g = el('g', {}, bowl); emoji(g, '🦐', 100); return { g, x, y, r }; });
+  const ices = Array.from({ length: 6 }, (_, i) => { const g = el('g', {}, bowl); emoji(g, '🧊', 90); return { g, x: -220 + i * 88, y: -80 + (i % 2) * 30 }; });
+  const clock = el('g', {}, cam);
+  card(clock, -290, -75, 580, 150, INK, 30, 10, 7);
+  const cS = el('text', { 'text-anchor': 'middle', 'font-size': 92, y: 33, fill: WATER }, clock);
+  const ico = el('g', {}, clock); emoji(ico, '⏱️', 80); tf(ico, -215, 0, 1);
+  return t => {
+    at(head, CX, 280, pop(t, a + .05, .35), -2);
+    at(bowl, CX, 700, pop(t, tTue - .4, .4));
+    shs.forEach((s, i) => at(s.g, s.x + Math.sin(t * .8 + i) * 6, s.y + Math.sin(t * 1.1 + i) * 4, 1, s.r + Math.sin(t * 1.3 + i) * 4 * (1 - p(t, tDem, tDem + 1))));
+    ices.forEach((c, i) => at(c.g, c.x, c.y + Math.sin(t * 1.2 + i) * 4, pop(t, tGla - .3 + i * .06, .3), i * 13));
+    at(clock, CX + 30, 1030, pop(t, tMet - .3, .35), -2);
+    const m = Math.round(30 * p(t, tMet, tDem + .3, E.out));
+    cS.textContent = (m >= 30 ? '≈ 30 MIN' : m + ' MIN');
+    tf(cS, 50, 0, 1);
+    shock(t, tDem + .3, .3, .25);
+  };
+}, { swipe: RED });
+
+// ====== 9. ONT-ELLES MAL ? Depuis 2005, l'autorité européenne : les crustacés peuvent ressentir la douleur
+S(T.mal, T.ong, (cam, a) => {
+  const tDep = Wt('Depuis'), tAut = Wt("l'autorité"), tCru = Wt('crustacés');
+  bg(cam);
+  const head = title(cam, ["ELLES ONT MAL ?"], { size: 100, shadow: 0 });
+  const dep = chip(cam, 'DEPUIS', INK, CREAM, 44);
+  const yG = el('g', {}, cam), y = bigNum(yG, 170, BLUE); y.set('2005');
+  const aut = chip(cam, 'AUTORITÉ EUROPÉENNE DES ALIMENTS', BLUE, CREAM, 36);
+  const lab = title(cam, ['LES CRUSTACÉS', ['PEUVENT RESSENTIR', RED], 'LA DOULEUR'], { size: 72, shadow: 0, sw: 10 });
+  return t => {
+    at(head, CX, 270, pop(t, a + .05, .35), -2);
+    dep.update(CX, 420, pop(t, tDep - .1), -2);
+    at(yG, CX, 560, pop(t, tDep + .3, .35), -2);
+    aut.update(CX, 720, pop(t, tAut - .1), 2);
+    at(lab, CX, 970, pop(t, tCru - .2, .4), -1);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. UNE ONG DEMANDE D'ARRÊTER : Intermarché, U, Auchan et Aldi ont promis ===================
+S(T.ong, T.lec, (cam, a) => {
+  const tOng = Wt('ONG'), tSup = Wt('supermarchés'), tPro = Wt('promis');
+  bg(cam);
+  const tag = chip(cam, 'UNE ONG DEMANDE', INK, CREAM, 46);
+  const head = title(cam, ['AUX SUPERMARCHÉS', ["D'ARRÊTER", RED]], { size: 82, shadow: 0, sw: 11 });
+  const st = [['INTERMARCHÉ', 'Intermarché,', CX - 205, 640], ['U', 'U,', CX + 230, 640], ['AUCHAN', 'Auchan', CX - 205, 790], ['ALDI', 'Aldi', CX + 230, 790]]
+    .map(([s, w, x, y]) => ({ c: chip(cam, '✓ ' + s, GREEN, INK, 46), t0: Wt(w, 1, a), x, y }));
+  const ok = stamp(cam, 'ONT PROMIS', GREEN, 80);
+  return t => {
+    tag.update(CX, 240, pop(t, tOng - .3), -2);
+    at(head, CX, 410, pop(t, tSup - .3, .35), -1);
+    st.forEach((o, i) => o.c.update(o.x, o.y, pop(t, o.t0 - .15), i % 2 ? 3 : -3));
+    ok.update(CX, 1010, t, tPro - .1, -4);
+  };
+}, { swipe: RED });
+
+// ====== 11. LECLERC, LUI… N'A PRIS AUCUN ENGAGEMENT =================================================
+S(T.lec, T.eti, (cam, a) => {
+  const tLec = Wt('Leclerc'), tAuc = Wt('aucun');
+  bg(cam);
+  const c = chip(cam, 'LECLERC', INK, CREAM, 90);
+  const q = el('g', {}, cam), qS = bigNum(q, 140, GREY); qS.set('…');
+  const st = stamp(cam, 'AUCUN ENGAGEMENT', RED, 76);
+  return t => {
+    c.update(CX, 460, pop(t, tLec - .1, .4), -2);
+    at(q, CX, 650, pop(t, tLec + .4, .3) * (1 - p(t, tAuc - .3, tAuc)));
+    st.update(CX, 760, t, tAuc - .1, -5);
+    shock(t, tAuc + .1, .3, .3);
+  };
+}, { swipe: GREEN });
+
+// ====== 12. LA PROCHAINE FOIS, REGARDE L'ÉTIQUETTE : le logo bio = pas d'yeux coupés ================
+S(T.eti, T.cta, (cam, a) => {
+  const tReg = Wt('regarde'), tLog = Wt('logo'), tPas = Wt('pas', 1, Wt('chose'));
+  bg(cam);
+  const head = title(cam, ['LA PROCHAINE FOIS', ["REGARDE L'ÉTIQUETTE", GREEN]], { size: 76, shadow: 0, sw: 11 });
+  const tr = tray(cam, null);
+  const badge = el('g', {}, cam);
+  card(badge, -110, -70, 220, 140, GREEN, 24, 8, 7);
+  const lf = el('g', {}, badge); emoji(lf, '🍃', 64); tf(lf, -45, 0, 1);
+  const bt = txt(badge, 'BIO', { size: 56, fill: CREAM }); bt.g.setAttribute('transform', 'translate(40,20)');
+  const loupe = el('g', {}, cam); emoji(loupe, '🔍', 130);
+  const ok = chip(cam, "= PAS D'YEUX COUPÉS", GREEN, INK, 54);
+  return t => {
+    at(head, CX, 300, pop(t, a + .05, .35), -2);
+    at(tr, CX - 40, 680, pop(t, tReg - .3, .35), -2);
+    at(badge, CX + 190, 560, pop(t, tLog - .2, .35), 6);
+    const k = p(t, tReg, tLog, E.inOut);
+    at(loupe, lerp(CX - 250, CX + 60, k), lerp(820, 690, k), pop(t, tReg - .1, .3), -10 + Math.sin(t * 3) * 5);
+    ok.update(CX, 1010, pop(t, tPas - .4), -2);
+  };
+}, { swipe: RED });
+
+// ====== 13. FIN : et toi, tu regardes d'où viennent tes crevettes ? ================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tReg = Wt('regardes'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire');
+  bg(cam);
+  const q = title(cam, ['ET TOI, TU REGARDES', ["D'OÙ VIENNENT", GREEN], ['TES CREVETTES ?', RED]], { size: 80, shadow: 0, sw: 11 });
+  const sh = el('g', {}, cam); emoji(sh, '🦐', 170);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 330, pop(t, a + .05, .35), -2);
+    at(sh, CX - 120, 720, pop(t, tReg - .2, .35), Math.sin(t * 1.5) * 8);
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 220, 720, pop(t, tDis - .3, .4) * (1 + .06 * Math.sin(t * 5)), Math.sin(t * 2.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 5)) * 14, pop(t, tCm + .2), 0);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Séléné, triste : entre doucement en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, mood: 'sad', pos: t => ({ x: 165, y: 1660, k: E.out(clamp((t - .1) / .5)) }) });
+start();
+})();
+</script>
+</body>
+</html>

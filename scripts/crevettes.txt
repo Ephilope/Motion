@@ -1,4 +1,5 @@
 # Voix-off de crevettes.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Ton triste (demande de Benoit) : balises d'émotion eleven_v3 entre accolades, non affichées.
 # Sources :
 # - Rapport de l'ONG ICAW (International Council for Animal Welfare), publié le 16/10/2026 (Journée mondiale de l'alimentation) :
 #   épédonculation des femelles reproductrices (un ou deux pédoncules oculaires sectionnés, lame de rasoir ou ciseaux chauffés,
@@ -14,16 +15,16 @@
 # - Université de Stirling (résumé Center for Responsible Seafood) : dans une bouillie de glace ordinaire, 4 crevettes sur 5
 #   atteignent le seuil d'inconscience cérébrale après 28 min (la 5e pas en 30 min) ; à -2,5 °C, en moins de 4 min.
 # - Planet.fr : l'ONG critique E.Leclerc pour son absence de prise de position.
-Les crevettes de ton supermarché… on a coupé les yeux de leur mère.
-Et ce n'est pas une image. Dans beaucoup d'élevages, les femelles qui pondent ont les yeux coupés. À la lame de rasoir… ou aux ciseaux chauffés. Sans anesthésie.
+{sad} Les crevettes de ton supermarché… on a coupé les yeux de leur mère.
+{sad} Et ce n'est pas une image. Dans beaucoup d'élevages, les femelles qui pondent ont les yeux coupés. À la lame de rasoir… ou aux ciseaux chauffés. Sans anesthésie.
 Pourquoi_? Parce que dans la tige qui porte leur œil, il y a une glande qui freine la ponte. On l'enlève… et elles pondent plus vite.
-Plus de bébés, donc. Mais des bébés plus fragiles_: leurs défenses sont plus faibles, et ils meurent beaucoup plus.
+{sighs} Plus de bébés, donc. Mais des bébés plus fragiles_: leurs défenses sont plus faibles, et ils meurent beaucoup plus.
 Et cette pratique… elle est interdite en bio depuis 2018. Mais pas dans le reste du rayon.
 En France, la crevette, c'est le produit de la mer qu'on mange le plus. Environ 9[neuf] milliards par an. Et presque toutes viennent de l'autre bout du monde_: Équateur, Inde, Vietnam.
-Et à la fin, comment on les tue_? Dans de l'eau glacée. Certaines mettent près d'une demi-heure à perdre conscience.
+{softly} Et à la fin, comment on les tue_? Dans de l'eau glacée. Certaines mettent près d'une demi-heure à perdre conscience.
 Est-ce qu'elles ont mal_? Depuis 2005, l'autorité européenne de sécurité des aliments estime que les crustacés peuvent ressentir la douleur.
 Aujourd'hui, une ONG demande aux supermarchés français d'arrêter. Intermarché, U, Auchan et Aldi ont promis de le faire.
-Leclerc, lui… n'a pris aucun engagement.
-Alors la prochaine fois, regarde l'étiquette. Le logo bio te garantit au moins une chose_: pas d'yeux coupés.
+{sighs} Leclerc, lui… n'a pris aucun engagement.
+{sad} Alors la prochaine fois, regarde l'étiquette. Le logo bio te garantit au moins une chose_: pas d'yeux coupés.
 Et toi, tu regardes d'où viennent tes crevettes_? Dis-le en commentaire.
-Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
+{softly} Moi, c'est Séléné. Abonne-toi pour ne rien rater_!

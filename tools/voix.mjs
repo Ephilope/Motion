@@ -47,6 +47,8 @@ const out = {
 // Une ligne = une phrase, les lignes en « # » sont des commentaires.
 // « mot[forme parlée] » : affiché « mot », prononcé « forme parlée » (chiffres, symboles).
 // « _ » dans un mot affiché devient une espace insécable de sous-titre (« 20_% » → « 20 % »).
+// « {tag} » : balise d'émotion envoyée à eleven_v3 sous la forme « [tag] » (ex. {sad}, {softly}, {sighs}),
+// jamais affichée en sous-titre.
 const { spoken, words } = parseScript(fs.readFileSync(scriptFile, 'utf8'));
 
 function parseScript(src) {
@@ -55,9 +57,11 @@ function parseScript(src) {
   const words = [];                                  // { w, a, b } : mot affiché et sa plage dans `spoken`
   lines.forEach((line, li) => {
     if (li) spoken += '\n';
-    const toks = [...line.matchAll(/(\S+?)\[([^\]]+)\]|(\S+)/g)];
+    const toks = [...line.matchAll(/\{([^}]+)\}|(\S+?)\[([^\]]+)\]|(\S+)/g)];
     toks.forEach((m, ti) => {
       if (ti) spoken += ' ';
+      if (m[1]) { spoken += `[${m[1]}]`; return; }    // balise d'émotion : dite par le modèle, pas affichée
+      m = [m[0], m[2], m[3], m[4]];
       const w = (m[1] ?? m[3]).replace(/_/g, ' ');
       let sp = m[2] ?? w;
       if (m[2]) sp += (w.match(/[.,;:!?…]+$/) || [''])[0];   // garde la ponctuation pour l'intonation
