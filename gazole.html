@@ -97,10 +97,10 @@ function arrow(parent, len = 120, col = INK) {
 
 // --- débuts de scène, calés sur la voix ------------------------------------------
 const T = {
-  avant: Wt('Pendant') - .2, fev: Wt('En') - .2, auj: Wt("Aujourd'hui") - .2, taxes: Wt('Alors') - .2,
-  moins: Wt('Le', 1, Wt('non.')) - .2, ht: Wt('Si') - .2, brut: Wt('Le', 1, Wt('raffinerie.')) - .2,
-  ormuz: Wt('Avec') - .2, russie: Wt('Et', 1, Wt('bloqué.')) - .2, marge: Wt('Résultat') - .2,
-  choix: Wt('Et', 1, Wt('six')) - .2, bdf: Wt('Selon') - .2, plein: Wt('Pour', 1, Wt('hausse')) - .2,
+  avant: Wt('Pendant') + .1, fev: Wt('En') - .2, auj: Wt("Aujourd'hui") + .1, taxes: Wt('Alors') - .2,
+  moins: Wt('gazole', 1, Wt('non.')) - .1, ht: Wt('Si') - .2, brut: Wt('pétrole') - .1,
+  ormuz: Wt('Avec') - .2, russie: Wt("l'Ukraine") - .1, marge: Wt('Résultat') - .2,
+  choix: Wt('Et', 1, Wt('six')) - .2, bdf: Wt('Selon') + .1, plein: Wt('Pour', 1, Wt('hausse')) - .2,
   cta: Wt('Et', 1, Wt('chaque')) - .2,
 };
 const tDis = Wt('Dis-le');
@@ -114,15 +114,15 @@ S(0, T.avant, (cam) => {
   const pg = pump(cam, 'GAZOLE', RED), pe = pump(cam, 'ESSENCE', GREEN);
   pg.set('2,33'); pe.set('2,14');
   const n = el('g', {}, cam), nS = bigNum(n, 140, RED); nS.set('+19 CTS');
-  const lab = chip(cam, 'PAR LITRE', INK, CREAM, 44);
+  const lab = chip(cam, 'PAR LITRE', INK, CREAM, 40);
   return t => {
     at(head, CX, 300, lerp(1.12, 1, p(t, 0, .3, E.out)), -2);
     // la pompe gazole grandit au-dessus de l'essence
     const up = p(t, tCher - .2, tCher + .4, E.out);
-    at(pg.g, CX - 200, 740 - 30 * up, .78 * pop(t, .1, .35) * (1 + .08 * up), -3);
-    at(pe.g, CX + 190, 750, .78 * pop(t, .25, .35), 3);
+    at(pg.g, CX - 200, 740 - 30 * up, .72 * pop(t, .1, .35) * (1 + .08 * up), -3);
+    at(pe.g, CX + 190, 750, .72 * pop(t, .25, .35), 3);
     at(n, CX, 1020, pop(t, t19 - .2, .35), -3);
-    lab.update(CX, 1120, pop(t, tLitre - .3), 2);
+    lab.update(CX + 150, 1135, pop(t, t19 + .1), 2);
     shock(t, .2, .3, .6); shock(t, t19 + .2, .3, .6);
   };
 });
@@ -157,7 +157,7 @@ S(T.fev, T.auj, (cam, a) => {
     pg.set(t >= t165 - .1 ? '1,65' : '');
     pe.set(t >= t166 - .1 ? '1,66' : '');
     at(eq, CX - 10, 710, pop(t, t166 + .3, .3));
-    lab.update(CX, 1070, pop(t, t166 + .5), -2);
+    lab.update(CX, 1070, pop(t, t166 + .2), -2);
     shock(t, t165 + .1, .25, .4); shock(t, t166 + .1, .25, .4);
   };
 }, { swipe: RED });
@@ -191,9 +191,9 @@ S(T.taxes, T.moins, (cam, a) => {
   const head = title(cam, ['LA FAUTE', ['DES TAXES ?', RED]], { size: 120, shadow: 0, sw: 12 });
   const st = stamp(cam, 'NON', RED, 150);
   return t => {
-    at(tk, CX, 500, pop(t, a + .05, .35) * (1 - p(t, tNon - .2, tNon)), Math.sin(t * 4) * 6);
+    at(tk, CX, 500, pop(t, a + .05, .35) * (1 - p(t, Wt('bien…') - .2, Wt('bien…'))), Math.sin(t * 4) * 6);
     at(head, CX, 860, pop(t, tTax - .5, .35), -2);
-    st.update(CX, 520, t, tNon - .1, -10);
+    st.update(CX, 520, t, Wt('bien…'), -10);
     shock(t, tNon + .1, .3, .8);
   };
 }, { swipe: RED });
@@ -227,7 +227,7 @@ S(T.ht, T.brut, (cam, a) => {
   const st = stamp(cam, 'LA RAFFINERIE', INK, 70);
   return t => {
     tag.update(CX, 250, pop(t, tEnl - .3), -2);
-    const out = p(t, tRaf - .5, tRaf - .1, E.in);          // les barres laissent la place à la raffinerie
+    const out = p(t, tRaf - .8, tRaf - .5, E.in);          // les barres laissent la place à la raffinerie
     const k = p(t, tEnl, tEnl + .7, E.out);
     at(b1.g, 110, 480, pop(t, tEnl - .2, .3) * (1 - out)); at(b2.g, 110, 720, pop(t, tEnl - .1, .3) * (1 - out));
     const w1 = 780 * k, w2 = 780 * 1.11 / 1.33 * k;
@@ -235,8 +235,8 @@ S(T.ht, T.brut, (cam, a) => {
     tf(b1.v, Math.max(w1 / 2, 140), 50, k); tf(b2.v, Math.max(w2 / 2, 140), 50, k);
     at(n, CX, 960, pop(t, t22 - .2, .35) * (1 - out), -3);
     lab.update(CX, 1070, pop(t, t22 + .2) * (1 - out), 2);
-    at(rf.g, CX, 640, pop(t, tRaf - .3, .35)); rf.update(t, t >= tRaf - .3 ? 1 : 0);
-    st.update(CX, 980, t, tRaf, -6);
+    at(rf.g, CX, 640, pop(t, tRaf - .5, .35)); rf.update(t, t >= tRaf - .5 ? 1 : 0);
+    st.update(CX, 980, t, tRaf - .3, -6);
     shock(t, t22 + .2, .3, .5); shock(t, tRaf + .1, .3, .7);
   };
 }, { swipe: RED });
@@ -265,7 +265,7 @@ S(T.brut, T.ormuz, (cam, a) => {
     at(rf.g, CX + 30, 580, .6 * pop(t, tRaf - .6, .35)); rf.update(t, step2);
     at(pm, CX + 330, 580, pop(t, tRaf - .1, .3));
     at(lab, CX - 40, 910, pop(t, tMonde - .3, .35), -2);
-    at(dn, CX + 400, 870, pop(t, tMoins - .3, .3), 90);
+    at(dn, CX + 400, 870, pop(t, tMonde + .3, .3), 90);
     shock(t, tVoit, .25, .4); shock(t, tMoins + .1, .3, .6);
   };
 }, { swipe: GREEN });
@@ -292,8 +292,8 @@ S(T.ormuz, T.russie, (cam, a) => {
     at(map, CX, 720, pop(t, tOrm - .5, .35));
     const go = p(t, tOrm - .3, tBloq, E.out);
     tf(ship, lerp(-300, -130, go), 20 + 4 * Math.sin(t * 4), 1, 0);
-    tf(x, 10, 10, pop(t, tBloq - .2, .3));
-    st.update(CX, 1040, t, tBloq - .1, -5);
+    tf(x, 10, 10, pop(t, tOrm + .1, .3));
+    st.update(CX, 1040, t, tOrm + .2, -5);
     shock(t, tBloq + .1, .3, .7);
   };
 }, { swipe: RED });
@@ -353,7 +353,7 @@ S(T.choix, T.bdf, (cam, a) => {
     tag.update(CX, 250, pop(t, a + .05), -2);
     ic.forEach(o => at(o.g, o.x, 520 + 10 * Math.sin(t * 5 + o.x), pop(t, o.t0 - .1, .3)));
     at(head, CX, 800, pop(t, tCho - .4, .35), -3);
-    st.update(CX, 1020, t, tPrix - .5, -4);
+    st.update(CX, 1020, t, Wt('quel') - .2, -4);
     shock(t, tCho, .25, .5); shock(t, tPrix - .3, .3, .5);
   };
 }, { swipe: GREEN });
@@ -389,19 +389,19 @@ S(T.plein, T.cta, (cam, a) => {
   const pm = pump(cam, 'GAZOLE', RED);
   const old = chip(cam, 'IL Y A UN AN : 81 €', GREEN, CREAM, 44);
   const n = el('g', {}, cam), nS = bigNum(n, 140, RED); nS.set('+35 €');
-  const lab = chip(cam, 'À CHAQUE PLEIN', RED, CREAM, 52);
+  const lab = chip(cam, 'À CHAQUE PLEIN', RED, CREAM, 44);
   const money = el('g', {}, cam); emoji(money, '💸', 130);
   return t => {
     tag.update(CX, 240, pop(t, tPlein - .3), -2);
-    at(pm.g, CX - 240, 700, .85 * pop(t, tPlein - .2, .35));
+    at(pm.g, CX - 270, 700, .8 * pop(t, tPlein - .2, .35));
     // le compteur monte jusqu'à 81, puis jusqu'à 116
     const v = lerp(0, 81, p(t, tPlein, t81, E.out)) + 35 * p(t, t116 - .6, t116 + .2, E.out);
     pm.set(Math.round(v) + ' €');
     pm.v.setAttribute('fill', v > 81.5 ? RED : GREEN);
     old.update(CX, 400, pop(t, t81), -2);
-    at(n, CX + 230, 680, pop(t, t35 - .2, .35), -4);
-    lab.update(CX + 230, 840, pop(t, tCha - .2), 2);
-    at(money, CX + 230, 1010 - (t * 60) % 60, pop(t, t35, .3), Math.sin(t * 6) * 10);
+    at(n, CX + 200, 680, pop(t, t35 - .2, .35), -4);
+    lab.update(CX + 200, 850, pop(t, t35 + .3), 2);
+    at(money, CX + 200, 1010 - (t * 60) % 60, pop(t, t35, .3), Math.sin(t * 6) * 10);
     shock(t, t116 + .1, .3, .7); shock(t, t35 + .2, .3, .5);
   };
 }, { swipe: GREEN });
