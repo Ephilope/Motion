@@ -1,0 +1,31 @@
+# Voix-off de gazole.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources :
+# - Selectra, « Gazole plus cher que l'essence : la faute au raffinage » (oct. 2026), d'après les relevés du ministère
+#   (https://selectra.info/finance/actualites/marche/gazole-plus-cher-essence-raffinage-banque-france) :
+#   9/10/2026 gazole 2,33 €/l, SP95-E10 2,14 € ; 20/02/2026 gazole 1,65 €, E10 1,66 € ; 3/10/2025 gazole 1,62 € ;
+#   le gazole supporte ~3 cts de taxes de moins que l'E10 ; hors taxes 1,33 € contre 1,11 € (22 cts d'écart) ;
+#   Banque de France, billet du 13/10/2026 : le raffinage explique ~60 % de la hausse des produits pétroliers entre février et août ;
+#   causes : conflit États-Unis/Iran depuis le 28/02 (détroit d'Ormuz fermé), frappes ukrainiennes sur les raffineries russes
+#   (la Russie, grand fournisseur de diesel), demande de diesel rigide (routier, maritime, agriculture) ;
+#   plein de 50 l : ~81 € en oct. 2025, ~116 € en oct. 2026.
+# - Kelwatt / DGEC (https://www.kelwatt.fr/actu/baisse-petrole-prix-carburants-pompe-octobre-2026) : marge brute de raffinage
+#   ~40 €/t en février 2026, 235 €/t en septembre 2026 (≈ ×6, près de 20 cts/l).
+# - Connaissance des énergies : taxes ≈ un peu plus de 40 % du prix du gazole, accise 60,8 cts/l en 2026
+#   (https://www.connaissancedesenergies.org/fiche-pedagogique/structuration-des-prix-de-lessence-et-du-gazole-en-france).
+Le gazole… est devenu plus cher que l'essence. 19[Dix-neuf] centimes de plus par litre.
+Pendant des années, le diesel, c'était le carburant pas cher.
+En février encore, le gazole était à 1,65.[un euro soixante-cinq.] Et l'essence à 1,66.[un euro soixante-six.]
+Aujourd'hui_: 2,33[deux euros trente-trois] pour le gazole… contre 2,14[deux euros quatorze] pour l'essence.
+Alors, c'est la faute des taxes_? Eh bien… non.
+Le gazole est même un peu moins taxé que l'essence_: environ 3[trois] centimes de moins par litre.
+Si on enlève toutes les taxes, l'écart monte à 22[vingt-deux] centimes. Et il se crée à un seul endroit_: la raffinerie.
+Le pétrole brut, on ne peut pas le mettre dans ta voiture. Il faut d'abord le raffiner. Et en ce moment, le monde en raffine beaucoup moins.
+Avec la guerre entre les États-Unis et l'Iran, le détroit d'Ormuz est bloqué.
+Et l'Ukraine bombarde les raffineries russes… alors que la Russie était l'un des grands fournisseurs de diesel.
+Résultat_: la marge des raffineurs a été multipliée par six depuis février.
+Et le diesel, les camions, les tracteurs et les bateaux n'ont pas le choix. Ils en ont besoin, quel que soit le prix.
+Selon la Banque de France, le raffinage explique environ 60_%[soixante pour cent] de la hausse depuis février.
+Pour toi, ça donne quoi_? Un plein de 50[cinquante] litres de gazole coûtait 81[quatre-vingt-un] euros il y a un an. Aujourd'hui… 116[cent seize] euros.
+35[Trente-cinq] euros de plus. À chaque plein.
+Et toi, ton plein, il te coûte combien aujourd'hui_? Dis-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
