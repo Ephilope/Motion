@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gazole plus cher que l'essence</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Le gazole est devenu plus cher que l'essence, et ce n'est pas la faute des taxes » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/gazole.txt → node tools/voix.mjs gazole ; node tools/enveloppe.mjs gazole
+     Chiffres et sources : en tête de scripts/gazole.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/gazole_words.js"></script>
+<script src="assets/gazole_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg } = Motion;
+await setup({
+  duration: 85,
+  words: window.WORDS,
+  audio: 'assets/voix_gazole.mp3',
+  emojis: '⛽🏭🛢️🚗💥🚚🚜🚢💸💬👇🏦🧾',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BLUE = '#3498DB', SEA = '#5DADE2', SAND = '#E8C07D', GREY = '#7F8C8D';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+const eur = v => v.toFixed(2).replace('.', ',') + ' €';
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Cercle d'interdiction.
+function ban(parent, r = 150) {
+  const g = el('g', {}, parent), k = r * .707;
+  el('circle', { r, fill: 'none', stroke: RED, 'stroke-width': r * .16 }, g);
+  el('line', { x1: -k, y1: -k, x2: k, y2: k, stroke: RED, 'stroke-width': r * .16 }, g);
+  return g;
+}
+// Pompe à carburant avec compteur et étiquette (≈ 280 × 460, tuyau à droite).
+function pump(parent, label, fill = RED) {
+  const g = el('g', {}, parent);
+  card(g, -140, -230, 280, 460, fill, 26, 12, 8);
+  el('rect', { x: -110, y: -190, width: 220, height: 130, rx: 12, fill: INK }, g);
+  const v = el('text', { 'text-anchor': 'middle', 'font-size': 64, y: -102, fill: GREEN, class: 'mono' }, g);
+  el('rect', { x: -110, y: -20, width: 220, height: 66, rx: 10, fill: CREAM, stroke: INK, 'stroke-width': 5 }, g);
+  txt(g, label, { size: label.length > 6 ? 38 : 44 }).g.setAttribute('transform', 'translate(0,28)');
+  el('path', { d: 'M140,-120 Q210,-120 210,-20 V140 Q210,180 180,180', fill: 'none', stroke: INK, 'stroke-width': 16, 'stroke-linecap': 'round' }, g);
+  el('rect', { x: 155, y: 170, width: 50, height: 80, rx: 10, fill: INK }, g);
+  return { g, v, set(s) { v.textContent = s; } };
+}
+// Barre horizontale avec étiquette (pour comparer).
+function hbar(parent, label, col) {
+  const g = el('g', {}, parent);
+  const sh = el('rect', { x: 10, y: 10, height: 100, rx: 16, fill: INK }, g), r = el('rect', { x: 0, y: 0, height: 100, rx: 16, fill: col, stroke: INK, 'stroke-width': 7 }, g);
+  const l = txt(g, label, { size: 48, anchor: 'start' }); l.g.setAttribute('transform', 'translate(0,-30)');
+  const v = el('g', {}, g), vN = bigNum(v, 70, CREAM);
+  return { g, v, vN, setW(w) { w = Math.max(1, w); set(r, { width: fmt(w) }); set(sh, { width: fmt(w) }); } };
+}
+// Usine / raffinerie stylisée (≈ 420 × 300), avec fumée animée.
+function refinery(parent) {
+  const g = el('g', {}, parent);
+  [[-170, -60, 60, 190], [-90, -110, 50, 240]].forEach(([x, y, w, h]) => card(g, x, y, w, h, GREY, 8, 8, 6));
+  card(g, -200, 40, 400, 150, '#95A5A6', 12, 10, 7);
+  [[60, 30, 70], [150, 50, 50]].forEach(([x, y, r]) => { el('ellipse', { cx: x, cy: y, rx: r * .7, ry: r, fill: '#BDC3C7', stroke: INK, 'stroke-width': 6 }, g); });
+  [-150, -80, -10].forEach(x => el('rect', { x, y: 90, width: 46, height: 46, rx: 6, fill: YELLOW, stroke: INK, 'stroke-width': 5 }, g));
+  const smoke = [0, 1, 2].map(i => el('circle', { r: 26, fill: '#D5D8DC', stroke: INK, 'stroke-width': 5 }, g));
+  return { g, update(t, on = 1) { smoke.forEach((s, i) => { const ph = (t * .7 + i / 3) % 1; tf(s, -140 + 25 * Math.sin(ph * 6), -80 - ph * 160, on * (.6 + ph * .8)); s.setAttribute('opacity', fmt(on * (1 - ph))); }); } };
+}
+// Baril de pétrole (≈ 160 × 220).
+function barrel(parent) {
+  const g = el('g', {}, parent);
+  card(g, -80, -110, 160, 220, INK, 22, 10, 7);
+  [-60, 50].forEach(y => el('rect', { x: -80, y, width: 160, height: 14, fill: GREY }, g));
+  el('path', { d: 'M0,-35 Q28,0 28,18 A28,28 0 0 1 -28,18 Q-28,0 0,-35 Z', fill: CREAM }, g);
+  return g;
+}
+// Flèche épaisse horizontale.
+function arrow(parent, len = 120, col = INK) {
+  return el('path', { d: `M0,-16 H${len - 40} V-40 L${len},0 L${len - 40},40 V16 H0 Z`, fill: col, stroke: INK, 'stroke-width': 5, 'stroke-linejoin': 'round' }, parent);
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  avant: Wt('Pendant') - .2, fev: Wt('En') - .2, auj: Wt("Aujourd'hui") - .2, taxes: Wt('Alors') - .2,
+  moins: Wt('Le', 1, Wt('non.')) - .2, ht: Wt('Si') - .2, brut: Wt('Le', 1, Wt('raffinerie.')) - .2,
+  ormuz: Wt('Avec') - .2, russie: Wt('Et', 1, Wt('bloqué.')) - .2, marge: Wt('Résultat') - .2,
+  choix: Wt('Et', 1, Wt('six')) - .2, bdf: Wt('Selon') - .2, plein: Wt('Pour', 1, Wt('hausse')) - .2,
+  cta: Wt('Et', 1, Wt('chaque')) - .2,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : le gazole plus cher que l'essence, +19 cts =================================
+// Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.avant, (cam) => {
+  const tCher = Wt('cher'), t19 = Wt('19'), tLitre = Wt('litre.');
+  bg(cam);
+  const head = title(cam, [['LE GAZOLE', RED], 'PLUS CHER QUE', ["L'ESSENCE", GREEN]], { size: 96, shadow: 0, sw: 12 });
+  const pg = pump(cam, 'GAZOLE', RED), pe = pump(cam, 'ESSENCE', GREEN);
+  pg.set('2,33'); pe.set('2,14');
+  const n = el('g', {}, cam), nS = bigNum(n, 140, RED); nS.set('+19 CTS');
+  const lab = chip(cam, 'PAR LITRE', INK, CREAM, 44);
+  return t => {
+    at(head, CX, 300, lerp(1.12, 1, p(t, 0, .3, E.out)), -2);
+    // la pompe gazole grandit au-dessus de l'essence
+    const up = p(t, tCher - .2, tCher + .4, E.out);
+    at(pg.g, CX - 200, 740 - 30 * up, .78 * pop(t, .1, .35) * (1 + .08 * up), -3);
+    at(pe.g, CX + 190, 750, .78 * pop(t, .25, .35), 3);
+    at(n, CX, 1020, pop(t, t19 - .2, .35), -3);
+    lab.update(CX, 1120, pop(t, tLitre - .3), 2);
+    shock(t, .2, .3, .6); shock(t, t19 + .2, .3, .6);
+  };
+});
+
+// ====== 2. AVANT : le diesel, c'était le carburant pas cher ======================================
+S(T.avant, T.fev, (cam, a) => {
+  const tDie = Wt('diesel,'), tPas = Wt('pas', 1, a);
+  bg(cam);
+  const tag = chip(cam, 'PENDANT DES ANNÉES', INK, CREAM, 50);
+  const c = el('g', {}, cam); emoji(c, '🚗', 260);
+  const head = title(cam, ['LE DIESEL', ['= PAS CHER', GREEN]], { size: 120, shadow: 0, sw: 12 });
+  return t => {
+    tag.update(CX, 260, pop(t, a + .05), -2);
+    at(c, CX - 40 + 30 * Math.sin(t * 2), 560, pop(t, a + .1, .35), Math.sin(t * 6) * 3);
+    at(head, CX, 900, pop(t, tDie - .2, .35), -2);
+    shock(t, tPas + .2, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. EN FÉVRIER : 1,65 € contre 1,66 € =====================================================
+S(T.fev, T.auj, (cam, a) => {
+  const t165 = Wt('1,65.'), t166 = Wt('1,66.');
+  bg(cam);
+  const tag = chip(cam, 'FÉVRIER 2026', INK, CREAM, 56);
+  const pg = pump(cam, 'GAZOLE', RED), pe = pump(cam, 'ESSENCE', GREEN);
+  const eq = el('g', {}, cam), eqS = bigNum(eq, 110, INK); eqS.set('≈');
+  const lab = chip(cam, 'QUASI PAREIL', GREEN, CREAM, 52);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .05), -2);
+    at(pg.g, CX - 220, 690, .9 * pop(t, t165 - .7, .35), -2);
+    at(pe.g, CX + 190, 690, .9 * pop(t, t166 - .6, .35), 2);
+    pg.set(t >= t165 - .1 ? '1,65' : '');
+    pe.set(t >= t166 - .1 ? '1,66' : '');
+    at(eq, CX - 10, 710, pop(t, t166 + .3, .3));
+    lab.update(CX, 1070, pop(t, t166 + .5), -2);
+    shock(t, t165 + .1, .25, .4); shock(t, t166 + .1, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 4. AUJOURD'HUI : 2,33 € contre 2,14 € ====================================================
+S(T.auj, T.taxes, (cam, a) => {
+  const t233 = Wt('2,33'), t214 = Wt('2,14');
+  bg(cam);
+  const tag = chip(cam, "AUJOURD'HUI", RED, CREAM, 60);
+  const b1 = hbar(cam, 'GAZOLE', RED), b2 = hbar(cam, 'ESSENCE', GREEN);
+  const n = el('g', {}, cam), nS = bigNum(n, 120, RED); nS.set('+19 CTS');
+  return t => {
+    tag.update(CX, 250, pop(t, a + .05), -2);
+    at(b1.g, 110, 520, pop(t, t233 - .5, .3)); at(b2.g, 110, 800, pop(t, t214 - .5, .3));
+    // barres proportionnelles au prix (2,33 € → 780 px)
+    const k1 = p(t, t233 - .2, t233 + .5, E.out), k2 = p(t, t214 - .2, t214 + .5, E.out);
+    const w1 = 780 * k1, w2 = 780 * 2.14 / 2.33 * k2;
+    b1.setW(w1); b2.setW(w2);
+    b1.vN.set(eur(1.65 + .68 * k1)); b2.vN.set(eur(1.66 + .48 * k2));
+    tf(b1.v, Math.max(w1 / 2, 160), 50, pop(t, t233 - .1)); tf(b2.v, Math.max(w2 / 2, 160), 50, pop(t, t214 - .1));
+    at(n, CX, 1040, pop(t, t214 + .6, .35), -3);
+    shock(t, t233 + .3, .3, .5); shock(t, t214 + .7, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. LA FAUTE DES TAXES ? … NON ============================================================
+S(T.taxes, T.moins, (cam, a) => {
+  const tTax = Wt('taxes ?'), tNon = Wt('non.');
+  bg(cam);
+  const tk = el('g', {}, cam); emoji(tk, '🧾', 260);
+  const head = title(cam, ['LA FAUTE', ['DES TAXES ?', RED]], { size: 120, shadow: 0, sw: 12 });
+  const st = stamp(cam, 'NON', RED, 150);
+  return t => {
+    at(tk, CX, 500, pop(t, a + .05, .35) * (1 - p(t, tNon - .2, tNon)), Math.sin(t * 4) * 6);
+    at(head, CX, 860, pop(t, tTax - .5, .35), -2);
+    st.update(CX, 520, t, tNon - .1, -10);
+    shock(t, tNon + .1, .3, .8);
+  };
+}, { swipe: RED });
+
+// ====== 6. LE GAZOLE EST MOINS TAXÉ : ~3 cts de moins par litre ==================================
+S(T.moins, T.ht, (cam, a) => {
+  const tTaxe = Wt('taxé'), t3 = Wt('3', 1, a);
+  bg(cam);
+  const tag = chip(cam, 'LES TAXES PAR LITRE', INK, CREAM, 50);
+  const head = title(cam, [['LE GAZOLE', RED], 'EST MOINS TAXÉ'], { size: 100, shadow: 0, sw: 12 });
+  const n = el('g', {}, cam), nS = bigNum(n, 190, GREEN); nS.set('-3 CTS');
+  const lab = chip(cam, "QUE L'ESSENCE", GREEN, CREAM, 52);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .05), -2);
+    at(head, CX, 520, pop(t, tTaxe - .6, .35), -2);
+    at(n, CX, 800, pop(t, t3 - .2, .35), -3);
+    lab.update(CX, 1000, pop(t, t3 + .3), 2);
+    shock(t, t3 + .2, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. HORS TAXES : 1,33 € contre 1,11 € → 22 cts, à la raffinerie ===========================
+S(T.ht, T.brut, (cam, a) => {
+  const tEnl = Wt('enlève'), t22 = Wt('22'), tRaf = Wt('raffinerie.');
+  bg(cam);
+  const tag = chip(cam, 'SANS AUCUNE TAXE', INK, CREAM, 54);
+  const b1 = hbar(cam, 'GAZOLE', RED), b2 = hbar(cam, 'ESSENCE', GREEN);
+  const n = el('g', {}, cam), nS = bigNum(n, 110, RED); nS.set('22 CTS');
+  const lab = chip(cam, "D'ÉCART", RED, CREAM, 44);
+  const rf = refinery(cam);
+  const st = stamp(cam, 'LA RAFFINERIE', INK, 70);
+  return t => {
+    tag.update(CX, 250, pop(t, tEnl - .3), -2);
+    const out = p(t, tRaf - .5, tRaf - .1, E.in);          // les barres laissent la place à la raffinerie
+    const k = p(t, tEnl, tEnl + .7, E.out);
+    at(b1.g, 110, 480, pop(t, tEnl - .2, .3) * (1 - out)); at(b2.g, 110, 720, pop(t, tEnl - .1, .3) * (1 - out));
+    const w1 = 780 * k, w2 = 780 * 1.11 / 1.33 * k;
+    b1.setW(w1); b2.setW(w2); b1.vN.set('1,33 €'); b2.vN.set('1,11 €');
+    tf(b1.v, Math.max(w1 / 2, 140), 50, k); tf(b2.v, Math.max(w2 / 2, 140), 50, k);
+    at(n, CX, 960, pop(t, t22 - .2, .35) * (1 - out), -3);
+    lab.update(CX, 1070, pop(t, t22 + .2) * (1 - out), 2);
+    at(rf.g, CX, 640, pop(t, tRaf - .3, .35)); rf.update(t, t >= tRaf - .3 ? 1 : 0);
+    st.update(CX, 980, t, tRaf, -6);
+    shock(t, t22 + .2, .3, .5); shock(t, tRaf + .1, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 8. LE BRUT DOIT ÊTRE RAFFINÉ, et le monde en raffine moins ===============================
+S(T.brut, T.ormuz, (cam, a) => {
+  const tPet = Wt('pétrole'), tVoit = Wt('voiture.'), tRaf = Wt('raffiner.'), tMonde = Wt('monde'), tMoins = Wt('moins.', 1, tMonde);
+  bg(cam);
+  const tag = chip(cam, 'PÉTROLE BRUT', INK, CREAM, 52);
+  const br = barrel(cam), c = el('g', {}, cam); emoji(c, '🚗', 170);
+  const b = ban(cam, 120);
+  const a1 = arrow(cam, 110), a2 = arrow(cam, 110);
+  const rf = refinery(cam), pm = el('g', {}, cam); emoji(pm, '⛽', 150);
+  const lab = title(cam, ['LE MONDE EN', ['RAFFINE MOINS', RED]], { size: 82, shadow: 0, sw: 10 });
+  const dn = el('g', {}, cam); const dnA = arrow(dn, 120, RED);
+  return t => {
+    tag.update(CX, 250, pop(t, tPet - .3), -2);
+    const step2 = p(t, tRaf - .8, tRaf - .4, E.out);        // le baril passe par la raffinerie
+    at(br, lerp(CX - 220, 150, step2), 560, pop(t, tPet - .2, .35) * lerp(1, .7, step2));
+    // 1re idée : baril → voiture, interdit
+    at(c, CX + 220, 560, pop(t, tPet + .2, .35) * (1 - step2));
+    at(a1, CX - 120, 560, pop(t, tPet + .1, .3) * (1 - step2));
+    at(b, CX + 220, 560, pop(t, tVoit - .2, .3) * (1 - step2));
+    // 2e idée : baril → raffinerie → pompe
+    at(a2, 250, 560, pop(t, tRaf - .4, .3) * .8);
+    at(rf.g, CX + 30, 580, .6 * pop(t, tRaf - .6, .35)); rf.update(t, step2);
+    at(pm, CX + 330, 580, pop(t, tRaf - .1, .3));
+    at(lab, CX - 40, 910, pop(t, tMonde - .3, .35), -2);
+    at(dn, CX + 400, 870, pop(t, tMoins - .3, .3), 90);
+    shock(t, tVoit, .25, .4); shock(t, tMoins + .1, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. LE DÉTROIT D'ORMUZ BLOQUÉ (guerre États-Unis / Iran) ==================================
+S(T.ormuz, T.russie, (cam, a) => {
+  const tGue = Wt('guerre'), tEU = Wt('États-Unis'), tIran = Wt("l'Iran,"), tOrm = Wt("d'Ormuz"), tBloq = Wt('bloqué.');
+  bg(cam);
+  const tag = chip(cam, 'LA GUERRE', RED, CREAM, 56);
+  const c1 = chip(cam, 'ÉTATS-UNIS', BLUE, CREAM, 50), c2 = chip(cam, 'IRAN', GREEN, CREAM, 50);
+  const vs = el('g', {}, cam); bigNum(vs, 80, RED).set('VS');
+  // carte très simple : deux côtes et un passage étroit
+  const map = el('g', {}, cam);
+  card(map, -400, -180, 800, 360, SEA, 30, 12, 7);
+  el('path', { d: 'M-400,-180 H400 V-60 Q120,-70 60,-10 Q0,30 -60,-20 Q-200,-90 -400,-60 Z', fill: SAND, stroke: INK, 'stroke-width': 6 }, map);
+  el('path', { d: 'M-400,180 H400 V90 Q200,110 80,40 Q20,10 -40,40 Q-220,120 -400,90 Z', fill: SAND, stroke: INK, 'stroke-width': 6 }, map);
+  const ship = el('g', {}, map); emoji(ship, '🚢', 110);
+  const x = el('g', {}, map); ban(x, 70);
+  const st = stamp(cam, "ORMUZ BLOQUÉ", RED, 72);
+  return t => {
+    tag.update(CX, 240, pop(t, tGue - .3), -2);
+    c1.update(CX - 230, 380, pop(t, tEU - .1), -3); c2.update(CX + 270, 380, pop(t, tIran - .1), 3);
+    at(vs, CX + 70, 385, pop(t, tIran - .3, .3));
+    at(map, CX, 720, pop(t, tOrm - .5, .35));
+    const go = p(t, tOrm - .3, tBloq, E.out);
+    tf(ship, lerp(-300, -130, go), 20 + 4 * Math.sin(t * 4), 1, 0);
+    tf(x, 10, 10, pop(t, tBloq - .2, .3));
+    st.update(CX, 1040, t, tBloq - .1, -5);
+    shock(t, tBloq + .1, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 10. L'UKRAINE BOMBARDE LES RAFFINERIES RUSSES ============================================
+S(T.russie, T.marge, (cam, a) => {
+  const tUkr = Wt("l'Ukraine"), tRaf = Wt('raffineries'), tRus = Wt('Russie'), tFour = Wt('fournisseurs'), tDie = Wt('diesel.', 1, a);
+  bg(cam);
+  const tag = chip(cam, 'RAFFINERIES RUSSES', INK, CREAM, 50);
+  const rf = refinery(cam);
+  const bm = el('g', {}, cam); emoji(bm, '💥', 220);
+  const lab = title(cam, ['LA RUSSIE :', ['GRAND FOURNISSEUR', RED], 'DE DIESEL'], { size: 74, shadow: 0, sw: 10 });
+  return t => {
+    tag.update(CX, 240, pop(t, tUkr - .2), -2);
+    at(rf.g, CX, 560, 1.1 * pop(t, tUkr - .1, .35)); rf.update(t);
+    at(bm, CX + 60, 520, pop(t, tRaf - .1, .3) * (1 + .1 * Math.sin(t * 12)), Math.sin(t * 9) * 8);
+    at(lab, CX, 960, pop(t, tRus - .2, .35), -2);
+    shock(t, tRaf + .1, .35, .9); shock(t, tDie, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 11. LA MARGE DES RAFFINEURS × 6 DEPUIS FÉVRIER ===========================================
+S(T.marge, T.choix, (cam, a) => {
+  const tMar = Wt('marge'), tMul = Wt('multipliée'), tSix = Wt('six'), tFev = Wt('février.', 1, a);
+  bg(cam);
+  const tag = chip(cam, 'MARGE DES RAFFINEURS', INK, CREAM, 50);
+  const base = 980, full = 600;
+  const cols = [['FÉVRIER', GREEN, 40 / 235, CX - 200], ['SEPT.', RED, 1, CX + 200]].map(([s, col, f, x]) => {
+    const g = el('g', {}, cam);
+    const sh = el('rect', { x: -110 + 12, width: 220, rx: 14, fill: INK }, g), r = el('rect', { x: -110, width: 220, rx: 14, fill: col, stroke: INK, 'stroke-width': 7 }, g);
+    txt(g, s, { size: 48 }).g.setAttribute('transform', 'translate(0,70)');
+    return { g, sh, r, f, x };
+  });
+  const n = el('g', {}, cam), nS = bigNum(n, 200, RED); nS.set('× 6');
+  return t => {
+    tag.update(CX, 240, pop(t, tMar - .3), -2);
+    cols.forEach((c, i) => {
+      const k = i ? p(t, tMul - .2, tSix + .3, E.out) : p(t, tMar, tMar + .4, E.out);
+      const h = Math.max(4, full * c.f * k);
+      set(c.r, { y: fmt(-h), height: fmt(h) }); set(c.sh, { y: fmt(-h + 12), height: fmt(h) });
+      at(c.g, c.x, base, pop(t, tMar - .2, .3));
+    });
+    at(n, CX - 200, 560, pop(t, tSix - .1, .35), -6);
+    shock(t, tSix + .1, .3, .8);
+  };
+}, { swipe: RED });
+
+// ====== 12. CAMIONS, TRACTEURS, BATEAUX : pas le choix ===========================================
+S(T.choix, T.bdf, (cam, a) => {
+  const tCam = Wt('camions,'), tTra = Wt('tracteurs'), tBat = Wt('bateaux'), tCho = Wt('choix.'), tPrix = Wt('prix.', 1, a);
+  bg(cam);
+  const tag = chip(cam, 'LE DIESEL', INK, CREAM, 56);
+  const ic = [['🚚', tCam, CX - 280], ['🚜', tTra, CX], ['🚢', tBat, CX + 280]].map(([e, t0, x]) => { const g = el('g', {}, cam); emoji(g, e, 200); return { g, t0, x }; });
+  const head = title(cam, ['PAS LE CHOIX'], { size: 120, shadow: 0 });
+  const st = stamp(cam, 'QUEL QUE SOIT LE PRIX', RED, 58);
+  return t => {
+    tag.update(CX, 250, pop(t, a + .05), -2);
+    ic.forEach(o => at(o.g, o.x, 520 + 10 * Math.sin(t * 5 + o.x), pop(t, o.t0 - .1, .3)));
+    at(head, CX, 800, pop(t, tCho - .4, .35), -3);
+    st.update(CX, 1020, t, tPrix - .5, -4);
+    shock(t, tCho, .25, .5); shock(t, tPrix - .3, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 13. BANQUE DE FRANCE : le raffinage = ~60 % de la hausse =================================
+S(T.bdf, T.plein, (cam, a) => {
+  const tBan = Wt('Banque'), tRaf = Wt('raffinage'), t60 = Wt('60 %'), tHau = Wt('hausse');
+  bg(cam);
+  const tag = chip(cam, 'SELON LA BANQUE DE FRANCE', INK, CREAM, 46);
+  const R = 250, C = 2 * Math.PI * R;
+  const ring = el('g', {}, cam);
+  el('circle', { r: R, fill: 'none', stroke: INK, 'stroke-width': 110 }, ring);
+  el('circle', { r: R, fill: 'none', stroke: CREAM, 'stroke-width': 92 }, ring);
+  const arc = el('circle', { r: R, fill: 'none', stroke: RED, 'stroke-width': 92, transform: 'rotate(-90)', 'stroke-dasharray': `0 ${fmt(C)}` }, ring);
+  const n = el('g', {}, ring), nS = bigNum(n, 115, RED);
+  const lab = chip(cam, 'DE LA HAUSSE = RAFFINAGE', RED, CREAM, 46);
+  return t => {
+    tag.update(CX, 240, pop(t, tBan - .3), -2);
+    at(ring, CX, 680, pop(t, tRaf - .3, .35));
+    const k = .6 * p(t, t60 - .3, t60 + .6, E.out);
+    set(arc, { 'stroke-dasharray': `${fmt(C * k)} ${fmt(C)}` });
+    nS.set(Math.round(k * 100) + ' %');
+    lab.update(CX, 1070, pop(t, tHau - .2), 2);
+    shock(t, t60 + .3, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 14. TON PLEIN DE 50 L : 81 € il y a un an, 116 € aujourd'hui, +35 € =====================
+S(T.plein, T.cta, (cam, a) => {
+  const tPlein = Wt('plein', 1, a), t81 = Wt('81'), t116 = Wt('116'), t35 = Wt('35'), tCha = Wt('chaque');
+  bg(cam);
+  const tag = chip(cam, 'UN PLEIN DE 50 L DE GAZOLE', INK, CREAM, 46);
+  const pm = pump(cam, 'GAZOLE', RED);
+  const old = chip(cam, 'IL Y A UN AN : 81 €', GREEN, CREAM, 44);
+  const n = el('g', {}, cam), nS = bigNum(n, 140, RED); nS.set('+35 €');
+  const lab = chip(cam, 'À CHAQUE PLEIN', RED, CREAM, 52);
+  const money = el('g', {}, cam); emoji(money, '💸', 130);
+  return t => {
+    tag.update(CX, 240, pop(t, tPlein - .3), -2);
+    at(pm.g, CX - 240, 700, .85 * pop(t, tPlein - .2, .35));
+    // le compteur monte jusqu'à 81, puis jusqu'à 116
+    const v = lerp(0, 81, p(t, tPlein, t81, E.out)) + 35 * p(t, t116 - .6, t116 + .2, E.out);
+    pm.set(Math.round(v) + ' €');
+    pm.v.setAttribute('fill', v > 81.5 ? RED : GREEN);
+    old.update(CX, 400, pop(t, t81), -2);
+    at(n, CX + 230, 680, pop(t, t35 - .2, .35), -4);
+    lab.update(CX + 230, 840, pop(t, tCha - .2), 2);
+    at(money, CX + 230, 1010 - (t * 60) % 60, pop(t, t35, .3), Math.sin(t * 6) * 10);
+    shock(t, t116 + .1, .3, .7); shock(t, t35 + .2, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 15. FIN : et toi, ton plein, il te coûte combien ? ========================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tComb = Wt('combien'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ['ET TOI,', ['TON PLEIN', RED], ['COMBIEN ?', GREEN]], { size: 100, shadow: 0, sw: 12 });
+  const fuel = el('g', {}, cam); emoji(fuel, '⛽', 170);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 330, pop(t, a + .05, .35), -2);
+    at(fuel, CX - 60, 740, pop(t, a + .3, .35), Math.sin(t * 4) * 6);
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 760, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tComb + .2, .25, .4);
+  };
+}, { swipe: RED });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Séléné entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>
