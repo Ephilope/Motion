@@ -18,10 +18,10 @@
 (async () => {
 const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg } = Motion;
 await setup({
-  duration: 79.5,
+  duration: 62,
   words: window.WORDS,
   audio: 'assets/voix_lacrymo_regles.mp3',
-  emojis: '⏰💨💊🩸🎻🎺👮🪖💉🧪📋😣😰💬👇👀🇺🇸🇫🇷🔬',
+  emojis: '⏰💨💊🩸🪖💉🧪📋😣😰💬👇👀🇺🇸🇫🇷🔬',
 });
 const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
 const YELLOW = '#FFD23F', GAS = '#C9D6B8', GAS2 = '#AFC19A', BLUE = '#3498DB', PINK = '#F5A3B5', GREY = '#7F8C8D';
@@ -114,8 +114,7 @@ function vbar(parent, label, col) {
 
 // --- débuts de scène, calés sur la voix ------------------------------------------
 const T = {
-  samedi: Wt('Samedi') - .2, paris: Wt('À', 1, Wt('gaz.')) - .2, orch: Wt('Un', 1, Wt('cortèges')) - .1,
-  villes: Wt('Et', 1, Wt('République')) - .2, deja: Wt('Ce') - .2, pilule: Wt('Une', 1, Wt('États-Unis')) - .2,
+  samedi: Wt('Samedi') - .2, deja: Wt('ensuite') - .3, pilule: Wt('Une', 1, Wt('États-Unis')) - .2,
   trans: Wt('Des', 1, Wt('mois')) - .2, etude: Wt('Des', 1, Wt('revenir')) - .2, sympt: Wt('Crampes') - .2,
   dose: Wt('Et', 1, Wt('abondants')) - .2, pourquoi: Wt('Mais') - .2, attention: Wt('Attention') - .2,
   cta: Wt('Alors', 2) - .2,
@@ -128,29 +127,29 @@ S(0, T.samedi, (cam) => {
   const tSurv = Wt('surveille'), tGaz = Wt('gaz'), tMeme = Wt('même'), tPil = Wt('pilule');
   bg(cam);
   const tag = chip(cam, 'MANIF DU 17 OCTOBRE', RED, CREAM, 54);
-  const head = title(cam, [['LE GAZ LACRYMO', INK], 'ET', ['TES RÈGLES', RED]], { size: 104, shadow: 0, sw: 12 });
+  const head = title(cam, [['LE GAZ LACRYMO', INK], 'ET', ['TES RÈGLES', RED]], { size: 90, shadow: 0, sw: 12 });
   const cloud = gasCloud(cam, 210, 1);
   const can = canister(cam);
   const cal = calPage(cam);
   const drop = el('g', {}, cam); emoji(drop, '🩸', 110);
-  const pill = el('g', {}, cam); emoji(pill, '💊', 150);
+  const pill = el('g', {}, cam); emoji(pill, '💊', 120);
   const st = stamp(cam, 'MÊME SOUS PILULE', RED, 70);
   return t => {
     tag.update(CX, 250, pop(t, 0, .3), -2);
     at(head, CX, 470, lerp(1.12, 1, p(t, 0, .3, E.out)), -2);
     // le nuage de gaz monte de la grenade, puis le calendrier et la goutte
     at(can, CX - 330, 900, pop(t, .2, .3), -12);
-    at(cloud.g, CX - 210, 800, 1); cloud.update(t, .5 * p(t, tGaz - .6, tGaz + .4, E.out));
+    at(cloud.g, CX - 250, 800, 1); cloud.update(t, .45 * p(t, tGaz - .6, tGaz + .4, E.out));
     at(cal, CX + 250, 800, pop(t, tSurv - .1, .35), 4);
     at(drop, CX + 360, 900 + 6 * Math.sin(t * 5), pop(t, tSurv + .3, .3));
-    at(pill, CX + 30, 860, pop(t, tPil - .3, .3), -10);
+    at(pill, CX + 10, 850, pop(t, tPil - .3, .3), -10);
     st.update(CX, 1080, t, tMeme, -4);
     shock(t, .2, .3, .6); shock(t, tPil + .1, .3, .6);
   };
 });
 
 // ====== 2. SAMEDI : plus de 500 000 manifestants, beaucoup de jeunes, beaucoup de gaz ==============
-S(T.samedi, T.paris, (cam, a) => {
+S(T.samedi, T.deja, (cam, a) => {
   const tPers = Wt('personnes'), tJeu = Wt('jeunes'), tGaz = Wt('gaz', 1, tJeu);
   bg(cam);
   const tag = chip(cam, 'SAMEDI 17 OCTOBRE', INK, CREAM, 52);
@@ -174,65 +173,7 @@ S(T.samedi, T.paris, (cam, a) => {
   };
 }, { swipe: RED });
 
-// ====== 3. PARIS : gazé avant même le départ des cortèges =========================================
-S(T.paris, T.orch, (cam, a) => {
-  const tPol = Wt('police'), tAva = Wt('avant'), tCor = Wt('cortèges');
-  bg(cam);
-  const tag = chip(cam, 'PARIS', BLUE, CREAM, 60);
-  const cop = el('g', {}, cam); emoji(cop, '👮', 220);
-  const cloud = gasCloud(cam, 180, 5);
-  const head = title(cam, [['GAZÉ AVANT', RED], 'LE DÉPART', 'DES CORTÈGES'], { size: 96, shadow: 0, sw: 12 });
-  return t => {
-    tag.update(CX, 250, pop(t, a + .05), -2);
-    at(cop, CX - 230, 560, pop(t, tPol - .2, .35));
-    at(cloud.g, CX + 170, 560, 1); cloud.update(t, .8 * p(t, tPol, tPol + .6, E.out));
-    at(head, CX, 930, pop(t, tAva - .3, .35), -2);
-    shock(t, tAva, .3, .5); shock(t, tCor + .1, .25, .4);
-  };
-}, { swipe: GREEN });
-
-// ====== 4. UN ORCHESTRE GAZÉ EN PLEINE RÉPÉTITION ===============================================
-S(T.orch, T.villes, (cam, a) => {
-  const tOrc = Wt('orchestre'), tGaz = Wt('gazé', 1, a), tRep = Wt('répétition'), tPla = Wt('place', 1, a);
-  bg(cam);
-  const tag = chip(cam, 'PLACE DE LA RÉPUBLIQUE', INK, CREAM, 46);
-  const cloud = gasCloud(cam, 220, 7);
-  const vi = el('g', {}, cam); emoji(vi, '🎻', 190);
-  const tr = el('g', {}, cam); emoji(tr, '🎺', 170);
-  const head = title(cam, ['UN ORCHESTRE', ['GAZÉ', RED], 'EN RÉPÉTITION'], { size: 96, shadow: 0, sw: 12 });
-  return t => {
-    tag.update(CX, 250, pop(t, tPla - .4), -2);
-    const k = p(t, tGaz - .2, tGaz + .5, E.out);
-    at(vi, CX - 170, 560, pop(t, tOrc - .2, .35), Math.sin(t * 5) * 8 * (1 - k) + 20 * k);
-    at(tr, CX + 170, 580, pop(t, tOrc, .35), Math.sin(t * 6 + 1) * 8 * (1 - k) - 20 * k);
-    at(cloud.g, CX, 560, 1); cloud.update(t, .9 * k);
-    at(head, CX, 960, pop(t, tGaz - .3, .35), -2);
-    shock(t, tGaz + .1, .3, .7);
-  };
-}, { swipe: RED });
-
-// ====== 5. ET ÇA A CONTINUÉ : Marseille, Lyon, Strasbourg ========================================
-S(T.villes, T.deja, (cam, a) => {
-  const tMar = Wt('Marseille'), tLyo = Wt('Lyon'), tStr = Wt('Strasbourg');
-  bg(cam);
-  const tag = chip(cam, 'ET AUSSI…', INK, CREAM, 56);
-  const v = [['MARSEILLE', tMar, 470], ['LYON', tLyo, 680], ['STRASBOURG', tStr, 890]].map(([s, t0, y], i) => {
-    const g = el('g', {}, cam), cl = gasCloud(g, 90, i + 2);
-    const c = chip(g, s, i % 2 ? GREEN : RED, CREAM, 56);
-    return { g, cl, c, t0, y, i };
-  });
-  return t => {
-    tag.update(CX, 250, pop(t, a + .05), -2);
-    v.forEach(o => {
-      at(o.g, CX, o.y, 1);
-      tf(o.cl.g, 290, 0, 1); o.cl.update(t, p(t, o.t0, o.t0 + .5, E.out));
-      o.c.update(-130, 0, pop(t, o.t0 - .1), o.i % 2 ? 2 : -2);
-    });
-    shock(t, tMar + .1, .25, .4); shock(t, tLyo + .1, .25, .4); shock(t, tStr + .1, .25, .4);
-  };
-}, { swipe: GREEN });
-
-// ====== 6. ON L'A DÉJÀ VU : Portland, été 2020 ===================================================
+// ====== 3. ON L'A DÉJÀ VU : Portland, été 2020 ===================================================
 S(T.deja, T.pilule, (cam, a) => {
   const tArr = Wt('arriver'), tVu = Wt('vu'), tEte = Wt('Été', 1, a), tPor = Wt('Portland');
   bg(cam);
@@ -252,7 +193,7 @@ S(T.deja, T.pilule, (cam, a) => {
   };
 }, { swipe: RED });
 
-// ====== 7. SOUS PILULE : 4 règles par an… puis le lendemain de chaque gazage ======================
+// ====== 4. SOUS PILULE : 4 règles par an… puis le lendemain de chaque gazage ======================
 S(T.pilule, T.trans, (cam, a) => {
   const tFil = Wt('fille'), t26 = Wt('26'), tPil = Wt('pilule', 1, a), t4 = Wt('4'), tLen = Wt('lendemain'), tGaz = Wt('gazage'), t3 = Wt('3', 1, a), t2 = Wt('2', 1, t3);
   bg(cam);
@@ -272,7 +213,7 @@ S(T.pilule, T.trans, (cam, a) => {
   };
 }, { swipe: GREEN });
 
-// ====== 8. SOUS TESTOSTÉRONE : les règles reviennent ============================================
+// ====== 5. SOUS TESTOSTÉRONE : les règles reviennent ============================================
 S(T.trans, T.etude, (cam, a) => {
   const tHom = Wt('hommes'), tTes = Wt('testostérone'), tPlus = Wt('plus', 1, a), tRev = Wt('revenir');
   bg(cam);
@@ -294,7 +235,7 @@ S(T.trans, T.etude, (cam, a) => {
   };
 }, { swipe: RED });
 
-// ====== 9. L'ÉTUDE : 2 000 personnes gazées, plus d'une sur deux perturbée =======================
+// ====== 6. L'ÉTUDE : 2 000 personnes gazées, plus d'une sur deux perturbée =======================
 S(T.etude, T.sympt, (cam, a) => {
   const tCher = Wt('chercheurs'), t2000 = Wt('2 000'), tPlus = Wt('Plus', 1, Wt('là-bas')), tPer = Wt('perturbé');
   bg(cam);
@@ -313,7 +254,7 @@ S(T.etude, T.sympt, (cam, a) => {
   };
 }, { swipe: GREEN });
 
-// ====== 10. LES SYMPTÔMES : crampes, règles en avance, saignements ================================
+// ====== 7. LES SYMPTÔMES : crampes, règles en avance, saignements ================================
 S(T.sympt, T.dose, (cam, a) => {
   const tCra = Wt('Crampes'), tAva = Wt('avance'), tSai = Wt('saignements');
   bg(cam);
@@ -332,7 +273,7 @@ S(T.sympt, T.dose, (cam, a) => {
   };
 }, { swipe: RED });
 
-// ====== 11. EFFET DOSE : après 5 jours de gaz, 2 fois plus de crampes =============================
+// ====== 8. EFFET DOSE : après 5 jours de gaz, 2 fois plus de crampes =============================
 S(T.dose, T.pourquoi, (cam, a) => {
   const t5 = Wt('5'), tGaz = Wt('gaz', 1, t5), t2 = Wt('2', 1, tGaz), tCra = Wt('crampes', 1, t2);
   bg(cam);
@@ -351,7 +292,7 @@ S(T.dose, T.pourquoi, (cam, a) => {
   };
 }, { swipe: GREEN });
 
-// ====== 12. POURQUOI ON NE SAIT PAS : testé dans les années 60 sur des militaires =================
+// ====== 9. POURQUOI ON NE SAIT PAS : testé dans les années 60 sur des militaires =================
 S(T.pourquoi, T.attention, (cam, a) => {
   const tPq = Wt('pourquoi'), t60 = Wt('60'), tMil = Wt('militaires'), tJam = Wt('jamais'), tReg = Wt('règles', 1, tJam);
   bg(cam);
@@ -371,7 +312,7 @@ S(T.pourquoi, T.attention, (cam, a) => {
   };
 }, { swipe: RED });
 
-// ====== 13. ATTENTION : rien de prouvé, le stress aussi ==========================================
+// ====== 10. ATTENTION : rien de prouvé, le stress aussi ==========================================
 S(T.attention, T.cta, (cam, a) => {
   const tAuc = Wt('aucune'), tPro = Wt('prouve'), tStr = Wt('stress'), tAus = Wt('aussi', 1, tStr);
   bg(cam);
@@ -393,7 +334,7 @@ S(T.attention, T.cta, (cam, a) => {
   };
 }, { swipe: GREEN });
 
-// ====== 14. FIN : et toi, samedi, tes règles ont changé ? =======================================
+// ====== 11. FIN : et toi, samedi, tes règles ont changé ? =======================================
 S(T.cta, M.DUR, (cam, a) => {
   const tSam = Wt('samedi', 2), tCha = Wt('changé'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire');
   bg(cam);
