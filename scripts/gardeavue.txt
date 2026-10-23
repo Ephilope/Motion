@@ -1,0 +1,34 @@
+# Voix-off de gardeavue.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources :
+# - Ministère de la Justice, bilan au 8/10/2026, repris par franceinfo
+#   (https://www.franceinfo.fr/societe/education/blocage-des-lycees/comment-expliquer-le-nombre-important-de-gardes-a-vue-depuis-le-debut-de-la-mobilisation-lyceenne_8235619.html) :
+#   6 877 gardes à vue depuis la semaine du 21/09/2026, dont 86 % de mineurs ; environ un tiers des cas classés faute d'éléments suffisants ;
+#   Gilets jaunes (nov. 2018 - sept. 2019) : 6 736 gardes à vue.
+# - Service-public.gouv.fr, « Retenue et garde à vue d'un mineur » (https://www.service-public.gouv.fr/particuliers/vosdroits/F1469),
+#   CJPM art. L413-1 à L413-11 : pas de garde à vue avant 13 ans (retenue de 12 h de 10 à 13 ans) ; 13-16 ans : 24 h, +24 h seulement
+#   si l'infraction est punie d'au moins 5 ans ; avocat obligatoire ; parents informés en principe dans les 3 h ; examen médical
+#   obligatoire avant 16 ans ; droit de se taire ; interrogatoires filmés, sans enregistrement aucune condamnation sur les seules
+#   déclarations contestées du mineur.
+# - Cour de cassation, assemblée plénière, 7/11/2022, n° 21-83.146, art. 434-15-2 du code pénal (3 ans, 270 000 €), sur réquisition
+#   judiciaire (https://www.leclubdesjuristes.com/justice/le-refus-de-communiquer-le-code-de-deverrouillage-dun-telephone-portable-peut-constituer-un-delit-652/).
+# - franceinfo, 10/10/2026 : le procureur de Bordeaux rappelle que les parents doivent « indemniser l'intégralité » des dommages
+#   (https://www.franceinfo.fr/societe/education/blocage-des-lycees/indemnisations-par-les-parents-stages-sur-les-droits-et-devoirs-du-manifestant-quelles-suites-judiciaires-pour-les-mineurs-poursuivis-lors-du-mouvement-lyceen_8228563.html).
+6 877[Six mille huit cent soixante-dix-sept] gardes à vue… en trois semaines de blocus lycéens.
+Presque neuf sur dix… c'étaient des mineurs.
+C'est plus que pendant dix mois de Gilets jaunes.
+Alors si demain, c'est toi qu'on embarque devant ton lycée… tu sais ce qui t'attend_?
+D'abord, ton âge change tout.
+Avant 13[treize] ans, la garde à vue est interdite. Entre 10[dix] et 13[treize] ans, on peut seulement te « retenir »… quelques heures.
+De 13[treize] à 16[seize] ans, c'est 24[vingt-quatre] heures. Et on ne peut prolonger que pour un délit puni d'au moins cinq ans de prison.
+Ensuite… l'avocat. Pour un mineur, il est obligatoire. Même si tu dis que tu n'en veux pas.
+Tes parents doivent être prévenus. En principe, dans les trois heures.
+Avant 16[seize] ans, un médecin doit t'examiner dès le début.
+Et surtout… tu as le droit de te taire.
+Tous tes interrogatoires sont filmés. Sans vidéo, on ne peut pas te condamner seulement sur des aveux que tu contestes.
+Mais attention, il y a des pièges.
+Ton téléphone, par exemple. Refuser de donner ton code… peut être un délit. La Cour de cassation l'a confirmé en 2022.[deux mille vingt-deux.]
+Pas lors d'un simple contrôle. Mais si la justice te le demande officiellement, refuser est puni de trois ans de prison. La moitié pour un mineur.
+Et si tu casses quelque chose_? Ce sont tes parents qui paient. Le procureur de Bordeaux l'a rappelé_: ils doivent rembourser l'intégralité des dégâts.
+Au final, environ une garde à vue sur trois… s'est terminée sans suite, faute de preuves suffisantes.
+Et toi, tu savais que l'avocat était obligatoire_? Dis-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
