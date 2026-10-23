@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garde à vue à 15 ans</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Garde à vue des lycéens : ce que la police a le droit de faire » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/gardeavue.txt → node tools/voix.mjs gardeavue ; node tools/enveloppe.mjs gardeavue
+     Chiffres et sources : en tête de scripts/gardeavue.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/gardeavue_words.js"></script>
+<script src="assets/gardeavue_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg } = Motion;
+await setup({
+  duration: 82,
+  words: window.WORDS,
+  audio: 'assets/voix_gardeavue.mp3',
+  emojis: '🚓🏫⚖️📞🩺🤐🎥📱⚠️💸🔨📁💬👇👮⏱️',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BLUE = '#3498DB', GREY = '#7F8C8D';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Cercle d'interdiction.
+function ban(parent, r = 150) {
+  const g = el('g', {}, parent), k = r * .707;
+  el('circle', { r, fill: 'none', stroke: RED, 'stroke-width': r * .16 }, g);
+  el('line', { x1: -k, y1: -k, x2: k, y2: k, stroke: RED, 'stroke-width': r * .16 }, g);
+  return g;
+}
+// Petit personnage (tête + corps), couleur au choix.
+function person(parent, col) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 4, cy: -52 + 4, r: 26, fill: INK }, g);
+  el('circle', { cy: -52, r: 26, fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: 'M-38,40 Q-38,-14 0,-14 Q38,-14 38,40 Z', fill: col, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Horloge avec aiguille qui tourne.
+function clock(parent, r = 120) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 10, cy: 10, r, fill: INK }, g);
+  el('circle', { r, fill: CREAM, stroke: INK, 'stroke-width': 10 }, g);
+  for (let i = 0; i < 12; i++) el('line', { x1: 0, y1: -r * .78, x2: 0, y2: -r * .9, stroke: INK, 'stroke-width': 8, 'stroke-linecap': 'round', transform: `rotate(${i * 30})` }, g);
+  const hand = el('line', { x1: 0, y1: 0, x2: 0, y2: -r * .7, stroke: RED, 'stroke-width': 12, 'stroke-linecap': 'round' }, g);
+  el('circle', { r: 12, fill: INK }, g);
+  return { g, update(a) { hand.setAttribute('transform', `rotate(${fmt(a)})`); } };
+}
+// Coche verte dans un rond.
+function check(parent, r = 46, col = GREEN) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 6, cy: 6, r, fill: INK }, g);
+  el('circle', { r, fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: `M${-r * .45},0 L${-r * .1},${r * .35} L${r * .5},${-r * .35}`, fill: 'none', stroke: CREAM, 'stroke-width': r * .22, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Carte crème avec texte (une ou deux lignes), centrée.
+function plate(parent, lines, w, size = 52, fill = CREAM) {
+  const g = el('g', {}, parent), h = lines.length * size * 1.2 + size * .9;
+  card(g, -w / 2, -h / 2, w, h, fill, 26, 10, 7);
+  lines.forEach((l, i) => {
+    const [s, col] = Array.isArray(l) ? l : [l, INK];
+    const r = txt(g, s, { size, fill: col, sw: col === INK ? 0 : 8 });
+    r.g.setAttribute('transform', `translate(0,${fmt((i - (lines.length - 1) / 2) * size * 1.2 + size * .36)})`);
+  });
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  neuf: Wt('Presque') - .2, toi: Wt('Alors') - .2, age: Wt("D'abord,") - .1, h24: Wt('De', 1, Wt('heures.')) - .2,
+  avocat: Wt('Ensuite…') - .1, parents: Wt('Tes') - .1, medecin: Wt('Avant', 1, Wt('trois', 1, Wt('principe,'))) - .15,
+  taire: Wt('Et', 1, Wt('début.')) - .15, film: Wt('Tous') - .1, piege: Wt('Mais') - .2, conds: Wt('Pas', 1, Wt('2022.')) - .2,
+  peine: Wt('refuser', 1, Wt('justice.')) - .6, casse: Wt('Et', 1, Wt('mineur.', 1, Wt('moitié'))) - .15, suite: Wt('Au') - .15, cta: Wt('Et', 1, Wt('suffisantes.')) - .15,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : 6 877 gardes à vue en trois semaines =======================================
+// Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.neuf, (cam) => {
+  const tSem = Wt('semaines'), tBlo = Wt('blocus');
+  bg(cam);
+  const n = el('g', {}, cam), nS = bigNum(n, 230, RED);
+  const head = title(cam, ['GARDES À VUE'], { size: 110, shadow: 0 });
+  const tag = chip(cam, 'EN 3 SEMAINES', INK, CREAM, 56);
+  const lab = chip(cam, 'DE BLOCUS LYCÉENS', RED, CREAM, 52);
+  const car = el('g', {}, cam); emoji(car, '🚓', 170);
+  return t => {
+    nS.set('6 877');
+    at(n, CX, 470, lerp(1.25, 1, p(t, 0, .3, E.out)), -3);
+    at(head, CX, 680, lerp(1.1, 1, p(t, 0, .3, E.out)), -2);
+    tag.update(CX, 260, pop(t, tSem - .3), -2);
+    lab.update(CX, 880, pop(t, tBlo - .2), 2);
+    at(car, CX + 30 + 40 * Math.sin(t * 3), 1060, pop(t, .4, .35), Math.sin(t * 8) * 3);
+    shock(t, .2, .3, .7);
+  };
+});
+
+// ====== 2. 9 SUR 10 SONT MINEURS, plus que 10 mois de Gilets jaunes ==============================
+S(T.neuf, T.toi, (cam, a) => {
+  const tNeuf = Wt('neuf'), tMin = Wt('mineurs.'), tPlus = Wt('plus', 1, tMin), tGil = Wt('Gilets');
+  bg(cam);
+  const ppl = Array.from({ length: 10 }, (_, i) => { const g = el('g', {}, cam); person(g, i < 9 ? RED : GREY); return g; });
+  const lab = chip(cam, '9 SUR 10 : MINEURS', RED, CREAM, 54);
+  const bars = [['LYCÉENS : 3 SEMAINES', RED, 6877, tPlus], ['GILETS JAUNES : 10 MOIS', GREY, 6736, tGil]].map(([s, col, v, t0], i) => {
+    const g = el('g', {}, cam);
+    const l = txt(g, s, { size: 44, anchor: 'start' }); l.g.setAttribute('transform', 'translate(0,-28)');
+    const sh = el('rect', { x: 10, y: 10, height: 90, rx: 14, fill: INK }, g), r = el('rect', { x: 0, y: 0, height: 90, rx: 14, fill: col, stroke: INK, 'stroke-width': 7 }, g);
+    const vt = txt(g, v.toLocaleString('fr-FR').replace(/\s/g, ' '), { size: 56, fill: CREAM, sw: 8, anchor: 'end' });
+    return { g, sh, r, vt, v, t0, y: 760 + i * 200 };
+  });
+  return t => {
+    const up = p(t, tPlus - .5, tPlus - .2, E.in);            // les personnages remontent pour laisser la place aux barres
+    ppl.forEach((g, i) => at(g, 120 + (i % 5) * 190, lerp(360 + Math.floor(i / 5) * 200, 300 + Math.floor(i / 5) * 150, up) + 6 * Math.sin(t * 5 + i), pop(t, tNeuf - .4 + i * .05, .3) * lerp(1.15, .8, up)));
+    lab.update(CX, lerp(780, 610, up), pop(t, tMin - .2), -2);
+    bars.forEach(b => {
+      const k = p(t, b.t0 - .1, b.t0 + .6, E.out), w = 820 * b.v / 6877 * k;
+      set(b.r, { width: fmt(Math.max(1, w)) }); set(b.sh, { width: fmt(Math.max(1, w)) });
+      b.vt.g.setAttribute('transform', `translate(${fmt(w - 24)},64)`); b.vt.g.setAttribute('opacity', fmt(k));
+      at(b.g, 100, b.y, pop(t, b.t0 - .2, .3));
+    });
+    shock(t, tMin, .25, .5); shock(t, tGil + .3, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 3. ET SI DEMAIN C'EST TOI ? ==============================================================
+S(T.toi, T.age, (cam, a) => {
+  const tToi = Wt('toi', 1, a), tLyc = Wt('lycée…'), tAtt = Wt("t'attend ?");
+  bg(cam);
+  const sch = el('g', {}, cam); emoji(sch, '🏫', 300);
+  const car = el('g', {}, cam); emoji(car, '🚓', 200);
+  const head = title(cam, ['ET SI DEMAIN', ["C'ÉTAIT TOI ?", RED]], { size: 110, shadow: 0, sw: 12 });
+  return t => {
+    at(sch, CX - 150, 560, pop(t, a + .05, .35));
+    at(car, lerp(1200, CX + 230, p(t, tLyc - .5, tLyc, E.out)), 640, 1, 0);
+    at(head, CX, 960, pop(t, tToi - .2, .35), -2);
+    shock(t, tLyc, .25, .5); shock(t, tAtt + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. TON ÂGE CHANGE TOUT : avant 13 ans pas de garde à vue, 10-13 ans retenue ==============
+S(T.age, T.h24, (cam, a) => {
+  const tAge = Wt('âge'), t13 = Wt('13', 1, a), tInt = Wt('interdite.'), tEnt = Wt('Entre'), tRet = Wt('retenir');
+  bg(cam);
+  const tag = chip(cam, 'TON ÂGE CHANGE TOUT', INK, CREAM, 52);
+  // frise des âges : 10 → 18 ans, sur x 100 → 920
+  const ax = el('g', {}, cam), X = v => 100 + (v - 10) / 8 * 820;
+  const segs = [[10, 13, YELLOW, 'RETENUE'], [13, 18, RED, 'GARDE À VUE']].map(([a0, a1, col, s]) => {
+    const g = el('g', {}, ax);
+    card(g, X(a0), -50, X(a1) - X(a0), 100, col, 14, 8, 6);
+    const l = txt(g, s, { size: s.length > 8 ? 46 : 40, fill: col === RED ? CREAM : INK }); l.g.setAttribute('transform', `translate(${fmt((X(a0) + X(a1)) / 2)},16)`);
+    return g;
+  });
+  [10, 13, 16, 18].forEach(v => { const l = txt(ax, v + ' ANS', { size: 40 }); l.g.setAttribute('transform', `translate(${fmt(X(v))},110)`); el('line', { x1: X(v), y1: 56, x2: X(v), y2: 72, stroke: INK, 'stroke-width': 6 }, ax); });
+  const st = stamp(cam, 'AVANT 13 ANS : INTERDIT', RED, 56);
+  const lab = plate(cam, ['ENTRE 10 ET 13 ANS :', ['« RETENUE »', YELLOW], 'QUELQUES HEURES'], 760, 50);
+  return t => {
+    tag.update(CX, 260, pop(t, tAge - .3), -2);
+    at(ax, 0, 470, pop(t, tAge, .35));
+    segs[0].setAttribute('opacity', fmt(p(t, tEnt - .1, tEnt + .2)));
+    segs[1].setAttribute('opacity', fmt(p(t, t13 - .1, t13 + .2)));
+    st.update(CX, 720, t, tInt - .1, -5);
+    const sw = p(t, tEnt - .3, tEnt, E.in);
+    show(st.g, t >= tInt - .1 && sw < 1);
+    at(lab, CX, 830, pop(t, tRet - .7, .35), -2);
+    shock(t, tInt + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 5. 13-16 ANS : 24 H, prolongation seulement si délit ≥ 5 ans ============================
+S(T.h24, T.avocat, (cam, a) => {
+  const t24 = Wt('24'), tPro = Wt('prolonger'), tCinq = Wt('cinq'), tPri = Wt('prison.', 1, a);
+  bg(cam);
+  const tag = chip(cam, 'DE 13 À 16 ANS', RED, CREAM, 56);
+  const ck = clock(cam, 150);
+  const n = el('g', {}, cam), nS = bigNum(n, 170, RED); nS.set('24 H');
+  const lab = plate(cam, ['+ 24 H SEULEMENT SI', ['DÉLIT ≥ 5 ANS', RED], 'DE PRISON'], 760, 54);
+  return t => {
+    tag.update(CX, 260, pop(t, a + .05), -2);
+    at(ck.g, CX - 220, 540, pop(t, a + .1, .35)); ck.update(360 * p(t, a, tPro, E.inOut || (x => x)) * 2);
+    at(n, CX + 200, 560, pop(t, t24 - .1, .35), -4);
+    at(lab, CX, 900, pop(t, tPro - .2, .35), -2);
+    shock(t, t24 + .1, .3, .6); shock(t, tCinq + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. L'AVOCAT EST OBLIGATOIRE ==============================================================
+S(T.avocat, T.parents, (cam, a) => {
+  const tAv = Wt("l'avocat."), tObl = Wt('obligatoire.'), tMeme = Wt('Même');
+  bg(cam);
+  const sc = el('g', {}, cam); emoji(sc, '⚖️', 260);
+  const head = title(cam, [["L'AVOCAT", GREEN]], { size: 140, shadow: 0, sw: 14 });
+  const st = stamp(cam, 'OBLIGATOIRE', RED, 96);
+  const lab = chip(cam, "MÊME SI TU N'EN VEUX PAS", INK, CREAM, 48);
+  return t => {
+    at(sc, CX, 440, pop(t, a + .1, .35), Math.sin(t * 3) * 6);
+    at(head, CX, 700, pop(t, tAv - .2, .35), -2);
+    st.update(CX, 890, t, tObl - .1, -6);
+    lab.update(CX, 1080, pop(t, tMeme - .1), 2);
+    shock(t, tObl + .1, .3, .8);
+  };
+}, { swipe: RED });
+
+// ====== 7. PARENTS PRÉVENUS, en principe dans les 3 heures =======================================
+S(T.parents, T.medecin, (cam, a) => {
+  const tPar = Wt('parents', 1, a), tPre = Wt('prévenus.'), t3 = Wt('trois', 1, a);
+  bg(cam);
+  const ph = el('g', {}, cam); emoji(ph, '📞', 240);
+  const head = title(cam, ['TES PARENTS', ['PRÉVENUS', GREEN]], { size: 110, shadow: 0, sw: 12 });
+  const lab = chip(cam, 'EN PRINCIPE SOUS 3 H', RED, CREAM, 54);
+  return t => {
+    at(ph, CX, 460, pop(t, a + .05, .35), 10 * Math.sin(t * 30) * hit(t, tPar + .3, .5));
+    at(head, CX, 760, pop(t, tPar - .2, .35), -2);
+    lab.update(CX, 1000, pop(t, t3 - .3), 2);
+    shock(t, tPre + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. AVANT 16 ANS : MÉDECIN DÈS LE DÉBUT ===================================================
+S(T.medecin, T.taire, (cam, a) => {
+  const t16 = Wt('16', 1, a), tMed = Wt('médecin');
+  bg(cam);
+  const tag = chip(cam, 'AVANT 16 ANS', RED, CREAM, 56);
+  const st = el('g', {}, cam); emoji(st, '🩺', 260);
+  const head = title(cam, ['UN MÉDECIN', ['DÈS LE DÉBUT', GREEN]], { size: 104, shadow: 0, sw: 12 });
+  return t => {
+    tag.update(CX, 260, pop(t, t16 - .3), -2);
+    at(st, CX, 520, pop(t, tMed - .3, .35), Math.sin(t * 4) * 6);
+    at(head, CX, 860, pop(t, tMed, .35), -2);
+    shock(t, tMed + .1, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 9. TU AS LE DROIT DE TE TAIRE ============================================================
+S(T.taire, T.film, (cam, a) => {
+  const tDroit = Wt('droit', 1, a), tTai = Wt('taire.');
+  bg(cam);
+  const z = el('g', {}, cam); emoji(z, '🤐', 280);
+  const head = title(cam, ['LE DROIT', ['DE TE TAIRE', GREEN]], { size: 120, shadow: 0, sw: 12 });
+  return t => {
+    at(z, CX, 500, pop(t, a + .1, .35) * (1 + .06 * Math.sin(t * 5)));
+    at(head, CX, 860, pop(t, tDroit - .3, .35), -2);
+    shock(t, tTai, .25, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. INTERROGATOIRES FILMÉS ; sans vidéo, pas de condamnation sur des aveux contestés ======
+S(T.film, T.piege, (cam, a) => {
+  const tFil = Wt('filmés.'), tSans = Wt('Sans'), tCond = Wt('condamner'), tCon = Wt('contestes.');
+  bg(cam);
+  const tag = chip(cam, 'TOUS TES INTERROGATOIRES', INK, CREAM, 48);
+  const cam1 = el('g', {}, cam); emoji(cam1, '🎥', 230);
+  const rec = el('g', {}, cam); el('circle', { r: 26, fill: RED, stroke: INK, 'stroke-width': 5 }, rec);
+  const recT = txt(rec, 'REC', { size: 48, anchor: 'start' }); recT.g.setAttribute('transform', 'translate(40,17)');
+  const head = title(cam, [['FILMÉS', RED]], { size: 140, shadow: 0, sw: 14 });
+  const lab = plate(cam, ['SANS VIDÉO : PAS DE', 'CONDAMNATION SUR DES', ['AVEUX CONTESTÉS', RED]], 820, 50);
+  return t => {
+    const out = p(t, tSans - .3, tSans, E.in);
+    tag.update(CX, 260, pop(t, a + .05), -2);
+    at(cam1, CX - 60, 490, pop(t, a + .1, .35) * (1 - .35 * out));
+    at(rec, CX + 140, 420, pop(t, tFil - .3, .3) * (Math.sin(t * 8) > -.3 ? 1 : 0) * (1 - out));
+    at(head, CX, lerp(780, 560, out), pop(t, tFil - .3, .35) * (1 - out), -2);
+    at(lab, CX, 830, pop(t, tCond - .5, .35), -2);
+    shock(t, tFil + .1, .25, .5); shock(t, tCon + .1, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 11. ATTENTION, LES PIÈGES : refuser de donner ton code peut être un délit ================
+S(T.piege, T.conds, (cam, a) => {
+  const tAtt = Wt('attention,'), tTel = Wt('téléphone,'), tCode = Wt('code…'), tDel = Wt('délit.', 1, tCode), tCour = Wt('Cour');
+  bg(cam);
+  const head = title(cam, ['⚠️ LES PIÈGES'], { size: 110, shadow: 0 });
+  const ph = el('g', {}, cam);
+  card(ph, -150, -260, 300, 520, INK, 40, 12, 8);
+  el('rect', { x: -125, y: -220, width: 250, height: 420, rx: 20, fill: BLUE }, ph);
+  const dots = [0, 1, 2, 3].map(i => el('circle', { cx: -66 + i * 44, cy: -120, r: 16, fill: CREAM, stroke: INK, 'stroke-width': 4 }, ph));
+  for (let i = 0; i < 9; i++) el('circle', { cx: -70 + (i % 3) * 70, cy: -30 + Math.floor(i / 3) * 70, r: 26, fill: CREAM, opacity: .85 }, ph);
+  const q = el('g', {}, cam), qS = bigNum(q, 130, RED); qS.set('????');
+  const st = stamp(cam, 'DÉLIT ?', RED, 100);
+  const lab = chip(cam, 'COUR DE CASSATION, 2022', INK, CREAM, 44);
+  return t => {
+    at(head, CX, lerp(560, 280, p(t, tTel - .4, tTel, E.out)), pop(t, tAtt - .2, .35), -2);
+    at(ph, CX - 210, 690, pop(t, tTel - .2, .35), -4);
+    dots.forEach((d, i) => d.setAttribute('fill', t > tCode - .4 + i * .12 ? INK : CREAM));
+    at(q, CX + 200, 560, pop(t, tCode - .1, .3), 4);
+    st.update(CX + 200, 800, t, tDel - .1, -8);
+    lab.update(CX, 1080, pop(t, tCour - .1), 2);
+    shock(t, tAtt, .25, .4); shock(t, tDel + .1, .3, .8);
+  };
+}, { swipe: GREEN });
+
+// ====== 12. PAS TOUJOURS : 2 conditions ==========================================================
+S(T.conds, T.peine, (cam, a) => {
+  const tPas = Wt('toujours,'), tSou = Wt('soupçonné'), tDem = Wt('demande'), tJus = Wt('justice.');
+  bg(cam);
+  const st = stamp(cam, 'PAS TOUJOURS', GREEN, 90);
+  const rows = [['TON TÉLÉPHONE A SERVI', "À L'INFRACTION", tSou], ['DEMANDE OFFICIELLE,', 'SOUS CONTRÔLE DE LA JUSTICE', tDem]].map(([l1, l2, t0], i) => {
+    const g = el('g', {}, cam);
+    card(g, -430, -90, 860, 180, CREAM, 26, 10, 7);
+    const c = el('g', {}, g); check(c, 46); tf(c, -350, 0);
+    const a1 = txt(g, l1, { size: 44, anchor: 'start' }), a2 = txt(g, l2, { size: l2.length > 22 ? 36 : 44, anchor: 'start', fill: RED, sw: 0 });
+    a1.g.setAttribute('transform', 'translate(-280,-10)'); a2.g.setAttribute('transform', 'translate(-280,48)');
+    return { g, c, t0, y: 620 + i * 250 };
+  });
+  return t => {
+    st.update(CX, 330, t, tPas - .2, -5);
+    rows.forEach(r => { at(r.g, CX, r.y, pop(t, r.t0 - .4, .35)); tf(r.c, -350, 0, pop(t, r.t0 + .4, .3)); });
+    shock(t, tPas, .25, .5); shock(t, tJus, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 13. 3 ANS DE PRISON, LA MOITIÉ POUR UN MINEUR ============================================
+S(T.peine, T.casse, (cam, a) => {
+  const tTrois = Wt('trois', 1, a), tMoi = Wt('moitié'), tMin = Wt('mineur.', 1, tMoi);
+  bg(cam);
+  const tag = chip(cam, 'REFUSER LE CODE', INK, CREAM, 54);
+  const n = el('g', {}, cam), nS = bigNum(n, 210, RED); nS.set('3 ANS');
+  const sub = title(cam, ['DE PRISON'], { size: 90, shadow: 0 });
+  const half = plate(cam, ['÷ 2', ['POUR UN MINEUR', GREEN]], 700, 64);
+  return t => {
+    tag.update(CX, 260, pop(t, a + .05), -2);
+    at(n, CX, 520, pop(t, tTrois - .1, .35), -3);
+    at(sub, CX, 690, pop(t, tTrois + .2, .35));
+    at(half, CX, 940, pop(t, tMoi - .2, .35), 2);
+    shock(t, tTrois + .2, .3, .7); shock(t, tMin, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 14. SI TU CASSES : TES PARENTS PAIENT (procureur de Bordeaux) ============================
+S(T.casse, T.suite, (cam, a) => {
+  const tCas = Wt('casses'), tPai = Wt('paient.'), tPro = Wt('procureur'), tInt = Wt("l'intégralité");
+  bg(cam);
+  const ham = el('g', {}, cam); emoji(ham, '🔨', 200);
+  const head = title(cam, ['TES PARENTS', ['PAIENT', RED]], { size: 120, shadow: 0, sw: 12 });
+  const money = el('g', {}, cam); emoji(money, '💸', 150);
+  const lab = chip(cam, 'PROCUREUR DE BORDEAUX', INK, CREAM, 46);
+  const n = plate(cam, [['100 % DES DÉGÂTS', RED]], 760, 66);
+  return t => {
+    const up = p(t, tPro - .4, tPro, E.out);
+    at(ham, CX, 450, pop(t, tCas - .2, .3) * (1 - up), -30 + 40 * Math.abs(Math.sin(t * 6)));
+    at(head, CX, lerp(760, 420, up), pop(t, tPai - .5, .35), -2);
+    at(money, CX + 330, lerp(560, 300, up) - (t * 50) % 40, pop(t, tPai, .3) * (1 - up), Math.sin(t * 6) * 10);
+    lab.update(CX, 690, pop(t, tPro - .1), 2);
+    at(n, CX, 900, pop(t, tInt - .1, .35), -2);
+    shock(t, tPai + .1, .3, .6); shock(t, tInt + .3, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 15. AU FINAL : 1 GARDE À VUE SUR 3 SANS SUITE ============================================
+S(T.suite, T.cta, (cam, a) => {
+  const tUne = Wt('une', 1, a), tTro = Wt('trois…'), tSans = Wt('sans', 1, a), tFau = Wt('faute');
+  bg(cam);
+  const tag = chip(cam, 'AU FINAL', INK, CREAM, 56);
+  const files = [0, 1, 2].map(i => { const g = el('g', {}, cam); emoji(g, '📁', 220); return g; });
+  const n = el('g', {}, cam), nS = bigNum(n, 150, RED); nS.set('1 SUR 3');
+  const st = stamp(cam, 'SANS SUITE', GREEN, 54);
+  const lab = chip(cam, 'FAUTE DE PREUVES', RED, CREAM, 52);
+  return t => {
+    tag.update(CX, 260, pop(t, a + .05), -2);
+    files.forEach((g, i) => at(g, CX - 290 + i * 290, 560, pop(t, tUne - .3 + i * .12, .3) * (i === 2 && t > tSans ? 1.08 : 1)));
+    at(n, CX, 830, pop(t, tTro - .3, .35), -3);
+    st.update(CX + 290, 570, t, tSans - .05, -12);
+    lab.update(CX, 1040, pop(t, tFau - .1), 2);
+    shock(t, tSans + .1, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 16. FIN : tu savais que l'avocat était obligatoire ? =====================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tSav = Wt('savais'), tObl = Wt('obligatoire ?'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ['TU SAVAIS QUE', ["L'AVOCAT ÉTAIT", GREEN], ['OBLIGATOIRE ?', RED]], { size: 92, shadow: 0, sw: 12 });
+  const sc = el('g', {}, cam); emoji(sc, '⚖️', 160);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 340, pop(t, a + .05, .35), -2);
+    at(sc, CX - 60, 700, pop(t, tObl - .2, .35), Math.sin(t * 4) * 6);
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 720, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tSav, .25, .3);
+  };
+}, { swipe: RED });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Séléné entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>

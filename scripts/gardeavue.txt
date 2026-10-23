@@ -13,7 +13,7 @@
 #   judiciaire (https://www.leclubdesjuristes.com/justice/le-refus-de-communiquer-le-code-de-deverrouillage-dun-telephone-portable-peut-constituer-un-delit-652/).
 # - franceinfo, 10/10/2026 : le procureur de Bordeaux rappelle que les parents doivent « indemniser l'intégralité » des dommages
 #   (https://www.franceinfo.fr/societe/education/blocage-des-lycees/indemnisations-par-les-parents-stages-sur-les-droits-et-devoirs-du-manifestant-quelles-suites-judiciaires-pour-les-mineurs-poursuivis-lors-du-mouvement-lyceen_8228563.html).
-6 877[Six mille huit cent soixante-dix-sept] gardes à vue… en trois semaines de blocus lycéens.
+6_877[Six mille huit cent soixante-dix-sept] gardes à vue… en trois semaines de blocus lycéens.
 Presque neuf sur dix… c'étaient des mineurs.
 C'est plus que pendant dix mois de Gilets jaunes.
 Alors si demain, c'est toi qu'on embarque devant ton lycée… tu sais ce qui t'attend_?
