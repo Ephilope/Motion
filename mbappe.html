@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mbappé effacé en Chine</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Mbappé effacé des jeux vidéo en Chine à cause d'un mème » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/mbappe.txt → node tools/voix.mjs mbappe ; node tools/enveloppe.mjs mbappe
+     Chiffres et sources : en tête de scripts/mbappe.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/mbappe_words.js"></script>
+<script src="assets/mbappe_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg } = Motion;
+await setup({
+  duration: 82.5,
+  words: window.WORDS,
+  audio: 'assets/voix_mbappe.mp3',
+  emojis: '🎮🎙️😂📱📈🥤🥛🧀🤖📺🔒🙏💸🎬🎵⚽💬👇🇨🇳',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', BLUE = '#3498DB', GREY = '#7F8C8D';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Cercle d'interdiction.
+function ban(parent, r = 150) {
+  const g = el('g', {}, parent), k = r * .707;
+  el('circle', { r, fill: 'none', stroke: RED, 'stroke-width': r * .16 }, g);
+  el('line', { x1: -k, y1: -k, x2: k, y2: k, stroke: RED, 'stroke-width': r * .16 }, g);
+  return g;
+}
+// Petit personnage (tête + corps), couleur au choix.
+function person(parent, col) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 4, cy: -52 + 4, r: 26, fill: INK }, g);
+  el('circle', { cy: -52, r: 26, fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: 'M-38,40 Q-38,-14 0,-14 Q38,-14 38,40 Z', fill: col, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Horloge avec aiguille qui tourne.
+function clock(parent, r = 120) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 10, cy: 10, r, fill: INK }, g);
+  el('circle', { r, fill: CREAM, stroke: INK, 'stroke-width': 10 }, g);
+  for (let i = 0; i < 12; i++) el('line', { x1: 0, y1: -r * .78, x2: 0, y2: -r * .9, stroke: INK, 'stroke-width': 8, 'stroke-linecap': 'round', transform: `rotate(${i * 30})` }, g);
+  const hand = el('line', { x1: 0, y1: 0, x2: 0, y2: -r * .7, stroke: RED, 'stroke-width': 12, 'stroke-linecap': 'round' }, g);
+  el('circle', { r: 12, fill: INK }, g);
+  return { g, update(a) { hand.setAttribute('transform', `rotate(${fmt(a)})`); } };
+}
+// Coche verte dans un rond.
+function check(parent, r = 46, col = GREEN) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 6, cy: 6, r, fill: INK }, g);
+  el('circle', { r, fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: `M${-r * .45},0 L${-r * .1},${r * .35} L${r * .5},${-r * .35}`, fill: 'none', stroke: CREAM, 'stroke-width': r * .22, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Carte crème avec texte (une ou deux lignes), centrée.
+function plate(parent, lines, w, size = 52, fill = CREAM) {
+  const g = el('g', {}, parent), h = lines.length * size * 1.2 + size * .9;
+  card(g, -w / 2, -h / 2, w, h, fill, 26, 10, 7);
+  lines.forEach((l, i) => {
+    const [s, col] = Array.isArray(l) ? l : [l, INK];
+    const r = txt(g, s, { size, fill: col, sw: col === INK ? 0 : 8 });
+    r.g.setAttribute('transform', `translate(0,${fmt((i - (lines.length - 1) / 2) * size * 1.2 + size * .36)})`);
+  });
+  return g;
+}
+
+// Carte de joueur façon jeu de foot (note, poste, silhouette, nom).
+function playerCard(parent, name = 'MBAPPÉ', note = '91', col = YELLOW) {
+  const g = el('g', {}, parent);
+  const d = 'M-190,-230 Q0,-290 190,-230 L190,200 Q0,290 -190,200 Z';
+  el('path', { d, fill: INK, transform: 'translate(14,14)' }, g);
+  el('path', { d, fill: col, stroke: INK, 'stroke-width': 9, 'stroke-linejoin': 'round' }, g);
+  const n = txt(g, note, { size: 96, anchor: 'start' }); n.g.setAttribute('transform', 'translate(-150,-130)');
+  const pz = txt(g, 'ATT', { size: 44, anchor: 'start' }); pz.g.setAttribute('transform', 'translate(-146,-80)');
+  const pp = el('g', {}, g); person(pp, BLUE); tf(pp, 50, -40, 1.6);
+  el('line', { x1: -150, y1: 85, x2: 150, y2: 85, stroke: INK, 'stroke-width': 6 }, g);
+  const nm = txt(g, name, { size: name.length > 7 ? 54 : 64 }); nm.g.setAttribute('transform', 'translate(0,160)');
+  return g;
+}
+// Effacement « glitch » : clignote et se découpe pendant k = 0 → 1, puis disparaît.
+function glitch(g, x, y, s, k, t) {
+  const on = k <= 0 ? 1 : k >= 1 ? 0 : (Math.sin(t * 70) > k * 2 - 1 ? 1 : .15);
+  tf(g, x + (k > 0 && k < 1 ? 30 * Math.sin(t * 53) : 0), y, s, 0);
+  g.setAttribute('opacity', fmt(on * (1 - k * .6)));
+}
+// Logo-pastille de marque (emoji dans un rond) barré au moment t0.
+function brand(parent, e, label) {
+  const g = el('g', {}, parent);
+  card(g, -150, -170, 300, 340, CREAM, 30, 10, 7);
+  const em = el('g', {}, g); emoji(em, e, 150); tf(em, 0, -40);
+  const l = txt(g, label, { size: 40 }); l.g.setAttribute('transform', 'translate(0,110)');
+  const cross = el('g', {}, g);
+  el('line', { x1: -95, y1: -140, x2: 95, y2: 60, stroke: RED, 'stroke-width': 24, 'stroke-linecap': 'round' }, cross);
+  el('line', { x1: 95, y1: -140, x2: -95, y2: 60, stroke: RED, 'stroke-width': 24, 'stroke-linecap': 'round' }, cross);
+  return { g, cross };
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  avril: Wt('En', 1, Wt('meme.')) - .1, meme: Wt('Son', 1, Wt('lui.')) - .15, lundi: Wt('Lundi,') - .2, marques: Wt('En', 1, Wt('chinois.', 1, Wt('Weibo,'))) - .15,
+  ia: Wt('Le', 1, Wt('fromage.')) - .15, tele: Wt('La', 1, Wt('IA.')) - .15, jeux: Wt('Et', 1, Wt('bloque')) - .15,
+  excuse: Wt('Mardi,') - .2, ozil: Wt('Mais') - .2, pes: Wt('Resultat') - .15, sharp: Wt('Ca', 1, Wt('Arsenal.')) - .2,
+  cta: Wt('Et', 1, Wt("l'argent.")) - .1,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : Mbappé disparaît des jeux vidéo en Chine, à cause d'un mème ================
+// Le sujet est à l'écran dès la première image (beaucoup regardent sans le son).
+S(0, T.avril, (cam) => {
+  const tDis1 = Wt('disparaitre'), tJeux = Wt('jeux'), tChi = Wt('Chine.'), tMem = Wt('meme.');
+  bg(cam);
+  const head = title(cam, ['MBAPPÉ', ['EFFACÉ', RED]], { size: 150, shadow: 0, sw: 14 });
+  const pc = playerCard(cam);
+  const pad = el('g', {}, cam); emoji(pad, '🎮', 150);
+  const tag = chip(cam, 'DES JEUX VIDÉO EN CHINE', INK, CREAM, 50);
+  const st = stamp(cam, "À CAUSE D'UN MÈME", RED, 60);
+  return t => {
+    at(head, CX, 330, lerp(1.2, 1, p(t, 0, .3, E.out)), -2);
+    glitch(pc, CX, 840, .8 * pop(t, .1, .35), p(t, tDis1 + .2, tChi), t);
+    at(pad, CX + 290, 760, pop(t, tJeux - .2, .3), Math.sin(t * 6) * 8);
+    tag.update(CX, 540, pop(t, tJeux - .3), 2);
+    st.update(CX, 1010, t, tMem - .1, -5);
+    shock(t, .2, .3, .7); shock(t, tMem + .1, .3, .7);
+  };
+});
+
+// ====== 2. EN AVRIL : l'émission de Tchouaméni, les mèmes sur lui ================================
+S(T.avril, T.meme, (cam, a) => {
+  const tAvr = Wt('avril,'), tEmi = Wt('emission'), tTch = Wt('Tchouameni.'), tMem = Wt('memes');
+  bg(cam);
+  const tag = chip(cam, 'EN AVRIL', INK, CREAM, 56);
+  const mic = el('g', {}, cam); emoji(mic, '🎙️', 220);
+  const lab = plate(cam, ["L'ÉMISSION D'AURÉLIEN", ['TCHOUAMÉNI', GREEN]], 820, 56);
+  const ph = el('g', {}, cam);
+  card(ph, -120, -200, 240, 400, INK, 34, 10, 7);
+  el('rect', { x: -98, y: -170, width: 196, height: 330, rx: 16, fill: CREAM }, ph);
+  const lol = [0, 1, 2].map(i => { const g = el('g', {}, ph); emoji(g, '😂', 80); tf(g, 0, -100 + i * 110); return g; });
+  const ml = chip(cam, 'LES MÈMES SUR LUI', RED, CREAM, 48);
+  return t => {
+    const out = p(t, tMem - .5, tMem - .2, E.in);
+    tag.update(CX, 260, pop(t, tAvr - .3), -2);
+    at(mic, CX, lerp(520, 470, out), pop(t, tAvr, .35) * (1 - out), Math.sin(t * 3) * 5);
+    at(lab, CX, lerp(800, 470, out), pop(t, tEmi - .2, .35), -2);
+    at(ph, CX, 830, pop(t, tMem - .2, .35), 4);
+    lol.forEach((g, i) => tf(g, 0, -100 + i * 110, pop(t, tMem + i * .15, .3)));
+    ml.update(CX, 1080, pop(t, tMem + .1), 2);
+    shock(t, tTch + .1, .25, .3);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. LE MÈME : sa tête sur celle de Mao Zedong, « le dictateur chinois » ===================
+S(T.meme, T.lundi, (cam, a) => {
+  const tPre = Wt('prefere'), tTete = Wt('tete'), tMao = Wt('Mao'), tFon = Wt('fondateur'), tDic = Wt('dictateur'), tRig = Wt('rigole.');
+  bg(cam);
+  const head = title(cam, ['SON MÈME', ['PRÉFÉRÉ', GREEN]], { size: 110, shadow: 0, sw: 12 });
+  // cadre de portrait : le visage de Mbappé collé sur un portrait officiel
+  const fr = el('g', {}, cam);
+  card(fr, -170, -210, 340, 420, '#C0392B', 18, 10, 8);
+  el('rect', { x: -140, y: -180, width: 280, height: 360, fill: '#F5D76E', stroke: INK, 'stroke-width': 6 }, fr);
+  const pp = el('g', {}, fr); person(pp, '#6B7B5E'); tf(pp, 0, 60, 2.2);
+  const face = el('g', {}, fr);
+  el('circle', { cy: -55, r: 62, fill: '#8D5524', stroke: INK, 'stroke-width': 6 }, face);
+  const lbl = txt(face, 'KM', { size: 44, fill: CREAM, sw: 6 }); lbl.g.setAttribute('transform', 'translate(0,-40)');
+  const mao = plate(cam, ['MAO ZEDONG', ['FONDATEUR DE LA', RED], ['CHINE COMMUNISTE', RED]], 520, 40);
+  const q = plate(cam, [['« LE DICTATEUR CHINOIS »', RED]], 900, 58);
+  const lol = el('g', {}, cam); emoji(lol, '😂', 140);
+  return t => {
+    const up = p(t, tDic - .5, tDic - .2, E.in);
+    at(head, CX, lerp(300, 240, up), pop(t, tPre - .3, .35), -2);
+    at(fr, CX - 230, lerp(620, 560, up), pop(t, tTete - .3, .35) * lerp(1, .85, up), -3);
+    tf(face, 0, lerp(-300, 0, p(t, tTete, tTete + .4, E.out)), 1, 0);
+    at(mao, CX + 230, lerp(620, 560, up), pop(t, tFon - .4, .35), 3);
+    at(q, CX, 900, pop(t, tDic - .3, .35), -2);
+    at(lol, CX + 300, 1080, pop(t, tRig - .2, .3), Math.sin(t * 10) * 10);
+    shock(t, tTete + .4, .25, .5); shock(t, tDic + .1, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 4. LUNDI LA VIDÉO SORT : 430 millions de vues sur Weibo ===================================
+S(T.lundi, T.marques, (cam, a) => {
+  const tSort = Wt('sort.'), tExp = Wt('lexplosion'), t430 = Wt('430millions'), tWei = Wt('Weibo,'), tTwi = Wt('Twitter');
+  bg(cam);
+  const tag = chip(cam, 'LUNDI 26 OCTOBRE', INK, CREAM, 54);
+  const ch = chip(cam, 'EN CHINE', RED, CREAM, 56);
+  const n = el('g', {}, cam), nS = bigNum(n, 190, RED);
+  const sub = title(cam, ['MILLIONS', 'DE VUES'], { size: 96, shadow: 0 });
+  const lab = plate(cam, ['SUR WEIBO', ['= LE TWITTER CHINOIS', RED]], 800, 50);
+  const up = el('g', {}, cam); emoji(up, '📈', 150);
+  return t => {
+    tag.update(CX, 260, pop(t, a + .05), -2);
+    ch.update(CX, 420, pop(t, tExp - .5), 2);
+    const k = p(t, t430 - .1, t430 + .9, E.out);
+    nS.set(String(Math.round(430 * k)));
+    at(n, CX, 610, pop(t, t430 - .15, .3), -3);
+    at(sub, CX, 790, pop(t, t430 + .3, .35));
+    at(lab, CX, 1030, pop(t, tWei - .2, .35), -2);
+    at(up, CX + 330, 560, pop(t, t430 + .2, .3) * (1 + .06 * Math.sin(t * 6)));
+    shock(t, tExp + .2, .3, .7); shock(t, t430 + .9, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. EN 2 JOURS : 3 marques arrêtent (boisson, lait, fromage) ==============================
+S(T.marques, T.ia, (cam, a) => {
+  const tJ = Wt('jours,'), tTrois = Wt('trois', 1, a), tArr = Wt('arretent'), tBo = Wt('boisson,'), tLa = Wt('lait'), tFr = Wt('fromage.');
+  bg(cam);
+  const tag = chip(cam, 'EN 2 JOURS', INK, CREAM, 56);
+  const head = title(cam, ['3 MARQUES', ['LE LÂCHENT', RED]], { size: 110, shadow: 0, sw: 12 });
+  const bs = [['🥤', 'BOISSON', tBo], ['🥛', 'LAIT', tLa], ['🧀', 'FROMAGE', tFr]].map(([e, l, t0], i) => ({ ...brand(cam, e, l), t0, x: CX - 290 + i * 290 }));
+  const lab = chip(cam, 'CONTRATS ROMPUS', RED, CREAM, 52);
+  return t => {
+    tag.update(CX, 260, pop(t, tJ - .3), -2);
+    at(head, CX, 470, pop(t, tTrois - .2, .35), -2);
+    bs.forEach((b, i) => { at(b.g, b.x, 820, pop(t, b.t0 - .25, .3) * .85, (i - 1) * 3); tf(b.cross, 0, 0, pop(t, b.t0 + .35, .25), 0); });
+    lab.update(CX, 1080, pop(t, tArr - .1), 2);
+    shock(t, tArr + .1, .25, .4); shock(t, tFr + .4, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 6. LE PLUS FOU : leurs pubs avec son visage généré par IA ================================
+S(T.ia, T.tele, (cam, a) => {
+  const tFou = Wt('fou'), tPub = Wt('pubs'), tVis = Wt('visage'), tIA = Wt('IA.');
+  bg(cam);
+  const head = title(cam, ['LE PLUS FOU ?'], { size: 120, shadow: 0 });
+  const bot = el('g', {}, cam); emoji(bot, '🤖', 230);
+  const lab = plate(cam, ['CES MARQUES AVAIENT FAIT', 'DES PUBS AVEC SON VISAGE'], 900, 50);
+  const st = stamp(cam, 'GÉNÉRÉ PAR IA', RED, 76);
+  return t => {
+    at(head, CX, 300, pop(t, tFou - .3, .35), -2);
+    at(bot, CX, 560, pop(t, tPub - .2, .35), Math.sin(t * 5) * 6);
+    at(lab, CX, 830, pop(t, tPub - .3, .35), -2);
+    st.update(CX, 1040, t, tIA - .35, -6);
+    shock(t, tIA, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. LA TÉLÉ COUPE LA LIGA, compte RedNote bloqué ==========================================
+S(T.tele, T.jeux, (cam, a) => {
+  const tTel = Wt('tele'), tCou = Wt('coupe'), tEsp = Wt('espagnol.'), tCpt = Wt('compte'), tBlo = Wt('bloque.');
+  bg(cam);
+  const tag = chip(cam, "LA TÉLÉ D'ÉTAT CHINOISE", INK, CREAM, 50);
+  const tv = el('g', {}, cam); emoji(tv, '📺', 230);
+  const liga = plate(cam, [['MATCHS DU CHAMPIONNAT', INK], ['ESPAGNOL : COUPÉS', RED]], 820, 50);
+  const lk = el('g', {}, cam); emoji(lk, '🔒', 150);
+  const rn = plate(cam, ['SON COMPTE REDNOTE', ['BLOQUÉ', RED]], 620, 46);
+  return t => {
+    tag.update(CX, 260, pop(t, tTel - .3), -2);
+    at(tv, CX, 480, pop(t, tTel - .1, .35) * (t > tCou && Math.sin(t * 40) > .6 && t < tCou + .5 ? 0 : 1));
+    at(liga, CX, 730, pop(t, tCou - .1, .35), -2);
+    at(lk, CX - 340, 990, pop(t, tCpt - .2, .3), Math.sin(t * 8) * 5);
+    at(rn, CX + 110, 990, pop(t, tCpt - .1, .35), 2);
+    shock(t, tCou + .1, .3, .6); shock(t, tBlo, .25, .5);
+  };
+}, { swipe: RED });
+
+// ====== 8. FC ONLINE ET EFOOTBALL : ses contenus retirés ========================================
+S(T.jeux, T.excuse, (cam, a) => {
+  const tVer = Wt('versions'), tFC = Wt('FC'), tEf = Wt('defootball'), tRet = Wt('retires.');
+  bg(cam);
+  const tag = chip(cam, 'VERSIONS CHINOISES', RED, CREAM, 54);
+  const g1 = chip(cam, 'FC ONLINE', INK, CREAM, 60), g2 = chip(cam, 'EFOOTBALL', INK, CREAM, 60);
+  const pc = playerCard(cam);
+  const st = stamp(cam, 'CONTENUS RETIRÉS', RED, 70);
+  return t => {
+    tag.update(CX, 260, pop(t, tVer - .3), -2);
+    g1.update(CX - 220, 420, pop(t, tFC - .2), -3);
+    g2.update(CX + 220, 420, pop(t, tEf - .2), 3);
+    glitch(pc, CX, 760, .8 * pop(t, a + .1, .35), p(t, tRet - .2, tRet + .6), t);
+    st.update(CX, 1040, t, tRet - .1, -6);
+    shock(t, tRet + .1, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. MARDI : il s'excuse en français, en anglais… et en mandarin ===========================
+S(T.excuse, T.ozil, (cam, a) => {
+  const tExc = Wt('sexcuse.'), tFr = Wt('francais,'), tAn = Wt('anglais'), tMan = Wt('mandarin.');
+  bg(cam);
+  const tag = chip(cam, 'MARDI', INK, CREAM, 56);
+  const pr = el('g', {}, cam); emoji(pr, '🙏', 200);
+  const head = title(cam, ["IL S'EXCUSE"], { size: 120, shadow: 0 });
+  const ls = [['EN FRANÇAIS', BLUE, tFr], ['EN ANGLAIS', BLUE, tAn], ['EN MANDARIN', RED, tMan]].map(([s, c, t0]) => ({ c: chip(cam, s, c, CREAM, 54), t0 }));
+  return t => {
+    tag.update(CX, 260, pop(t, a + .05), -2);
+    at(pr, CX, 470, pop(t, tExc - .3, .35), Math.sin(t * 3) * 5);
+    at(head, CX, 680, pop(t, tExc - .2, .35), -2);
+    ls.forEach((l, i) => l.c.update(CX, 840 + i * 110, pop(t, l.t0 - .1), i % 2 ? 2 : -2));
+    shock(t, tMan + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 10. PAS UNE PREMIÈRE : Özil, 2019, soutien aux Ouïghours =================================
+S(T.ozil, T.pes, (cam, a) => {
+  const tPre = Wt('premiere.'), t19 = Wt('2019,'), tOz = Wt('Ozil'), tSou = Wt('soutien'), tMin = Wt('minorite');
+  bg(cam);
+  const st = stamp(cam, 'PAS UNE PREMIÈRE', RED, 70);
+  const n = el('g', {}, cam), nS = bigNum(n, 190, RED); nS.set('2019');
+  const pc = playerCard(cam, 'ÖZIL', '86', '#C9D1D3');
+  const lab = plate(cam, ['MESSAGE DE SOUTIEN', ['AUX OUÏGHOURS', GREEN]], 620, 46);
+  const sub = chip(cam, 'MINORITÉ MUSULMANE DE CHINE', INK, CREAM, 40);
+  return t => {
+    st.update(CX, 280, t, tPre - .4, -4);
+    at(n, CX - 240, 520, pop(t, t19 - .1, .35), -4);
+    glitch(pc, CX + 230, 600, .62 * pop(t, tOz - .3, .35), 0, t);
+    at(lab, CX, 930, pop(t, tSou - .3, .35), -2);
+    sub.update(CX, 1090, pop(t, tMin - .2), 2);
+    shock(t, t19 + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 11. RÉSULTAT : supprimé de PES en Chine, match d'Arsenal déprogrammé =====================
+S(T.pes, T.sharp, (cam, a) => {
+  const tRes = Wt('Resultat'), tSup = Wt('supprime'), tPES = Wt('PES'), tDep = Wt('deprogramme'), tArs = Wt('Arsenal.');
+  bg(cam);
+  const head = title(cam, ['RÉSULTAT ?'], { size: 120, shadow: 0 });
+  const pc = playerCard(cam, 'ÖZIL', '86', '#C9D1D3');
+  const st = stamp(cam, 'SUPPRIMÉ DE PES', RED, 64);
+  const tv = el('g', {}, cam); emoji(tv, '📺', 140);
+  const lab = plate(cam, ['MATCH D\'ARSENAL', ['DÉPROGRAMMÉ', RED]], 600, 50);
+  return t => {
+    const up = p(t, tDep - .5, tDep - .2, E.in);
+    at(head, CX, 280, pop(t, tRes - .3, .35), -2);
+    glitch(pc, CX, lerp(640, 560, up), .75 * pop(t, a + .1, .35) * lerp(1, .8, up), p(t, tSup, tPES + .4), t);
+    st.update(CX, lerp(720, 520, up), t, tPES - .1, -6);
+    at(tv, CX - 300, 900, pop(t, tDep - .3, .3));
+    at(lab, CX + 90, 900, pop(t, tDep - .2, .35), 2);
+    shock(t, tPES + .1, .3, .7); shock(t, tArs, .25, .4);
+  };
+}, { swipe: RED });
+
+// ====== 12. ÇA A UN NOM : le sharp power (vs soft power) =========================================
+S(T.sharp, T.cta, (cam, a) => {
+  const tNom = Wt('nom'), tSh = Wt('sharp'), tSoft = Wt('soft'), tSed = Wt('seduire'), tFil = Wt('films'), tSh2 = Wt('sharp', 2), tPli = Wt('plier,'), tArg = Wt("l'argent.");
+  bg(cam);
+  const tag = chip(cam, 'ÇA A UN NOM', INK, CREAM, 54);
+  const head = title(cam, [['SHARP POWER', RED]], { size: 105, shadow: 0, sw: 12 });
+  const cols = [['SOFT POWER', GREEN, 'TE SÉDUIRE', ['🎬', '🎵'], tSoft, tFil], ['SHARP POWER', RED, 'TE FAIRE PLIER', ['💸'], tSh2, tPli]].map(([h, c, s, es, t0, t1], i) => {
+    const g = el('g', {}, cam);
+    card(g, -210, -240, 420, 480, c, 30, 12, 8);
+    const ht = txt(g, h, { size: 52, fill: CREAM, sw: 8 }); ht.g.setAttribute('transform', 'translate(0,-170)');
+    const e = es.map((x, j) => { const eg = el('g', {}, g); emoji(eg, x, 120); tf(eg, (j - (es.length - 1) / 2) * 140, -20); return eg; });
+    const st = txt(g, s, { size: s.length > 11 ? 42 : 48, fill: CREAM, sw: 8 }); st.g.setAttribute('transform', 'translate(0,150)');
+    return { g, e, st, t0, t1, x: CX - 225 + i * 450 };
+  });
+  return t => {
+    const up = p(t, tSoft - .5, tSoft - .2, E.in);
+    tag.update(CX, 260, pop(t, tNom - .3), -2);
+    at(head, CX, lerp(620, 400, up), pop(t, tSh - .2, .35) * lerp(1, .8, up), -2);
+    cols.forEach(c => { at(c.g, c.x, 780, pop(t, c.t0 - .2, .35) * .98, 0); c.st.g.setAttribute('opacity', t >= c.t1 - .1 ? 1 : 0); });
+    const mon = cols[1].e[0]; tf(mon, 0, -20 - 14 * Math.abs(Math.sin(t * 6)) * (t > tArg - .3 ? 1 : 0), 1 + .25 * hit(t, tArg + .1, .3), 0);
+    shock(t, tSh + .1, .3, .6); shock(t, tArg + .1, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 13. FIN : il aurait dû s'excuser… ou pas ? ==============================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tAur = Wt('aurait'), tPas = Wt('pas', 1, tAur), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ['IL AURAIT DÛ', ["S'EXCUSER…", GREEN], ['OU PAS ?', RED]], { size: 100, shadow: 0, sw: 12 });
+  const ball = el('g', {}, cam); emoji(ball, '⚽', 140);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 380, pop(t, tAur - .3, .35), -2);
+    at(ball, CX - 300, 740, pop(t, tPas - .2, .35), t * 200 % 360);
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 300, 740, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tPas, .25, .4);
+  };
+}, { swipe: RED });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Séléné entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>
