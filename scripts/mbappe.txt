@@ -14,6 +14,13 @@
 #   (https://www.videogameschronicle.com/news/mesut-ozil-deleted-from-pes-2020-in-china-following-uighur-muslims-criticism).
 # - franceinfo, 28/10/2026, « Kylian Mbappé victime du sharp power chinois » : version plus offensive du soft power
 #   (https://www.franceinfo.fr/sports/foot/kylian-mbappe/kylian-mbappe-victime-du-sharp-power-chinois_8257060.html).
+# Images (assets/mbappe/, recadrées) :
+# - mbappe_bleus.jpg, mbappe_tchouameni.jpg : Bryan Berlin, CC BY-SA 4.0, Wikimedia Commons
+#   (Kylian Mbappe France v Senegal 16 June 2026-391 (cropped).jpg ; Kylian Mbappe Aurelien Tchouameni France v Sweden 6.30.26-221.jpg)
+# - mbappe_2018.jpg : Эдгар Брещанов, CC BY-SA 4.0, Wikimedia Commons (Kylian Mbappé Russia 2018 (cropped).jpg)
+# - ozil.jpg : Ronnie Macdonald, CC BY 2.0, Wikimedia Commons (Mesut Özil Arsenal.jpg)
+# - mao_tiananmen.jpg : 我乃野云鹤, CC BY-SA 4.0, Wikimedia Commons (Portrait of Chairman Mao on Tiananmen Gatetower.jpg)
+# - meme_mao.jpg : mème « Mbappé en Mao » repris de Know Your Meme (https://knowyourmeme.com/memes/dictator-mbappe), origine Reddit.
 Kylian Mbappé est en train de disparaître… des jeux vidéo en Chine. Et tout ça, à cause d'un mème.
 En avril, il tourne une émission avec son pote Aurélien Tchouaméni. On lui montre les mèmes qui tournent sur lui.
 Son préféré_? Sa tête… collée sur celle de Mao Zedong, le fondateur de la Chine communiste. Il l'appelle « le dictateur chinois ». Et il rigole.
