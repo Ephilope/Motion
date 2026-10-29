@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shein : les fausses promos</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Shein : fausses promos, cookies, BHV » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/shein.txt → node tools/voix.mjs shein ; node tools/enveloppe.mjs shein
+     Chiffres et sources : en tête de scripts/shein.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/shein_words.js"></script>
+<script src="assets/shein_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg } = Motion;
+await setup({
+  duration: 88,
+  words: window.WORDS,
+  audio: 'assets/voix_shein.mp3',
+  emojis: '🔍🏷️🍪📱👗👕👖👟👜⏰🏬💸⚖️🧾📉🌊💬👇❌',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', GREY = '#7F8C8D';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+// Carte crème avec texte (une ou plusieurs lignes), centrée.
+function plate(parent, lines, w, size = 52, fill = CREAM) {
+  const g = el('g', {}, parent), h = lines.length * size * 1.2 + size * .9;
+  card(g, -w / 2, -h / 2, w, h, fill, 26, 10, 7);
+  lines.forEach((l, i) => {
+    const [s, col] = Array.isArray(l) ? l : [l, INK];
+    const r = txt(g, s, { size, fill: col, sw: col === INK ? 0 : 8 });
+    r.g.setAttribute('transform', `translate(0,${fmt((i - (lines.length - 1) / 2) * size * 1.2 + size * .36)})`);
+  });
+  return g;
+}
+// Vraie photo dans un cadre de la charte (contour noir, ombre décalée, coins arrondis), crédit en bas à droite.
+let PID = 0;
+function photo(parent, href, w, h, credit, align = 'xMidYMid slice') {
+  const g = el('g', {}, parent), id = 'ph' + (++PID);
+  const cp = el('clipPath', { id }, M.defs); el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22 }, cp);
+  el('rect', { x: -w / 2 + 14, y: -h / 2 + 14, width: w, height: h, rx: 22, fill: INK }, g);
+  el('image', { href, x: -w / 2, y: -h / 2, width: w, height: h, preserveAspectRatio: align, 'clip-path': `url(#${id})` }, g);
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: 'none', stroke: INK, 'stroke-width': 9 }, g);
+  if (credit) { const c = txt(g, credit, { size: 19, weight: 700, fill: CREAM, sw: 5, anchor: 'end' }); c.g.setAttribute('transform', `translate(${fmt(w / 2 - 16)},${fmt(h / 2 - 16)})`); }
+  return g;
+}
+// Façade du BHV dessinée (pierre crème, coupole, enseigne), même cadre que les photos.
+function bhv(parent, w, h) {
+  const g = el('g', {}, parent), id = 'ph' + (++PID);
+  const cp = el('clipPath', { id }, M.defs); el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22 }, cp);
+  el('rect', { x: -w / 2 + 14, y: -h / 2 + 14, width: w, height: h, rx: 22, fill: INK }, g);
+  const in_ = el('g', { 'clip-path': `url(#${id})` }, g);
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, fill: '#AED6F1' }, in_);
+  const bw = w * .86, bt = -h / 2 + h * .24, bx = -bw / 2;
+  el('path', { d: `M${-w * .1},${bt} Q0,${bt - h * .2} ${w * .1},${bt} Z`, fill: '#5D6D7E', stroke: INK, 'stroke-width': 6 }, in_);
+  el('rect', { x: bx, y: bt, width: bw, height: h, fill: '#F5E6C8', stroke: INK, 'stroke-width': 6 }, in_);
+  el('rect', { x: bx, y: bt, width: bw, height: h * .07, fill: '#5D6D7E', stroke: INK, 'stroke-width': 6 }, in_);
+  const cols = 7, rows = 3, cw = bw / cols;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++)
+    el('rect', { x: bx + c * cw + cw * .22, y: bt + h * .12 + r * h * .15, width: cw * .56, height: h * .1, rx: 6, fill: '#34495E', stroke: INK, 'stroke-width': 4 }, in_);
+  const sy = bt + h * .58;
+  el('rect', { x: -bw * .3, y: sy, width: bw * .6, height: h * .11, rx: 10, fill: INK }, in_);
+  const sg = txt(in_, 'BHV MARAIS', { size: h * .075, fill: CREAM }); sg.g.setAttribute('transform', `translate(0,${fmt(sy + h * .082)})`);
+  for (let c = 0; c < cols; c++) el('rect', { x: bx + c * cw + cw * .12, y: sy + h * .15, width: cw * .76, height: h * .3, fill: '#85C1E9', stroke: INK, 'stroke-width': 4 }, in_);
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: 'none', stroke: INK, 'stroke-width': 9 }, g);
+  return g;
+}
+// Logo Shein (le vrai fichier SVG) sur une plaque blanche de la charte.
+function logo(parent, w = 520) {
+  const g = el('g', {}, parent), h = w * .3;
+  card(g, -w / 2, -h / 2, w, h, WHITE, 24, 12, 8);
+  if (LOGO_OK) el('image', { href: IMG.logo, x: -w * .4, y: -h * .32, width: w * .8, height: h * .64, preserveAspectRatio: 'xMidYMid meet' }, g);
+  else { const r = txt(g, 'SHEIN', { size: w * .2, weight: 800, ls: w * .02 }); r.g.setAttribute('transform', `translate(0,${fmt(w * .072)})`); }
+  return g;
+}
+// Étiquette de prix (forme de tag avec trou), texte au centre.
+function tag(parent, str, fill = RED, w = 300, size = 80) {
+  const g = el('g', {}, parent), h = w * .55;
+  const d = `M${-w / 2 + 50},${-h / 2} L${w / 2},${-h / 2} L${w / 2},${h / 2} L${-w / 2 + 50},${h / 2} L${-w / 2},0 Z`;
+  el('path', { d, fill: INK, transform: 'translate(12,12)' }, g);
+  el('path', { d, fill, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, g);
+  el('circle', { cx: -w / 2 + 48, r: 13, fill: CREAM, stroke: INK, 'stroke-width': 6 }, g);
+  const r = txt(g, str, { size, fill: CREAM, sw: 10 }); r.g.setAttribute('transform', `translate(25,${fmt(size * .36)})`);
+  return g;
+}
+// Téléphone (cadre noir, écran crème), renvoie le groupe de l'écran.
+function phone(parent, w = 360, h = 640) {
+  const g = el('g', {}, parent);
+  card(g, -w / 2, -h / 2, w, h, INK, 50, 14, 8);
+  const cid = 'scr' + (++PID);
+  const cp = el('clipPath', { id: cid }, M.defs); el('rect', { x: -w / 2 + 22, y: -h / 2 + 50, width: w - 44, height: h - 100, rx: 22 }, cp);
+  el('rect', { x: -w / 2 + 22, y: -h / 2 + 50, width: w - 44, height: h - 100, rx: 22, fill: CREAM }, g);
+  const scr = el('g', { 'clip-path': `url(#${cid})` }, g);
+  return { g, scr };
+}
+// Petit personnage (tête + corps).
+function person(parent, col) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 4, cy: -48, r: 24, fill: INK }, g);
+  el('circle', { cy: -52, r: 24, fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: 'M-36,38 Q-36,-14 0,-14 Q36,-14 36,38 Z', fill: col, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Horloge avec aiguille qui tourne.
+function clock(parent, r = 120) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 10, cy: 10, r, fill: INK }, g);
+  el('circle', { r, fill: CREAM, stroke: INK, 'stroke-width': 10 }, g);
+  for (let i = 0; i < 12; i++) el('line', { x1: 0, y1: -r * .78, x2: 0, y2: -r * .9, stroke: INK, 'stroke-width': 8, 'stroke-linecap': 'round', transform: `rotate(${i * 30})` }, g);
+  const hand = el('line', { x1: 0, y1: 0, x2: 0, y2: -r * .7, stroke: RED, 'stroke-width': 12, 'stroke-linecap': 'round' }, g);
+  el('circle', { r: 12, fill: INK }, g);
+  return { g, update(a) { hand.setAttribute('transform', `rotate(${fmt(a)})`); } };
+}
+
+const IMG = { logo: 'assets/shein/shein_logo.svg' };
+const OK = {};
+await Promise.all(Object.entries(IMG).map(([k, src]) => new Promise(r => { const i = new Image(); i.onload = () => { OK[k] = 1; r(); }; i.onerror = r; i.src = src; })));
+const LOGO_OK = !!OK.logo;
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  dgccrf: Wt('En', 1, Wt('faux.')) - .15, res: Wt('Resultat') - .15, total: Wt('Au', 1, Wt('hausse')) - .15,
+  cookies: Wt('Deux', 1, Wt("d'euros.")) - .15, scroll: Wt('Et', 1, Wt("d'euros.", 2)) - .15, ong: Wt('Pour', 1, Wt('jour.')) - .15,
+  bhv: Wt('Malgre') - .15, dior: Wt('Des', 1, Wt('ans.', 1, Wt('Malgre'))) - .15, redr: Wt('Cette', 1, Wt('strategique')) - .15,
+  coule: Wt('Shein', 1, Wt('travail.')) - .15, loi: Wt('Et', 1, Wt('coule.')) - .15, cta: Wt('Alors') - .15,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : le « -70 % » sur Shein… sûrement faux ======================================
+S(0, T.dgccrf, (cam) => {
+  const tSur = Wt('Shein'), tFaux = Wt('faux.');
+  bg(cam);
+  const lg = logo(cam, 560);
+  const tg = tag(cam, '-70 %', RED, 520, 150);
+  const st = stamp(cam, 'SÛREMENT FAUX', RED, 86);
+  return t => {
+    at(lg, CX, 360, pop(t, 0, .3), -3);
+    at(tg, CX, 760, pop(t, .05, .35) * (1 + .04 * Math.sin(t * 8)), -6 + 3 * Math.sin(t * 3));
+    st.update(CX, 1060, t, tFaux - .15, -6);
+    shock(t, .15, .3, .6); shock(t, tFaux, .3, .8);
+  };
+});
+
+// ====== 2. LA RÉPRESSION DES FRAUDES vérifie des milliers d'articles ============================
+S(T.dgccrf, T.res, (cam, a) => {
+  const tRep = Wt('repression'), tMil = Wt('milliers'), tSite = Wt('site.');
+  bg(cam);
+  const lab = plate(cam, ['LA RÉPRESSION', ['DES FRAUDES', RED]], 760, 70);
+  const tags = [];
+  for (let i = 0; i < 12; i++) tags.push(tag(cam, ['-50 %', '-70 %', '-30 %', '-60 %'][i % 4], i % 3 ? RED : GREEN, 210, 54));
+  const lens = el('g', {}, cam); emoji(lens, '🔍', 220);
+  const mc = chip(cam, "DES MILLIERS D'ARTICLES CONTRÔLÉS", INK, CREAM, 42);
+  return t => {
+    at(lab, CX, 300, pop(t, tRep - .3, .35), -2);
+    tags.forEach((g, i) => at(g, CX - 300 + (i % 3) * 300, 560 + Math.floor(i / 3) * 140, pop(t, tMil - .4 + i * .05, .3) * .9, (i % 2 ? 5 : -5)));
+    const k = p(t, tMil, tSite + .5);
+    at(lens, CX - 260 + 520 * k, 700 + 120 * Math.sin(k * 6), pop(t, tMil - .2, .3), -10);
+    mc.update(CX, 1110, pop(t, tSite - .4), 1);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. RÉSULTAT : plus de la moitié sans baisse, 1 sur 10 = une hausse =======================
+S(T.res, T.total, (cam, a) => {
+  const tMoi = Wt('moitie'), tPas = Wt('pas', 1, tMoi), tUne = Wt('une', 1, tMoi), tHau = Wt('hausse');
+  bg(cam);
+  const rs = stamp(cam, 'RÉSULTAT ?', INK, 90);
+  const n1 = el('g', {}, cam), n1s = bigNum(n1, 210, RED);
+  const l1 = plate(cam, ['DES PROMOS :', ['AUCUNE BAISSE', RED]], 760, 58);
+  const n2 = el('g', {}, cam), n2s = bigNum(n2, 150, RED);
+  const l2 = plate(cam, [['UNE HAUSSE', RED], 'DÉGUISÉE'], 460, 50);
+  const up = el('g', {}, cam); emoji(up, '📈', 130);
+  return t => {
+    const k = p(t, tMoi - .2, tMoi + .7, E.out);
+    if (t < tMoi - .3) rs.update(CX, 650, t, a + .1, -4); else show(rs.g, false);
+    n1s.set(Math.round(57 * k) + ' %');
+    at(n1, CX, 360, pop(t, tMoi - .3, .3), -3);
+    at(l1, CX, 560, pop(t, tPas - .3, .35), -2);
+    n2s.set('11 %');
+    at(n2, CX - 290, 880, pop(t, tUne - .2, .3), -4);
+    at(l2, CX + 200, 880, pop(t, tHau - .3, .35), 3);
+    at(up, CX - 290, 1060, pop(t, tHau, .3) * (1 + .06 * Math.sin(t * 7)));
+    shock(t, tPas + .1, .25, .5); shock(t, tHau + .1, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 4. AU TOTAL : 9 promos sur 10 fausses, amende 40 millions ================================
+S(T.total, T.cookies, (cam, a) => {
+  const tNeuf = Wt('9'), tFau = Wt('fausses.'), tAm = Wt('Amende'), t40 = Wt('40');
+  bg(cam);
+  const head = title(cam, [['9 PROMOS', RED], 'SUR 10 FAUSSES'], { size: 100, shadow: 0, sw: 12 });
+  const ts = [];
+  for (let i = 0; i < 10; i++) {
+    const g = el('g', {}, cam); emoji(g, '🏷️', 100);
+    const x = el('g', {}, g); emoji(x, '❌', 70); tf(x, 25, 20);
+    ts.push({ g, x });
+  }
+  const fine = el('g', {}, cam);
+  card(fine, -380, -120, 760, 240, CREAM, 30, 14, 8);
+  const fl = txt(fine, 'AMENDE', { size: 56 }); fl.g.setAttribute('transform', 'translate(0,-40)');
+  const fn = txt(fine, '40 MILLIONS €', { size: 92, fill: RED, sw: 10 }); fn.g.setAttribute('transform', 'translate(0,70)');
+  return t => {
+    at(head, CX, 320, pop(t, tNeuf - .3, .35), -2);
+    ts.forEach((o, i) => {
+      at(o.g, CX - 360 + (i % 5) * 180, 560 + Math.floor(i / 5) * 150, pop(t, tNeuf - .2 + i * .06, .25) * .9, 0);
+      tf(o.x, 25, 20, i < 9 ? pop(t, tFau - .3 + i * .05, .2) : 0, 0);
+    });
+    at(fine, CX, 1000, pop(t, tAm - .2, .35), -2);
+    shock(t, t40 + .1, .3, .8);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. DEUX MOIS PLUS TARD : cookies posés même après « refuser », 150 millions ================
+S(T.cookies, T.scroll, (cam, a) => {
+  const tReb = Wt('rebelote.'), tCoo = Wt('cookies'), tRef = Wt('refuser'), tFois = Wt('fois'), t150 = Wt('150');
+  bg(cam);
+  const tg = chip(cam, 'DEUX MOIS PLUS TARD…', INK, CREAM, 50);
+  const ph = phone(cam, 380, 620);
+  const ban = el('g', {}, ph.scr);
+  card(ban, -150, 60, 300, 210, WHITE, 18, 6, 5);
+  const bt = txt(ban, 'COOKIES ?', { size: 36 }); bt.g.setAttribute('transform', 'translate(0,120)');
+  const btn = el('g', {}, ban);
+  el('rect', { x: -110, y: 160, width: 220, height: 70, rx: 35, fill: RED, stroke: INK, 'stroke-width': 5 }, btn);
+  const br = txt(btn, 'REFUSER', { size: 36, fill: CREAM }); br.g.setAttribute('transform', 'translate(0,208)');
+  const finger = el('g', {}, cam); emoji(finger, '👆', 100);
+  const ck = []; for (let i = 0; i < 7; i++) { const g = el('g', {}, cam); emoji(g, '🍪', 80); ck.push(g); }
+  const fine = el('g', {}, cam);
+  card(fine, -400, -80, 800, 160, CREAM, 30, 14, 8);
+  const fn = txt(fine, '150 MILLIONS €', { size: 96, fill: RED, sw: 10 }); fn.g.setAttribute('transform', 'translate(0,34)');
+  return t => {
+    const out = p(t, tFois - .4, tFois, E.in);
+    tg.update(CX, 260, pop(t, a + .05), -2);
+    at(ph.g, CX, 700 - 80 * out, pop(t, tCoo - .5, .35) * (1 - .25 * out), -3);
+    at(finger, CX + 40, lerp(1150, 960, p(t, tRef - .5, tRef, E.out)) - 100 * out, pop(t, tRef - .6, .3), -10);
+    tf(btn, 0, 0, 1 + .15 * hit(t, tRef + .05, .15), 0);
+    ck.forEach((g, i) => {
+      const t0 = tRef + .2 + i * .12, k = p(t, t0, t0 + 1.4, E.out);
+      at(g, CX + (i - 3) * 105, lerp(700, 420 + (i % 2) * 90, k) - 80 * out, pop(t, t0, .25), t * 90 * (i % 2 ? 1 : -1));
+    });
+    at(fine, CX, 1060, pop(t, t150 - .3, .35), -2);
+    shock(t, tRef + .1, .25, .5); shock(t, t150 + .2, .3, .8);
+  };
+}, { swipe: RED });
+
+// ====== 6. PENDANT QUE TU SCROLLES : des milliers de nouveaux vêtements, chaque jour ==============
+S(T.scroll, T.ong, (cam, a) => {
+  const tScr = Wt('scrolles'), tMil = Wt('milliers', 2), tCha = Wt('Chaque');
+  bg(cam);
+  const ph = phone(cam, 380, 660);
+  const items = [];
+  const EM = ['👗', '👕', '👖', '👟', '👜', '🧥'];
+  for (let i = 0; i < 24; i++) {
+    const g = el('g', {}, ph.scr);
+    card(g, -66, -66, 132, 132, i % 3 ? WHITE : YELLOW, 16, 5, 4);
+    const e = el('g', {}, g); emoji(e, EM[i % 6], 80);
+    items.push(g);
+  }
+  const lab = plate(cam, ['DES MILLIERS', ['DE NOUVEAUTÉS', RED]], 520, 52);
+  const st = stamp(cam, 'CHAQUE JOUR', RED, 70);
+  return t => {
+    at(ph.g, CX - 190, 700, pop(t, a + .05, .35), -3);
+    const off = Math.max(0, t - tScr + .3) * 260;
+    items.forEach((g, i) => tf(g, (i % 2 ? 72 : -72), -230 + Math.floor(i / 2) * 150 - (off % 1800), 1, 0));
+    at(lab, CX + 250, 560, pop(t, tMil - .3, .35), 3);
+    st.update(CX + 250, 840, t, tCha - .1, 6);
+    shock(t, tCha + .1, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. UNE ONG SUISSE : jusqu'à 75 heures par semaine =========================================
+S(T.ong, T.bhv, (cam, a) => {
+  const tOng = Wt('ONG'), tOuv = Wt('ouvriers'), t75 = Wt('75'), tSem = Wt('semaine.');
+  bg(cam);
+  const lab = plate(cam, ['ENQUÊTE D\'UNE ONG SUISSE', ['(PUBLIC EYE, 2021)', GREY]], 840, 48);
+  const ck = clock(cam, 150);
+  const n = el('g', {}, cam), ns = bigNum(n, 200, RED);
+  const sub = title(cam, ['HEURES', 'PAR SEMAINE'], { size: 74, shadow: 0 });
+  const ws = []; for (let i = 0; i < 5; i++) ws.push(person(cam, i % 2 ? GREY : YELLOW));
+  return t => {
+    at(lab, CX, 280, pop(t, a + .1, .35), -2);
+    at(ck.g, CX - 250, 620, pop(t, a + .3, .35), 0); ck.update(t * 720);
+    const k = p(t, t75 - .2, t75 + .7, E.out);
+    ns.set(String(Math.round(75 * k)));
+    at(n, CX + 170, 560, pop(t, t75 - .3, .3), -3);
+    at(sub, CX + 170, 740, pop(t, tSem - .4, .35));
+    ws.forEach((g, i) => at(g, CX - 320 + i * 160, 1040 + 8 * Math.sin(t * 9 + i), pop(t, tOuv - .2 + i * .07, .3), 0));
+    shock(t, t75 + .6, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 8. IL Y A UN AN : premier vrai magasin… au BHV, 170 ans ===================================
+S(T.bhv, T.dior, (cam, a) => {
+  const tAn = Wt('an,'), tMag = Wt('magasin'), tPas = Wt('Pas', 1, a), tBhv = Wt('BHV,'), t170 = Wt('170');
+  bg(cam);
+  const tg = chip(cam, 'NOVEMBRE 2025', INK, CREAM, 52);
+  const lg = logo(cam, 460);
+  const mag = el('g', {}, cam); emoji(mag, '🏬', 200);
+  const cc = chip(cam, 'PAS DANS UN CENTRE COMMERCIAL', RED, CREAM, 40);
+  const pc = bhv(cam, 820, 560);
+  const lab = plate(cam, ['LE BHV, PARIS', ['170 ANS', RED]], 520, 56);
+  return t => {
+    const out = p(t, tBhv - .4, tBhv - .1, E.in);
+    tg.update(CX, 260, pop(t, tAn - .3), -2);
+    at(lg, CX, lerp(520, 400, out), pop(t, Wt('Shein', 1, a) - .2, .35) * (1 - .15 * out), -2);
+    at(mag, CX, 780, pop(t, tMag - .1, .3) * (1 - out), 0);
+    cc.update(CX, 1000, pop(t, tPas - .2) * (1 - out), 2);
+    at(pc, CX, 780, pop(t, tBhv - .25, .35), 2);
+    at(lab, CX + 140, 1060, pop(t, t170 - .3, .35), -3);
+    shock(t, tBhv + .1, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. DIOR, SANDRO PARTENT ; « erreur stratégique » =========================================
+S(T.dior, T.redr, (cam, a) => {
+  const tDi = Wt('Dior'), tSa = Wt('Sandro'), tPar = Wt('parties.'), tErr = Wt('erreur');
+  bg(cam);
+  const bs = ['DIOR', 'SANDRO'].map(s => { const g = el('g', {}, cam); card(g, -200, -90, 400, 180, WHITE, 20, 12, 7); const r = txt(g, s, { size: 74 }); r.g.setAttribute('transform', 'translate(0,26)'); return g; });
+  const door = el('g', {}, cam); emoji(door, '🚪', 130);
+  const q = plate(cam, ['LE BHV :', ['« ERREUR STRATÉGIQUE »', RED]], 900, 62);
+  return t => {
+    const go = p(t, tPar - .1, tPar + .8, E.in);
+    at(bs[0], CX - 200 - 900 * go, 520, pop(t, tDi - .3, .3), -4);
+    at(bs[1], CX + 200 + 900 * go, 720, pop(t, tSa - .3, .3), 4);
+    at(door, CX, 620, pop(t, tPar - .2, .3), 0);
+    at(q, CX, 1000, pop(t, tErr - .3, .35), -2);
+    shock(t, tErr + .2, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 10. CETTE SEMAINE : redressement judiciaire, 700 salariés ================================
+S(T.redr, T.coule, (cam, a) => {
+  const tRed = Wt('redressement'), t700 = Wt('700'), tTra = Wt('travail.');
+  bg(cam);
+  const tg = chip(cam, 'CETTE SEMAINE', INK, CREAM, 54);
+  const pc = bhv(cam, 700, 420);
+  const st = stamp(cam, 'REDRESSEMENT JUDICIAIRE', RED, 54);
+  const n = el('g', {}, cam), ns = bigNum(n, 150, RED);
+  const sub = txt(cam, 'SALARIÉS', { size: 60 });
+  const ws = []; for (let i = 0; i < 7; i++) ws.push(person(cam, i % 2 ? GREY : GREEN));
+  return t => {
+    tg.update(CX, 260, pop(t, a + .05), -2);
+    at(pc, CX, 540, pop(t, a + .1, .35), -2);
+    st.update(CX, 780, t, tRed - .1, -5);
+    const k = p(t, t700 - .2, t700 + .7, E.out);
+    ns.set(String(Math.round(700 * k)));
+    at(n, CX - 230, 950, pop(t, t700 - .3, .3), -3);
+    at(sub.g, CX - 230, 1100, pop(t, t700, .3), -3);
+    ws.forEach((g, i) => at(g, CX + 40 + (i % 4) * 110, 960 + Math.floor(i / 4) * 120, pop(t, t700 + i * .06, .25) * .85, 0));
+    shock(t, tRed + .1, .3, .8);
+  };
+}, { swipe: GREEN });
+
+// ====== 11. SHEIN N'EXPLIQUE PAS TOUT… mais c'est le BHV qui coule ===============================
+S(T.coule, T.loi, (cam, a) => {
+  const tTout = Wt('tout.', 1, a), tChic = Wt('chic'), tCou = Wt('coule.');
+  bg(cam);
+  const lab = plate(cam, ["SHEIN N'EXPLIQUE", 'PAS TOUT…'], 640, 58);
+  const pc = bhv(cam, 560, 380);
+  const sea = el('g', {}, cam);
+  for (let i = 0; i < 3; i++) el('path', { d: `M-560,${i * 50} Q-490,${i * 50 - 30} -420,${i * 50} T-280,${i * 50} T-140,${i * 50} T0,${i * 50} T140,${i * 50} T280,${i * 50} T420,${i * 50} T560,${i * 50} L560,240 L-560,240 Z`, fill: i ? '#2E86C1' : '#5DADE2', stroke: INK, 'stroke-width': 6 }, sea);
+  const lg = logo(cam, 380);
+  const st = stamp(cam, "C'EST LUI QUI COULE", RED, 60);
+  return t => {
+    at(lab, CX, 280, pop(t, a + .05, .35), -2);
+    const sink = p(t, tCou - .5, tCou + 1, E.in);
+    at(pc, CX, 700 + 300 * sink, pop(t, tTout, .35), -3 + 8 * sink);
+    at(sea, CX + 20 * Math.sin(t * 2), 920, 1, 0);
+    at(lg, CX + 250, 455, pop(t, tChic - .3, .3), 6 + 3 * Math.sin(t * 4));
+    st.update(CX, 610, t, tCou, -5);
+    shock(t, tCou + .2, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 12. LA FRANCE CONTRE-ATTAQUE : jusqu'à 20 € de pénalité par pièce d'ici 2030 ==============
+S(T.loi, T.cta, (cam, a) => {
+  const tCon = Wt('contre-attaque'), tLoi = Wt('loi'), tVet = Wt('vetement.'), t20 = Wt('20'), t2030 = Wt('2030');
+  bg(cam);
+  const head = title(cam, ['LA FRANCE', ['CONTRE-ATTAQUE', RED]], { size: 100, shadow: 0, sw: 12 });
+  const lc = chip(cam, 'LOI ANTI FAST-FASHION (ÉTÉ 2026)', INK, CREAM, 40);
+  const tee = el('g', {}, cam); emoji(tee, '👕', 260);
+  const tg = tag(cam, '+20 €', RED, 360, 96);
+  const pp = chip(cam, 'PAR PIÈCE', RED, CREAM, 48);
+  const yr = chip(cam, "D'ICI 2030", GREEN, CREAM, 52);
+  return t => {
+    at(head, CX, 320, pop(t, tCon - .5, .35), -2);
+    lc.update(CX, 500, pop(t, tLoi - .2), 1);
+    at(tee, CX - 200, 790, pop(t, tLoi, .35), -4);
+    at(tg, CX + 200, 760, pop(t, t20 - .2, .3), 8);
+    pp.update(CX + 200, 930, pop(t, t20 + .4), 2);
+    yr.update(CX, 1080, pop(t, t2030 - .2), -2);
+    shock(t, t20 + .1, .3, .8);
+  };
+}, { swipe: GREEN });
+
+// ====== 13. FIN : ton prochain haul, tu le fais quand même ? =====================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tHaul = Wt('haul'), tQua = Wt('quand', 1, a), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ['TON PROCHAIN', ['HAUL SHEIN…', RED], ['TU LE FAIS ?', GREEN]], { size: 96, shadow: 0, sw: 12 });
+  const bag = el('g', {}, cam); emoji(bag, '🛍️', 140);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 400, pop(t, tHaul - .4, .35), -2);
+    at(bag, CX - 300, 760, pop(t, tQua - .2, .35), Math.sin(t * 4) * 8);
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 300, 760, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tQua, .25, .4);
+  };
+}, { swipe: RED });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Séléné entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>
