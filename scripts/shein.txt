@@ -1,0 +1,32 @@
+# Voix-off de shein.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources :
+# - DGCCRF, amende de 40 M€ (transaction, 3 juillet 2025) pour pratiques commerciales trompeuses : 57 % des annonces contrôlées
+#   sans aucune baisse de prix, 19 % de baisse inférieure à l'annonce, 11 % de hausses déguisées, soit 87 % de fausses promos
+#   (faits fin 2022 - début 2023) : https://www.quechoisir.org/actualite-fast-fashion-shein-champion-des-pratiques-commerciales-trompeuses-n168352/
+#   https://fashionunited.fr/actualite/business/fausses-reductions-shein-condamnee-a-une-amende-de-40-millions-deuros/2025070338640
+# - CNIL, amende de 150 M€ (1er sept. 2025, annoncée le 3) : cookies publicitaires déposés avant le consentement et encore après un refus ;
+#   environ 12 millions de visiteurs français par mois : https://www.cnil.fr/fr/cookies-deposes-sans-consentement-la-cnil-sanctionne-shein-dune-amende-de-150-millions-deuros
+# - Public Eye (ONG suisse, 2021) : semaines jusqu'à 75 h dans des ateliers fournisseurs à Guangzhou :
+#   https://www.publiceye.ch/en/media-corner/press-releases/detail/75-hour-weeks-for-shein-public-eye-looks-behind-the-chinese-online-fashion-giants-glitzy-front
+# - Nouveautés : estimations de 6 000 à 7 200 nouveaux articles par jour selon les sources (on dit « des milliers »).
+# - BHV : Shein ouvre son premier point de vente physique permanent au BHV Marais le 5 nov. 2025 ; magasin fondé en 1856 ;
+#   Dior, Sandro, Guerlain partis ; « erreur stratégique » (président Karl-Stéphane Cottendin, vers juin 2026), partenariat
+#   censé finir d'ici Noël ; redressement judiciaire demandé le 27 oct. 2026, 700 salariés ; conflit avec le bailleur Brookfield :
+#   https://www.epochtimes.fr/depot-de-bilan-conflit-avec-brookfield-le-bhv-en-pleine-crise-quatre-mois-apres-avoir-reconnu-son-erreur-strategique-avec-shein-3380301.html
+#   https://www.franceinfo.fr/economie/commerce/le-bhv-place-en-redressement-judiciaire-l-avenir-de-700-salaries-en-suspens_8257363.html
+# - Loi anti fast-fashion (adoptée le 29 juin 2026, promulguée le 8 juillet 2026) : malus par article jusqu'à 20 € en 2030,
+#   plafonné à 50 % du prix : https://www.publicsenat.fr/actualites/politique/loi-anti-fast-fashion-le-senat-adopte-definitivement-le-texte-penalisant-les-produits-shein-et-temu
+Le « moins 70[soixante-dix] % » sur Shein… était sûrement faux.
+En France, la répression des fraudes a vérifié les prix de milliers d'articles sur le site.
+Résultat_: plus de la moitié des promos… ne baissaient pas du tout le prix. Et une sur dix cachait même une hausse_!
+Au total, presque 9[neuf] promos sur 10[dix] étaient fausses. Amende_: 40[quarante] millions d'euros.
+Deux mois plus tard… rebelote. Le site posait des cookies publicitaires sur ton téléphone… même quand tu cliquais sur « refuser ». Cette fois_: 150[cent cinquante] millions d'euros.
+Et pendant que tu scrolles… des milliers de nouveaux vêtements arrivent sur l'appli. Chaque jour.
+Pour tenir ce rythme, une ONG suisse a trouvé des ouvriers chinois qui travaillaient jusqu'à 75[soixante-quinze] heures par semaine.
+Malgré tout ça… il y a un an, Shein a ouvert son premier vrai magasin en France. Pas dans un centre commercial. Au BHV, un grand magasin parisien vieux de 170[cent soixante-dix] ans.
+Des marques comme Dior ou Sandro sont parties. Et le BHV a fini par parler d'« erreur stratégique ».
+Cette semaine… le BHV a été placé en redressement judiciaire. 700[sept cents] salariés ne savent pas s'ils garderont leur travail.
+Shein n'explique pas tout. Mais le magasin qui devait le rendre chic… c'est lui qui coule.
+Et la France contre-attaque_: une loi votée cet été prévoit une pénalité sur chaque vêtement. Jusqu'à 20[vingt] euros par pièce… d'ici 2030[deux mille trente].
+Alors… ton prochain haul Shein, tu le fais quand même_? Dis-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
