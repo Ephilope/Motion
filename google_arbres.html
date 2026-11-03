@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Google rase des arbres en Finlande</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Google a rasé 250 000 arbres en Finlande » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/google_arbres.txt → node tools/voix.mjs google_arbres ; node tools/enveloppe.mjs google_arbres
+     Chiffres et sources : en tête de scripts/google_arbres.txt. Logo Google : Wikimedia Commons (marque, domaine public). -->
+<script src="lib/motion.js"></script>
+<script src="assets/google_arbres_words.js"></script>
+<script src="assets/google_arbres_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, bubble, emoji, bg } = Motion;
+await setup({
+  duration: 76,
+  words: window.WORDS,
+  audio: 'assets/voix_google_arbres.mp3',
+  emojis: '🪓🤖💬📱🌲🐺🦌🦊🐻🏠🛑🚿🚓🪵❄️🔥🌡️✍️📄💸🙏💬👇❓',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', GREY = '#7F8C8D', PINE = '#1E8449', PINE2 = '#27AE60', BROWN = '#8E5B3A', ICE = '#AED6F1', BLUE = '#3498DB';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+let PID = 0;
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+const sp = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+// Carte crème avec texte (une ou plusieurs lignes), centrée.
+function plate(parent, lines, w, size = 52, fill = CREAM) {
+  const g = el('g', {}, parent), h = lines.length * size * 1.2 + size * .9;
+  card(g, -w / 2, -h / 2, w, h, fill, 26, 10, 7);
+  lines.forEach((l, i) => {
+    const [s, col] = Array.isArray(l) ? l : [l, INK];
+    const r = txt(g, s, { size, fill: col, sw: col === INK ? 0 : 8 });
+    r.g.setAttribute('transform', `translate(0,${fmt((i - (lines.length - 1) / 2) * size * 1.2 + size * .36)})`);
+  });
+  return g;
+}
+// Sapin plat (pied au point 0,0) ; renvoie le groupe, à faire pivoter autour du pied pour l'abattre.
+function pine(parent, s = 1, col = PINE) {
+  const g = el('g', {}, parent), inner = el('g', { transform: `scale(${s})` }, g);
+  el('rect', { x: -12, y: -40, width: 24, height: 40, fill: BROWN, stroke: INK, 'stroke-width': 5 }, inner);
+  [[-40, 70, 0], [-90, 58, 1], [-135, 44, 0]].forEach(([y, w, c]) =>
+    el('path', { d: `M${-w},${y} L0,${y - 80} L${w},${y} Z`, fill: c ? PINE2 : col, stroke: INK, 'stroke-width': 5, 'stroke-linejoin': 'round' }, inner));
+  return g;
+}
+// Souche (arbre coupé).
+function stump(parent, s = 1) {
+  const g = el('g', { transform: `scale(${s})` }, parent);
+  el('rect', { x: -14, y: -18, width: 28, height: 18, fill: BROWN, stroke: INK, 'stroke-width': 5 }, g);
+  el('ellipse', { cx: 0, cy: -18, rx: 14, ry: 6, fill: '#D7B98E', stroke: INK, 'stroke-width': 4 }, g);
+  return g;
+}
+// Forêt : grille de sapins qui tombent les uns après les autres entre t0 et t1.
+function forest(parent, cols, rows, dx, dy, s = .7) {
+  const g = el('g', {}, parent), trees = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const x = (c - (cols - 1) / 2) * dx + (r % 2 ? dx / 2 : 0), y = r * dy;
+    const st = stump(g, s); tf(st, x, y, 1, 0);
+    const tr = pine(g, s, (r + c) % 3 ? PINE : '#196F3D'); trees.push({ tr, st, x, y, d: ((c * 7 + r * 3) % 11) / 11 });
+  }
+  return { g, update(t, t0, t1) {
+    trees.forEach(o => { const k = p(t, t0 + (t1 - t0) * o.d * .8, t0 + (t1 - t0) * o.d * .8 + .35, E.in);
+      tf(o.tr, o.x, o.y, 1, 92 * k * (o.d > .5 ? 1 : -1)); o.tr.setAttribute('opacity', fmt(1 - p(k, .8, 1))); });
+  } };
+}
+// Logo Google (le vrai fichier SVG) sur une plaque blanche de la charte.
+function logo(parent, w = 520) {
+  const g = el('g', {}, parent), h = w * .42;
+  card(g, -w / 2, -h / 2, w, h, WHITE, 24, 12, 8);
+  if (OK.logo) el('image', { href: IMG.logo, x: -w * .4, y: -h * .34, width: w * .8, height: h * .68, preserveAspectRatio: 'xMidYMid meet' }, g);
+  else { const r = txt(g, 'Google', { size: w * .2, weight: 800 }); r.g.setAttribute('transform', `translate(0,${fmt(w * .072)})`); }
+  return g;
+}
+// Data center : hangar gris avec baies de serveurs qui clignotent.
+function datacenter(parent, w = 700, h = 380) {
+  const g = el('g', {}, parent), leds = [];
+  card(g, -w / 2, -h / 2, w, h, '#D5DBDB', 18, 14, 8);
+  el('path', { d: `M${-w / 2 - 20},${-h / 2} L${-w / 2 + 40},${-h / 2 - 70} L${w / 2 - 40},${-h / 2 - 70} L${w / 2 + 20},${-h / 2} Z`, fill: GREY, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, g);
+  const n = 6, rw = (w - 80) / n;
+  for (let i = 0; i < n; i++) {
+    const x = -w / 2 + 40 + i * rw;
+    el('rect', { x: x + 8, y: -h / 2 + 40, width: rw - 16, height: h - 80, rx: 8, fill: INK }, g);
+    for (let j = 0; j < 6; j++) leds.push({ e: el('rect', { x: x + 22, y: -h / 2 + 62 + j * 46, width: rw - 44, height: 14, rx: 7, fill: GREEN }, g), ph: i * 1.7 + j * 2.3 });
+  }
+  return { g, update(t) { leds.forEach(o => o.e.setAttribute('fill', Math.sin(t * 9 + o.ph) > .3 ? GREEN : '#145A32')); } };
+}
+// Carte simplifiée de la Finlande (lon/lat projetés), avec Muhos et Kajaani.
+const FI = [[22.9,59.8],[25,60.2],[26.9,60.4],[27.8,60.5],[29,61.2],[30,61.8],[31,62.4],[31.5,62.9],[30.6,63.8],[30,64.5],[29.6,65],[30.1,65.7],[29.3,66.1],[29.1,66.9],[30,67.7],[28.7,68.2],[28.5,68.9],[28.9,69.1],[29.3,69.5],[28.3,69.9],[27,70.1],[25.9,69.7],[25.2,69],[24,68.6],[22.4,68.7],[21,69.2],[20.6,69.1],[21.6,68.3],[23,68],[23.7,67.2],[23.6,66.4],[24.1,65.8],[25.3,65.1],[24.6,64.4],[23,63.6],[21.5,63.2],[21.3,62.5],[21.5,61.5],[21.3,60.8],[21.5,60.4],[22.5,60]];
+function proj(lon, lat, s) { return [(lon - 26) * Math.cos(65 * Math.PI / 180) * s, -(lat - 65) * s]; }
+function finland(parent, s = 80, label = true) {
+  const g = el('g', {}, parent);
+  const d = FI.map(([lo, la], i) => { const [x, y] = proj(lo, la, s); return (i ? 'L' : 'M') + fmt(x) + ',' + fmt(y); }).join('') + 'Z';
+  el('path', { d, fill: INK, transform: 'translate(12,12)' }, g);
+  el('path', { d, fill: PINE2, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, g);
+  if (label) { const lab = txt(g, 'FINLANDE', { size: 40, fill: CREAM, sw: 8 }); lab.g.setAttribute('transform', `translate(${fmt(proj(26, 62.3, s)[0])},${fmt(proj(26, 62.3, s)[1])})`); }
+  return g;
+}
+// Épingle de carte avec nom.
+function pin(parent, name, col = RED, size = 40, dx = 0) {
+  const g = el('g', {}, parent);
+  el('path', { d: 'M0,0 C-30,-40 -30,-80 0,-80 C30,-80 30,-40 0,0 Z', fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('circle', { cy: -55, r: 11, fill: CREAM, stroke: INK, 'stroke-width': 4 }, g);
+  if (name) { const c = chip(g, name, INK, CREAM, size); c.update(dx, dx ? -55 : -125, 1); }
+  return g;
+}
+// Terrain de foot miniature.
+function pitch(parent, w = 60, h = 40) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, fill: GREEN, stroke: INK, 'stroke-width': 3 }, g);
+  el('line', { x1: 0, y1: -h / 2, x2: 0, y2: h / 2, stroke: CREAM, 'stroke-width': 2 }, g);
+  el('circle', { r: h * .2, fill: 'none', stroke: CREAM, 'stroke-width': 2 }, g);
+  return g;
+}
+// Document avec barre de progression.
+function doc(parent, w = 380, h = 480) {
+  const g = el('g', {}, parent);
+  card(g, -w / 2, -h / 2, w, h, WHITE, 18, 12, 7);
+  const t1 = txt(g, "ÉTUDE D'IMPACT", { size: 36 }); t1.g.setAttribute('transform', `translate(0,${-h / 2 + 70})`);
+  const t2 = txt(g, 'ENVIRONNEMENT', { size: 30, fill: PINE2, sw: 6 }); t2.g.setAttribute('transform', `translate(0,${-h / 2 + 115})`);
+  for (let i = 0; i < 5; i++) el('rect', { x: -w / 2 + 40, y: -h / 2 + 160 + i * 42, width: (w - 80) * (i % 2 ? .7 : .9), height: 14, rx: 7, fill: '#D5DBDB' }, g);
+  el('rect', { x: -w / 2 + 40, y: h / 2 - 80, width: w - 80, height: 36, rx: 18, fill: '#D5DBDB', stroke: INK, 'stroke-width': 5 }, g);
+  const bar = el('rect', { x: -w / 2 + 40, y: h / 2 - 80, width: 0, height: 36, rx: 18, fill: YELLOW, stroke: INK, 'stroke-width': 5 }, g);
+  return { g, update(k) { bar.setAttribute('width', fmt((w - 80) * k)); } };
+}
+// Petit personnage (tête + corps).
+function person(parent, col) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 4, cy: -48, r: 24, fill: INK }, g);
+  el('circle', { cy: -52, r: 24, fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: 'M-36,38 Q-36,-14 0,-14 Q36,-14 36,38 Z', fill: col, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Barre horizontale (comparaison d'hectares).
+function hbar(parent, w, h, col, label) {
+  const g = el('g', {}, parent);
+  el('rect', { x: 10, y: -h / 2 + 10, width: 1, height: h, rx: 14, fill: INK }, g);
+  const sh = g.lastChild;
+  const b = el('rect', { x: 0, y: -h / 2, width: 1, height: h, rx: 14, fill: col, stroke: INK, 'stroke-width': 7 }, g);
+  const l = txt(g, label, { size: 58, fill: CREAM, sw: 10, anchor: 'start' });
+  return { g, update(k) { const ww = Math.max(1, w * k); b.setAttribute('width', fmt(ww)); sh.setAttribute('width', fmt(ww)); l.g.setAttribute('transform', `translate(${fmt(Math.max(24, ww + 24))},${fmt(58 * .36)})`); l.g.setAttribute('opacity', k > .05 ? 1 : 0); } };
+}
+
+const IMG = { logo: 'assets/google_arbres/google_logo.svg' };
+const OK = {};
+await Promise.all(Object.entries(IMG).map(([k, src]) => new Promise(r => { const i = new Image(); i.onload = () => { OK[k] = 1; r(); }; i.onerror = r; i.src = src; })));
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  dc: Wt('Le') - .15, muhos: Wt('Ca') - .15, loi: Wt('Le', 1, Wt('foot.')) - .15, fil: Wt('Sa') - .15,
+  kaj: Wt('Et', 1, Wt('necessaire.')) - .15, loups: Wt('Une', 1, Wt('150000')) - .15, stop: Wt('Debut') - .15,
+  police: Wt('Et', 1, Wt('froide')) - .15, bois: Wt('Le', 1, Wt('penale.')) - .15, excuse: Wt('Google', 1, Wt('vendu.')) - .15,
+  froid: Wt('Pourquoi') - .15, proj: Wt('Le', 1, Wt('fortune.')) - .15, cta: Wt('Alors', 2) - .15,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : Google a rasé 250 000 arbres… sans autorisation ============================
+S(0, T.dc, (cam) => {
+  const t250 = Wt('250000'), tArb = Wt('arbres'), tSans = Wt('sans');
+  bg(cam);
+  const lg = logo(cam, 440);
+  const fo = forest(cam, 6, 3, 150, 85, .62);
+  const n = el('g', {}, cam), ns = bigNum(n, 170, RED);
+  const sub = txt(cam, 'ARBRES RASÉS', { size: 70 });
+  const fi = chip(cam, 'EN FINLANDE', INK, CREAM, 46);
+  const axe = el('g', {}, cam); emoji(axe, '🪓', 150);
+  const st = stamp(cam, 'SANS AUTORISATION', RED, 76);
+  return t => {
+    at(lg, CX, 270, pop(t, -.3, .3), -3);
+    at(fo.g, CX, 600, 1, 0); fo.update(t, t250 - .1, tSans);
+    const k = p(t, t250 - .1, tArb + .4, E.out);
+    ns.set(sp(Math.round(250000 * k / 1000) * 1000));
+    at(n, CX, 870, pop(t, t250 - .2, .3), -3);
+    at(sub.g, CX, 1090, pop(t, tArb - .1, .3), -2);
+    fi.update(CX + 250, 420, pop(t, Wt('Finlande') - .2) * (t < tSans - .1 ? 1 : 0), 6);
+    at(axe, CX - 360 + 30 * Math.sin(t * 14), 700, pop(t, .1, .3), -30 + 40 * Math.sin(t * 14));
+    st.update(CX, 460, t, tSans - .05, -5);
+    shock(t, t250 + .1, .3, .6); shock(t, tSans + .05, .3, .8);
+  };
+});
+
+// ====== 2. LE BUT : des data centers… qui répondent quand tu parles à une IA ======================
+S(T.dc, T.muhos, (cam, a) => {
+  const tCon = Wt('Construire'), tHan = Wt('hangars'), tQui = Wt('qui', 1, a), tIA = Wt('IA.');
+  bg(cam);
+  const head = title(cam, ['DES', ['DATA CENTERS', RED]], { size: 110, shadow: 0, sw: 12 });
+  const dc = datacenter(cam, 720, 360);
+  const ph = el('g', {}, cam); card(ph, -110, -180, 220, 360, INK, 34, 10, 7); el('rect', { x: -88, y: -140, width: 176, height: 280, rx: 16, fill: CREAM }, ph);
+  const bq = el('g', {}, ph); card(bq, -70, -110, 140, 70, BLUE, 20, 4, 4); const qt = txt(bq, '?', { size: 50, fill: CREAM, sw: 6 }); qt.g.setAttribute('transform', 'translate(0,-58)');
+  const ba = el('g', {}, ph); card(ba, -70, -20, 140, 70, WHITE, 20, 4, 4); const bt = el('g', {}, ba); emoji(bt, '🤖', 46); tf(bt, 0, 15);
+  const wire = el('path', { fill: 'none', stroke: INK, 'stroke-width': 8, 'stroke-dasharray': '18 14', 'stroke-linecap': 'round' }, cam);
+  const lab = plate(cam, ['DES HANGARS GÉANTS', ["REMPLIS D'ORDINATEURS", RED]], 820, 46);
+  return t => {
+    at(head, CX, 290, pop(t, tCon - .3, .35), -2);
+    dc.update(t);
+    const out = p(t, tQui - .3, tQui, E.inOut);
+    at(dc.g, lerp(CX, CX + 150, out), lerp(680, 640, out), pop(t, tHan - .4, .35) * lerp(1, .7, out), 0);
+    at(lab, CX, 950, pop(t, tHan, .35) * (1 - out), -2);
+    at(ph, CX - 270, 830, pop(t, tQui - .1, .35), -6);
+    tf(bq, 0, 0, pop(t, tQui - .1, .3)); tf(ba, 0, 0, pop(t, Wt('repondent') + .2, .3));
+    show(wire, t > tQui + .2); wire.setAttribute('d', `M${CX - 160},780 Q${CX - 40},700 ${CX + 30},650`); wire.setAttribute('stroke-dashoffset', fmt(-t * 80));
+    shock(t, tIA + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// ====== 3. MUHOS : 330 hectares rasés, plus de 400 terrains de foot ==============================
+S(T.muhos, T.loi, (cam, a) => {
+  const tMu = Wt('Muhos,'), t330 = Wt('330'), tRas = Wt('rases.'), t400 = Wt('400');
+  bg(cam);
+  const map = finland(cam, 62);
+  const pm = pin(cam, 'MUHOS', RED, 36);
+  const n = el('g', {}, cam), ns = bigNum(n, 150, RED);
+  const sub = txt(cam, 'HECTARES RASÉS', { size: 52 });
+  const grid = el('g', {}, cam), ps = [];
+  for (let i = 0; i < 24; i++) { const g = pitch(grid, 64, 42); ps.push(g); }
+  const pl = plate(cam, ['PLUS DE 400', ['TERRAINS DE FOOT', GREEN]], 560, 46);
+  const [mx, my] = proj(25.99, 64.81, 62);
+  return t => {
+    const side = p(t, t330 - .4, t330, E.inOut);
+    at(map, lerp(CX, CX - 210, side), lerp(720, 700, side), pop(t, a + .05, .35) * lerp(1, .82, side), 0);
+    at(pm, lerp(CX, CX - 210, side) + mx * lerp(1, .82, side), lerp(720, 700, side) + my * lerp(1, .82, side), pop(t, tMu - .2, .3), 0);
+    const k = p(t, t330 - .2, t330 + .7, E.out);
+    ns.set(String(Math.round(330 * k)));
+    at(n, CX + 230, 470, pop(t, t330 - .3, .3), -3);
+    at(sub.g, CX + 230, 590, pop(t, tRas - .3, .3), -2);
+    ps.forEach((g, i) => at(g, CX + 100 + (i % 4) * 78, 700 + Math.floor(i / 4) * 54, pop(t, t400 - .4 + i * .03, .2), 0));
+    at(pl, CX + 210, 1100, pop(t, t400 - .2, .35), 2);
+    shock(t, t330 + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 4. LE PROBLÈME : l'étude d'impact pas finie, Google n'a pas attendu =======================
+S(T.loi, T.fil, (cam, a) => {
+  const tPb = Wt('probleme'), tLoi = Wt('loi', 1, a), tEt = Wt('etude'), tGo = Wt('Google', 1, a), tFin = Wt('fin.');
+  bg(cam);
+  const head = title(cam, [['LE PROBLÈME ?', RED]], { size: 110, shadow: 0, sw: 12 });
+  const lc = chip(cam, "LA LOI EXIGE D'ABORD…", INK, CREAM, 44);
+  const dd = doc(cam, 380, 480);
+  const axe = el('g', {}, cam); emoji(axe, '🪓', 170);
+  const st = stamp(cam, "PAS ATTENDU", RED, 80);
+  return t => {
+    at(head, CX, 290, pop(t, tPb - .3, .35), -2);
+    lc.update(CX, 440, pop(t, tLoi - .3), 1);
+    at(dd.g, CX - 160, 750, pop(t, tLoi - .1, .35), -3);
+    dd.update(.15 + .3 * p(t, tEt, tFin + 1));
+    const go = p(t, tGo - .2, tGo + .6, E.out);
+    at(axe, lerp(W + 150, CX + 230, go), 780, 1, -20 + 50 * Math.sin(t * 12) * go);
+    st.update(CX, 1080, t, Wt("attendu") - .1, -6);
+    shock(t, Wt("attendu"), .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 5. SA FILIALE : « aucun permis n'était nécessaire » =======================================
+S(T.fil, T.kaj, (cam, a) => {
+  const tFi = Wt('filiale'), tAuc = Wt("qu'aucun"), tNec = Wt('necessaire.');
+  bg(cam);
+  const lg = logo(cam, 400);
+  const fc = chip(cam, 'SA FILIALE EN FINLANDE', INK, CREAM, 42);
+  const bb = plate(cam, ['« AUCUN PERMIS', ["N'ÉTAIT NÉCESSAIRE »", RED]], 880, 62);
+  const q = el('g', {}, cam); emoji(q, '📄', 150);
+  return t => {
+    at(lg, CX, 380, pop(t, a + .05, .35), -3);
+    fc.update(CX, 560, pop(t, tFi - .2), 2);
+    at(bb, CX, 830, pop(t, tAuc - .3, .35), -2);
+    at(q, CX + 330, 400, pop(t, tNec, .3) * (1 + .06 * Math.sin(t * 6)), 10);
+  };
+}, { swipe: RED });
+
+// ====== 6. DEUXIÈME CHANTIER près de Kajaani : 150 000 arbres de plus =============================
+S(T.kaj, T.loups, (cam, a) => {
+  const tDe = Wt('deuxieme'), tKa = Wt('Kajaani'), tEc = Wt('ecologiste'), t150 = Wt('150000');
+  bg(cam);
+  const map = finland(cam, 52);
+  const [mx, my] = proj(25.99, 64.81, 52), [kx, ky] = proj(27.4, 64.2, 52);
+  const pm = pin(cam, '', GREY, 30), pk = pin(cam, 'KAJAANI', RED, 34, 150);
+  const dc = chip(cam, '2E CHANTIER', RED, CREAM, 50);
+  const n = el('g', {}, cam), ns = bigNum(n, 140, RED);
+  const sub = plate(cam, ['ARBRES DE PLUS', ["SELON UNE ÉCOLOGISTE", GREY]], 640, 44);
+  const tot = plate(cam, ['TOTAL :', ['~400 000', RED], 'ARBRES'], 360, 52);
+  const MX = CX - 260, MY = 640;
+  return t => {
+    at(map, MX, MY, pop(t, a + .05, .35), 0);
+    at(pm, MX + mx, MY + my, pop(t, a + .1, .3) * .9, 0);
+    at(pk, MX + kx, MY + ky, pop(t, tKa - .2, .3), 0);
+    dc.update(CX + 200, 360, pop(t, tDe - .3), 4);
+    const k = p(t, t150 - .2, t150 + .7, E.out);
+    ns.set('+' + sp(Math.round(150000 * k / 1000) * 1000));
+    at(n, CX, 950, pop(t, t150 - .3, .3), -3);
+    at(sub, CX, 1110, pop(t, tEc - .2, .35), 2);
+    at(tot, CX + 230, 640, pop(t, tEc - .2, .35), 3);
+    shock(t, t150 + .1, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 7. DES LOUPS jusque dans le village : les animaux ont fui la forêt =========================
+S(T.loups, T.stop, (cam, a) => {
+  const tHab = Wt('habitante'), tLou = Wt('loups'), tVil = Wt('village.'), tAni = Wt('animaux'), tFui = Wt('fui');
+  bg(cam);
+  const hs = []; for (let i = 0; i < 3; i++) { const g = el('g', {}, cam); emoji(g, '🏠', 170); hs.push(g); }
+  const wolves = []; for (let i = 0; i < 3; i++) { const g = el('g', {}, cam); emoji(g, '🐺', 140); wolves.push(g); }
+  const an = ['🦌', '🦊', '🐻'].map(c => { const g = el('g', {}, cam); emoji(g, c, 130); return g; });
+  const st = stamp(cam, 'DES LOUPS DANS LE VILLAGE', RED, 56);
+  const hb = person(cam, YELLOW);
+  return t => {
+    at(hb, CX - 330, 470, pop(t, tHab - .2, .3) * 1.3, 0);
+    hs.forEach((g, i) => at(g, CX - 80 + i * 210, 470, pop(t, a + .1 + i * .08, .3), 0));
+    wolves.forEach((g, i) => { const k = p(t, tLou - .2 + i * .2, tLou + 1.2 + i * .2, E.out); at(g, lerp(W + 150, CX - 100 + i * 200, k), 690 + (i % 2) * 40 + 10 * Math.sin(t * 12 + i), 1, 0); });
+    st.update(CX, 880, t, tVil - .2, -4);
+    an.forEach((g, i) => { const k = p(t, tFui - .2 + i * .15, tFui + 1.5, E.in); at(g, CX - 200 + i * 200 - 900 * k, 1060 + 10 * Math.sin(t * 14 + i), pop(t, tAni - .2 + i * .08, .3), 0); });
+    shock(t, tLou + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 8. DÉBUT OCTOBRE : chantiers arrêtés ; Premier ministre : « douche froide » ================
+S(T.stop, T.police, (cam, a) => {
+  const tOct = Wt('octobre,'), tArr = Wt('arreter'), tPm = Wt('Premier'), tDou = Wt('douche');
+  bg(cam);
+  const tg = chip(cam, 'DÉBUT OCTOBRE', INK, CREAM, 50);
+  const stp = el('g', {}, cam); emoji(stp, '🛑', 230);
+  const ch = plate(cam, ['LES 2 CHANTIERS', ['ARRÊTÉS', RED]], 600, 58);
+  const pm = person(cam, BLUE);
+  const pc = chip(cam, 'LE PREMIER MINISTRE', INK, CREAM, 38);
+  const bb = bubble(cam, '« DOUCHE FROIDE »', BLUE, CREAM, 62);
+  const sh = el('g', {}, cam); emoji(sh, '🚿', 120);
+  return t => {
+    const up = p(t, tPm - .4, tPm, E.inOut);
+    tg.update(CX, 260, pop(t, tOct - .3), -2);
+    at(stp, CX - 230, lerp(560, 470, up), pop(t, tOct, .3) * lerp(1, .7, up), 0);
+    at(ch, CX + 180, lerp(560, 470, up), pop(t, tArr, .35) * lerp(1, .8, up), 2);
+    at(pm, CX - 260, 990, pop(t, tPm - .2, .3) * 1.6, 0);
+    pc.update(CX - 210, 1130, pop(t, tPm), 0);
+    bb.update(CX + 120, 800, pop(t, tDou - .3, .35), -3);
+    at(sh, CX + 330, 980, pop(t, tDou, .3), -10 + 5 * Math.sin(t * 6));
+    shock(t, tArr + .15, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 9. ET MAINTENANT… enquête pénale ==========================================================
+S(T.police, T.bois, (cam, a) => {
+  const tMa = Wt('maintenant'), tPo = Wt('police'), tEnq = Wt('enquete');
+  bg(cam);
+  const car = el('g', {}, cam); emoji(car, '🚓', 260);
+  const lg = logo(cam, 340);
+  const st = stamp(cam, 'ENQUÊTE PÉNALE', RED, 90);
+  const pc = chip(cam, 'POLICE FINLANDAISE', INK, CREAM, 44);
+  return t => {
+    const k = p(t, tPo - .4, tPo + .3, E.out);
+    at(lg, CX, 400, pop(t, tMa - .2, .3), -3);
+    at(car, lerp(-200, CX, k), 700, 1, 0);
+    pc.update(CX, 900, pop(t, tPo + .1), 1);
+    st.update(CX, 1070, t, Wt('ouvert') - .1, -5);
+    shock(t, Wt('ouvert'), .3, .8);
+  };
+}, { swipe: RED });
+
+// ====== 10. DÉTAIL ABSURDE : le bois coupé ne peut même pas être vendu =============================
+S(T.bois, T.excuse, (cam, a) => {
+  const tAb = Wt('absurde'), tBo = Wt('bois'), tVen = Wt('vendu.');
+  bg(cam);
+  const head = title(cam, ['LE DÉTAIL', ['ABSURDE', RED]], { size: 110, shadow: 0, sw: 12 });
+  const logs = []; for (let i = 0; i < 6; i++) { const g = el('g', {}, cam); emoji(g, '🪵', 150); logs.push(g); }
+  const st = stamp(cam, 'INVENDABLE', RED, 100);
+  const m = el('g', {}, cam); emoji(m, '💸', 110);
+  return t => {
+    at(head, CX, 320, pop(t, tAb - .4, .35), -2);
+    logs.forEach((g, i) => { const r = i < 3 ? 0 : i < 5 ? 1 : 2, c = i < 3 ? i - 1 : i < 5 ? i - 3.5 : 0; at(g, CX + c * 170, 820 - r * 110, pop(t, tBo - .2 + i * .07, .25), 0); });
+    st.update(CX, 1060, t, Wt('illegalement') - .1, -6);
+    at(m, CX + 330, 600, pop(t, tVen - .6, .3), 10);
+    shock(t, Wt('illegalement'), .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 11. EXCUSES ; replanter 130 ha… sur plus de 500 rasés ====================================
+S(T.excuse, T.froid, (cam, a) => {
+  const tEx = Wt('excuse.'), tRep = Wt('replanter'), t130 = Wt('130'), t500 = Wt('500');
+  bg(cam);
+  const lg = logo(cam, 340);
+  const bb = bubble(cam, '« DÉSOLÉ »', WHITE, INK, 60);
+  const rc = chip(cam, 'REPLANTÉS', GREEN, CREAM, 44), cc = chip(cam, 'RASÉS', RED, CREAM, 44);
+  const b1 = hbar(cam, 150, 110, GREEN, '130 HA'), b2 = hbar(cam, 570, 110, RED, '+500 HA');
+  return t => {
+    at(lg, CX - 200, 330, pop(t, a + .05, .35), -3);
+    bb.update(CX + 230, 320, pop(t, tEx - .3, .35), 3);
+    rc.update(CX - 280, 560, pop(t, tRep - .2), 0);
+    at(b1.g, CX - 420, 680, 1, 0); b1.update(p(t, t130 - .2, t130 + .5, E.out));
+    cc.update(CX - 310, 860, pop(t, t130 + .2), 0);
+    at(b2.g, CX - 420, 980, 1, 0); b2.update(p(t, t130 + .3, t500 - .1, E.out));
+    shock(t, t500 - .1, .3, .7);
+  };
+}, { swipe: RED });
+
+// ====== 12. POURQUOI LA FINLANDE ? Le froid refroidit les ordinateurs ==============================
+S(T.froid, T.proj, (cam, a) => {
+  const tFr = Wt('froid.'), tRef = Wt('refroidir'), tFo = Wt('fortune.');
+  bg(cam);
+  const head = title(cam, ['POURQUOI', ['LA FINLANDE ?', BLUE]], { size: 104, shadow: 0, sw: 12 });
+  const sn = []; for (let i = 0; i < 8; i++) { const g = el('g', {}, cam); emoji(g, '❄️', 70 + (i % 3) * 20); sn.push(g); }
+  const th = el('g', {}, cam); emoji(th, '🌡️', 150);
+  const cold = chip(cam, 'IL Y FAIT FROID', BLUE, CREAM, 50);
+  const dc = datacenter(cam, 560, 300);
+  const fire = el('g', {}, cam); emoji(fire, '🔥', 110);
+  const pl = plate(cam, ['REFROIDIR LES SERVEURS', ['= UNE FORTUNE', RED]], 760, 46);
+  return t => {
+    at(head, CX, 300, pop(t, a + .05, .35), -2);
+    sn.forEach((g, i) => at(g, CX - 400 + i * 115, 470 + ((t * 120 + i * 97) % 220), pop(t, tFr - .5 + i * .04, .3), t * 40 * (i % 2 ? 1 : -1)));
+    at(th, CX - 320, 560, pop(t, tFr - .3, .3), -8);
+    cold.update(CX + 120, 560, pop(t, tFr - .2), 2);
+    dc.update(t);
+    at(dc.g, CX, 860, pop(t, tRef - .3, .35) * .9, 0);
+    const cool = p(t, tRef + .4, tRef + 1.4);
+    at(fire, CX + 340, 720, pop(t, tRef - .1, .3) * (1 - cool * .7) * (1 + .1 * Math.sin(t * 15)), 0);
+    at(pl, CX, 1110, pop(t, tRef + .5, .35), -2);
+    shock(t, tRef + .5, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 13. 145 PROJETS de data centers ; pétition de plus de 90 000 Finlandais ====================
+S(T.proj, T.cta, (cam, a) => {
+  const t145 = Wt('145'), tAl = Wt('Alors', 1, a), t90 = Wt('90000'), tPe = Wt('petition'), tEnc = Wt('encadrer.');
+  bg(cam);
+  const map = finland(cam, 50, false);
+  const dots = []; for (let i = 0; i < 40; i++) dots.push(el('rect', { x: -9, y: -9, width: 18, height: 18, rx: 4, fill: RED, stroke: INK, 'stroke-width': 3 }, cam));
+  const n = el('g', {}, cam), ns = bigNum(n, 170, RED);
+  const sub = plate(cam, ['PROJETS DE', ['DATA CENTERS', RED]], 440, 44);
+  const pen = el('g', {}, cam); emoji(pen, '✍️', 120);
+  const n2 = el('g', {}, cam), n2s = bigNum(n2, 120, GREEN);
+  const sub2 = plate(cam, ['SIGNATURES POUR', ['LES ENCADRER', GREEN]], 520, 42);
+  const MX = CX - 250, MY = 640, s = 50;
+  const R = Motion.rng(7), pts = [];
+  while (pts.length < 40) { const lo = 21.5 + R() * 9, la = 60.2 + R() * 6; if (la > 64 + (lo - 26) * .2 && lo > 29) continue; if (lo < 22.2 && la > 61) continue; pts.push(proj(lo, la, s)); }
+  return t => {
+    at(map, MX, MY, pop(t, a + .05, .35), 0);
+    dots.forEach((d, i) => at(d, MX + pts[i][0], MY + pts[i][1], pop(t, t145 - .3 + i * .03, .2), 45));
+    const k = p(t, t145 - .2, t145 + .7, E.out);
+    ns.set(String(Math.round(145 * k)));
+    at(n, CX + 230, 470, pop(t, t145 - .3, .3), -3);
+    at(sub, CX + 230, 630, pop(t, t145 + .3, .35), 2);
+    const k2 = p(t, t90 - .2, t90 + .8, E.out);
+    n2s.set('+' + sp(Math.round(90000 * k2 / 1000) * 1000));
+    at(n2, CX + 100, 930, pop(t, t90 - .3, .3), -2);
+    at(pen, CX - 330, 950, pop(t, tPe - .3, .3), Math.sin(t * 10) * 10);
+    at(sub2, CX + 60, 1100, pop(t, tEnc - .5, .35), -2);
+    shock(t, t145 + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 14. FIN : pour toi, l'IA vaut-elle une forêt ? ===========================================
+S(T.cta, M.DUR, (cam, a) => {
+  const tIA = Wt("l'IA", 1, a), tFo = Wt('foret', 1, a), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q = title(cam, ['POUR TOI,', ["L'IA VAUT-ELLE", RED], ['UNE FORÊT ?', GREEN]], { size: 96, shadow: 0, sw: 12 });
+  const bot = el('g', {}, cam); emoji(bot, '🤖', 130);
+  const tr = pine(cam, 1.1);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 130);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 380, pop(t, a + .05, .35), -2);
+    at(bot, CX - 300, 760, pop(t, tIA - .2, .35), Math.sin(t * 4) * 8);
+    at(tr, CX + 300, 850, pop(t, tFo - .2, .35), Math.sin(t * 3) * 4);
+    at(bub, CX, 760, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    at(cta, CX, 1060, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tFo, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Séléné entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>
