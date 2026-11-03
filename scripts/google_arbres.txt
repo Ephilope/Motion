@@ -1,0 +1,29 @@
+# Voix-off de google_arbres.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources :
+# - Guardian (Miranda Bryant, 22 oct. 2026), relayé par The Next Web (26 oct.) : ~250 000 arbres coupés à Muhos (330 ha, site prévu de 571 ha,
+#   9 bâtiments) avant la fin de l'étude d'impact ; ~150 000 de plus à Otanmäki/Kajaani selon Mari Annala (SLL) ; Tuike Finland disait le 25 sept.
+#   qu'aucun permis n'était nécessaire ; arrêt ordonné par l'agence LVV le 6 oct. ; PM Petteri Orpo : « douche froide » ; habitante d'Otanmäki :
+#   des loups dans le village ; le bois coupé illégalement ne peut pas être vendu aux usines ; 145 data centers en projet en Finlande ;
+#   excuses d'Antti Järvinen (Yle, 13 oct.) ; replantation sur 130 ha ; pétition > 96 000 signatures (Fortune, 23 oct.) :
+#   https://thenextweb.com/news/google-finland-data-centre-250000-trees-muhos
+# - Génération NT (31 oct. 2026) : enquête pénale de la police d'Oulu contre Tuike Finland Oy (loi sur l'eau, dégradation environnementale),
+#   plus de 500 ha défrichés, centres dédiés au calcul pour l'IA, pétition > 98 000 signatures :
+#   https://www.generation-nt.com/actualites/finlande-google-enquete-penale-deforestation-datacenter-2083726
+# - 20 minutes : https://www.20min.ch/fr/story/finlande-google-abat-250-000-arbres-sans-autorisation-103654974
+# - Revue de presse du 3 nov. 2026 (Le Monde) : https://www.presse-evasion.fr/article/revue-presse-03-11-2026
+# Terrain de foot ≈ 0,7 ha → 330 ha ≈ 460 terrains (« plus de 400 »).
+Google a rasé 250_000[deux cent cinquante mille] arbres en Finlande… sans autorisation.
+Le but_? Construire des data centers. Des hangars géants remplis d'ordinateurs… qui répondent quand tu poses une question à une IA.
+Ça se passe à Muhos, un village du nord de la Finlande. 330[Trois cent trente] hectares de forêt, rasés. Plus de 400[quatre cents] terrains de foot.
+Le problème_? Pour un projet pareil, la loi exige d'abord une étude sur l'environnement. Google n'a pas attendu la fin.
+Sa filiale assurait même qu'aucun permis n'était nécessaire.
+Et sur un deuxième chantier, près de Kajaani… une écologiste compte 150_000[cent cinquante mille] arbres de plus.
+Une habitante raconte… que des loups sont arrivés jusque dans le village. Les animaux avaient fui la forêt.
+Début octobre, la Finlande a fait arrêter les deux chantiers. Le Premier ministre a parlé d'une « douche froide ».
+Et maintenant… la police a ouvert une enquête pénale.
+Le détail absurde_: ce bois coupé illégalement… ne peut même pas être vendu.
+Google s'est excusé. Et promet de replanter… 130[cent trente] hectares. Sur plus de 500[cinq cents] rasés.
+Pourquoi la Finlande_? Parce qu'il y fait froid. Et refroidir des milliers d'ordinateurs, ça coûte une fortune.
+Le pays a déjà 145[cent quarante-cinq] projets de data centers. Alors plus de 90_000[quatre-vingt-dix mille] Finlandais ont signé une pétition pour les encadrer.
+Alors… pour toi, l'IA vaut-elle une forêt_? Dis-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
