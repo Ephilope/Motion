@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mélenchon et la sortie du nucléaire</title>
+</head>
+<body>
+<!-- Vidéo TikTok « 68 % : Mélenchon veut sortir du nucléaire » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/nucleaire.txt → node tools/voix.mjs nucleaire ; node tools/enveloppe.mjs nucleaire
+     Chiffres et sources : en tête de scripts/nucleaire.txt. -->
+<script src="lib/motion.js"></script>
+<script src="assets/nucleaire_words.js"></script>
+<script src="assets/nucleaire_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, bubble, emoji, bg } = Motion;
+await setup({
+  duration: 93,
+  words: window.WORDS,
+  audio: 'assets/voix_nucleaire.mp3',
+  emojis: '⚡🔌📱☢️📕📖🗳️❓☀️💨💧🤝🎟️🏆🔋🇫🇷🇩🇪💶⏳🚧🤔💬👇',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YELLOW = '#FFD23F', GREY = '#7F8C8D', LGREY = '#D5DBDB', BLUE = '#3498DB', VIOLET = '#8E44AD';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+let PID = 0;
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand nombre avec contour noir.
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+const sp = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+// Carte crème avec texte (une ou plusieurs lignes), centrée.
+function plate(parent, lines, w, size = 52, fill = CREAM) {
+  const g = el('g', {}, parent), h = lines.length * size * 1.2 + size * .9;
+  card(g, -w / 2, -h / 2, w, h, fill, 26, 10, 7);
+  lines.forEach((l, i) => {
+    const [s, col] = Array.isArray(l) ? l : [l, INK];
+    const r = txt(g, s, { size, fill: col, sw: col === INK ? 0 : 8 });
+    r.g.setAttribute('transform', `translate(0,${fmt((i - (lines.length - 1) / 2) * size * 1.2 + size * .36)})`);
+  });
+  return g;
+}
+// Petit personnage (tête + corps).
+function person(parent, col) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 4, cy: -48, r: 24, fill: INK }, g);
+  el('circle', { cy: -52, r: 24, fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: 'M-36,38 Q-36,-14 0,-14 Q36,-14 36,38 Z', fill: col, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+// Barre horizontale (comparaison d'hectares).
+function hbar(parent, w, h, col, label) {
+  const g = el('g', {}, parent);
+  el('rect', { x: 10, y: -h / 2 + 10, width: 1, height: h, rx: 14, fill: INK }, g);
+  const sh = g.lastChild;
+  const b = el('rect', { x: 0, y: -h / 2, width: 1, height: h, rx: 14, fill: col, stroke: INK, 'stroke-width': 7 }, g);
+  const l = txt(g, label, { size: 58, fill: CREAM, sw: 10, anchor: 'start' });
+  return { g, update(k) { const ww = Math.max(1, w * k); b.setAttribute('width', fmt(ww)); sh.setAttribute('width', fmt(ww)); l.g.setAttribute('transform', `translate(${fmt(Math.max(24, ww + 24))},${fmt(58 * .36)})`); l.g.setAttribute('opacity', k > .05 ? 1 : 0); g.setAttribute('opacity', k > 0 ? 1 : 0); } };
+}
+
+// Tour de refroidissement de centrale (pied au point 0,0), avec panache de vapeur si allumée.
+function tower(parent, s = 1) {
+  const g = el('g', {}, parent), inner = el('g', { transform: `scale(${s})` }, g);
+  const d = 'M-70,0 Q-38,-90 -52,-180 L52,-180 Q38,-90 70,0 Z';
+  el('path', { d, fill: INK, transform: 'translate(8,8)' }, inner);
+  const body = el('path', { d, fill: WHITE, stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round' }, inner);
+  const band = el('rect', { x: -50, y: -160, width: 100, height: 18, fill: RED, stroke: INK, 'stroke-width': 4 }, inner);
+  const puffs = [0, 1, 2].map(i => el('circle', { r: 30, fill: '#ECF0F1', stroke: INK, 'stroke-width': 5 }, inner));
+  return { g, update(t, on = 1) {
+    body.setAttribute('fill', on > .5 ? WHITE : '#AAB7B8'); band.setAttribute('fill', on > .5 ? RED : GREY);
+    puffs.forEach((c, i) => { const u = ((t * .7 + i / 3) % 1); set(c, { cx: fmt(-10 + 25 * u + 8 * Math.sin(t * 3 + i)), cy: fmt(-200 - 120 * u), r: fmt((22 + 26 * u) * on), opacity: fmt((1 - u) * on) }); });
+  } };
+}
+// Livre-programme.
+function book(parent, w = 420, h = 560) {
+  const g = el('g', {}, parent);
+  card(g, -w / 2, -h / 2, w, h, VIOLET, 18, 14, 8);
+  el('rect', { x: -w / 2, y: -h / 2, width: 34, height: h, fill: '#6C3483', stroke: INK, 'stroke-width': 7 }, g);
+  [['PROGRAMME', 50, -h / 2 + 110], ['2027', 120, -h / 2 + 260], ['LA FRANCE', 40, h / 2 - 150], ['INSOUMISE', 40, h / 2 - 100]].forEach(([s, sz, y]) => { const r = txt(g, s, { size: sz, fill: CREAM, sw: 8 }); r.g.setAttribute('transform', `translate(17,${y})`); });
+  return g;
+}
+// Éolienne (pied au point 0,0).
+function turbine(parent, s = 1) {
+  const g = el('g', {}, parent), inner = el('g', { transform: `scale(${s})` }, g);
+  el('path', { d: 'M-8,0 L-4,-200 L4,-200 L8,0 Z', fill: WHITE, stroke: INK, 'stroke-width': 5 }, inner);
+  const rot = el('g', {}, inner);
+  [0, 120, 240].forEach(a => el('path', { d: 'M0,0 Q10,-50 0,-110 Q-10,-50 0,0 Z', fill: WHITE, stroke: INK, 'stroke-width': 5, transform: `rotate(${a})` }, rot));
+  el('circle', { r: 9, fill: GREY, stroke: INK, 'stroke-width': 4 }, inner).setAttribute('cy', -200);
+  return { g, update(t) { rot.setAttribute('transform', `translate(0,-200) rotate(${fmt(t * 120)})`); } };
+}
+// Panneau solaire.
+function panel(parent, s = 1) {
+  const g = el('g', { transform: `scale(${s})` }, parent);
+  el('path', { d: 'M-70,0 L-50,-60 L70,-60 L50,0 Z', fill: BLUE, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M-60,-30 L60,-30 M-10,-60 L-20,0 M30,-60 L20,0', stroke: '#AED6F1', 'stroke-width': 4 }, g);
+  el('rect', { x: -5, y: 0, width: 10, height: 26, fill: GREY, stroke: INK, 'stroke-width': 4 }, g);
+  return g;
+}
+// Silhouette simplifiée de la France (hexagone) et de l'Allemagne.
+function country(parent, d, fill, name, ly = 0) {
+  const g = el('g', {}, parent);
+  el('path', { d, fill: INK, transform: 'translate(12,12)' }, g);
+  el('path', { d, fill, stroke: INK, 'stroke-width': 8, 'stroke-linejoin': 'round' }, g);
+  const r = txt(g, name, { size: 46, fill: CREAM, sw: 9 }); r.g.setAttribute('transform', `translate(0,${ly})`);
+  return g;
+}
+const FR = 'M-40,-170 L60,-140 L150,-100 L140,-10 L120,60 L150,130 L80,170 L-10,150 L-70,170 L-110,120 L-90,40 L-150,-20 L-170,-70 L-80,-100 Z';
+const DE = 'M-40,-160 L40,-150 L90,-120 L110,-40 L130,40 L80,90 L100,160 L0,170 L-80,150 L-110,80 L-130,0 L-110,-80 L-90,-130 Z';
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  prog: Wt('Vendredi') - .15, concret: Wt('Concretement') - .15, ref: Wt('Et', 1, Wt('leau')) - .12,
+  now: Wt('Maintenant') - .12, expo: Wt('Et', 1, Wt('record')) - .12, poss: Wt('Alors') - .15,
+  cout: Wt('Mais') - .12, epr: Wt('Sauf') - .12, flou: Wt('Et', 1, Wt('retard')) - .12, cta: Wt('Alors', 2) - .1,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : 68 % de ton électricité vient du nucléaire… Mélenchon veut 0 % ==============
+S(0, T.prog, (cam) => {
+  const tEl = Wt('electricite'), tNu = Wt('nucleaire'), tMe = Wt('Melenchon'), tZe = Wt('zero');
+  bg(cam);
+  const n = el('g', {}, cam), ns = bigNum(n, 330, RED);
+  const sub = plate(cam, ['DE TON ÉLECTRICITÉ', ['VIENT DU NUCLÉAIRE', RED]], 860, 60);
+  const tw = [tower(cam, .8), tower(cam, .8)];
+  const plug = el('g', {}, cam); emoji(plug, '🔌', 130);
+  const ph = el('g', {}, cam); emoji(ph, '📱', 120);
+  const mc = chip(cam, 'MÉLENCHON VEUT…', INK, CREAM, 62);
+  const st = stamp(cam, 'ZÉRO', RED, 120);
+  return t => {
+    const down = p(t, tZe - .35, tZe + .25, E.inOut);
+    ns.set(Math.round(68 * (1 - down)) + ' %');
+    at(n, CX, lerp(470, 440, down), pop(t, -.3, .3) * (1 + .04 * Math.sin(t * 5)), -3);
+    at(sub, CX, 740, pop(t, tEl - .3, .35) * (1 - p(t, tZe - .1, tZe + .1)), -2);
+    tw.forEach((o, i) => { o.update(t, 1 - down); at(o.g, CX - 320 + i * 640, 1150, pop(t, tNu - .2 + i * .1, .3), 0); });
+    at(plug, CX - 130, 1040, pop(t, tEl, .3), -15);
+    at(ph, CX + 130, 1040, pop(t, tEl + .15, .3), 12);
+    mc.update(CX, 240, pop(t, tMe - .2), -2);
+    st.update(CX, 740, t, tZe + .05, -6);
+    shock(t, .1, .3, .6); shock(t, tZe + .1, .35, .9);
+  };
+});
+
+// ====== 2. LE PROGRAMME : publié vendredi, +1 000 mesures, « la sortie du nucléaire… » ============
+S(T.prog, T.concret, (cam, a) => {
+  const tPr = Wt('programme'), t1000 = Wt('1000'), tPh = Wt('phrase'), tSo = Wt('sortie'), tPg = Wt('programme', 2);
+  bg(cam);
+  const vc = chip(cam, 'VENDREDI 6 NOVEMBRE', INK, CREAM, 46);
+  const bk = book(cam, 380, 500);
+  const mz = plate(cam, [['+1 000', RED], 'MESURES'], 340, 64);
+  const q = plate(cam, ['« LA SORTIE', ['DU NUCLÉAIRE', RED], 'EST TOUJOURS', 'AU PROGRAMME »'], 860, 72);
+  const src = chip(cam, 'PROGRAMME LFI 2027', VIOLET, CREAM, 34);
+  return t => {
+    const up = p(t, tPh - .3, tPh + .2, E.inOut);
+    vc.update(CX, 250, pop(t, a + .05), -2);
+    at(bk, lerp(CX - 170, CX - 300, up), lerp(680, 520, up), pop(t, tPr - .3, .35) * lerp(1, .55, up), -5);
+    at(mz, CX + 240, lerp(680, 470, up), pop(t, t1000 - .2, .35) * lerp(1, .8, up), 4);
+    at(q, CX, 850, pop(t, tSo - .35, .35), -2);
+    src.update(CX + 200, 1110, pop(t, tSo + .3), 0);
+    shock(t, t1000 + .1, .3, .5); shock(t, tSo, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 3. CONCRÈTEMENT : fermer 57 réacteurs, pas de nouvel EPR, 100 % renouvelables ==============
+S(T.concret, T.ref, (cam, a) => {
+  const tFe = Wt('Fermer'), t57 = Wt('57'), tAb = Wt('Abandonner'), tEPR = Wt('EPR'), t100 = Wt('100%'), tSol = Wt('soleil'), tVe = Wt('vent'), tEau = Wt('leau');
+  bg(cam);
+  const head = title(cam, [['CONCRÈTEMENT ?', RED]], { size: 104, shadow: 0, sw: 12 });
+  const tws = []; for (let i = 0; i < 12; i++) tws.push(tower(cam, .5));
+  const n = el('g', {}, cam), ns = bigNum(n, 130, RED);
+  const rc = chip(cam, 'RÉACTEURS', INK, CREAM, 40);
+  const ep = el('g', {}, cam), epc = chip(ep, 'NOUVEAUX EPR', GREY, CREAM, 48);
+  const cross = el('path', { d: 'M-220,-40 L220,40 M-220,40 L220,-40', stroke: RED, 'stroke-width': 18, 'stroke-linecap': 'round' }, ep);
+  const rn = plate(cam, [['100 %', GREEN], 'RENOUVELABLES'], 600, 58);
+  const ic = ['☀️', '💨', '💧'].map(c => { const g = el('g', {}, cam); emoji(g, c, 100); return g; });
+  const ti = [tSol, tVe, tEau];
+  return t => {
+    const shift = p(t, t100 - .5, t100, E.inOut);
+    at(head, CX, 270, pop(t, a + .05, .35), -2);
+    const off = p(t, tFe, t57 + 1.6);
+    tws.forEach((o, i) => { o.update(t, off * 12 > i + 1 ? 0 : 1); at(o.g, CX - 400 + (i % 6) * 100 + (Math.floor(i / 6) ? 50 : 0), lerp(560, 480, shift) + Math.floor(i / 6) * 140, pop(t, a + .1 + i * .03, .25) * (1 - shift * .25), 0); });
+    ns.set(String(Math.round(57 * p(t, t57 - .3, t57 + .5, E.out))));
+    at(n, CX + 330, lerp(520, 450, shift), pop(t, t57 - .3, .3) * (1 - shift * .3), -3);
+    rc.update(CX + 330, lerp(620, 550, shift), pop(t, t57) * (1 - shift * .3), 2);
+    at(ep, CX - 160, 800, pop(t, tAb - .2, .3) * (1 - shift * .15), -3);
+    cross.setAttribute('opacity', t > tEPR ? 1 : 0);
+    at(rn, CX + 235, 1000, pop(t, t100 - .2, .35), 2);
+    ic.forEach((g, i) => at(g, CX - 430 + i * 130, 1010, pop(t, ti[i] - .2, .3) * (1 + .06 * Math.sin(t * 5 + i)), 0));
+    shock(t, tEPR + .05, .3, .6); shock(t, t100 + .05, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. LE RÉFÉRENDUM : avant il en parlait ; en mai, plus besoin ; « tarif d'entrée » ==========
+S(T.ref, T.now, (cam, a) => {
+  const tRe = Wt('referendum'), tAv = Wt('Avant,'), tMai = Wt('mai,'), tBe = Wt('besoin.'), tExp = Wt('explique'), tTa = Wt('tarif'), tCo = Wt('communistes.');
+  bg(cam);
+  const head = title(cam, ['UN', ['RÉFÉRENDUM ?', BLUE]], { size: 104, shadow: 0, sw: 12 });
+  const box = el('g', {}, cam); emoji(box, '🗳️', 200);
+  const av = plate(cam, ['AVANT :', ['IL EN PARLAIT', GREEN]], 520, 46);
+  const ma = plate(cam, ['MAI 2026 :', ['PLUS BESOIN', RED]], 520, 46);
+  const bb = bubble(cam, "« TARIF D'ENTRÉE »", RED, CREAM, 66);
+  const cm = plate(cam, ["POUR S'ENTENDRE AVEC", ['LES COMMUNISTES', RED]], 760, 50);
+  const src = chip(cam, 'INTERVIEW BLAST, MAI 2026', INK, CREAM, 30);
+  const tk = el('g', {}, cam); emoji(tk, '🎟️', 120);
+  return t => {
+    const up = p(t, tExp - .4, tExp, E.inOut);
+    at(head, CX, 270, pop(t, tRe - .4, .35) * (1 - up * .2), -2);
+    at(box, CX, lerp(520, 470, up), pop(t, tRe - .2, .35) * (1 - up), 0);
+    at(av, CX - 265, lerp(790, 480, up), pop(t, tAv - .2, .35) * (1 - up * .3), -3);
+    at(ma, CX + 265, lerp(790, 480, up), pop(t, tMai - .2, .35) * (1 - up * .3), 3);
+    bb.update(CX, 740, pop(t, tTa - .3, .35), -3);
+    at(tk, CX + 360, 640, pop(t, tTa, .3), 15 + 6 * Math.sin(t * 5));
+    at(cm, CX, 960, pop(t, tCo - .5, .35), 2);
+    src.update(CX, 1110, pop(t, tBe - .3) * (t < tExp - .3 || t > tCo ? 1 : 1), 0);
+    shock(t, tBe, .3, .6); shock(t, tTa, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 5. MAINTENANT : 95 % de l'électricité produite en France est bas carbone, record ==========
+S(T.now, T.expo, (cam, a) => {
+  const tDe = Wt('dernier,'), t95 = Wt('95%'), tBa = Wt('bas'), tRec = Wt('record');
+  bg(cam);
+  const head = title(cam, [['OÙ ON EN EST ?', BLUE]], { size: 100, shadow: 0, sw: 12 });
+  const yc = chip(cam, 'EN 2025', INK, CREAM, 48);
+  const n = el('g', {}, cam), ns = bigNum(n, 280, GREEN);
+  const sub = plate(cam, ["DE L'ÉLECTRICITÉ FRANÇAISE", ['BAS CARBONE', GREEN]], 920, 52);
+  const st = stamp(cam, 'RECORD', RED, 100);
+  const src = chip(cam, 'SOURCE : RTE', INK, CREAM, 30);
+  return t => {
+    at(head, CX, 270, pop(t, a + .05, .35), -2);
+    yc.update(CX, 410, pop(t, tDe - .3), 2);
+    ns.set(Math.round(95 * p(t, t95 - .3, t95 + .6, E.out)) + ' %');
+    at(n, CX, 620, pop(t, t95 - .3, .3), -3);
+    at(sub, CX, 870, pop(t, tBa - .4, .35), -2);
+    st.update(CX + 220, 1070, t, tRec - .1, -8);
+    src.update(CX - 260, 1080, pop(t, tBa), 0);
+    shock(t, t95 + .1, .3, .6); shock(t, tRec, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. ON EN VEND À NOS VOISINS… dont l'Allemagne, sortie du nucléaire en 2023 ===============
+S(T.expo, T.poss, (cam, a) => {
+  const tVe = Wt('vend'), tRec = Wt('record', 2), tAch = Wt('acheteurs'), tAl = Wt('LAllemagne'), tFe = Wt('ferme'), t23 = Wt('2023');
+  bg(cam);
+  const fr = country(cam, FR, BLUE, 'FRANCE', 15);
+  const de = country(cam, DE, YELLOW, 'ALLEMAGNE', 15);
+  const bolts = []; for (let i = 0; i < 6; i++) { const g = el('g', {}, cam); emoji(g, '⚡', 80); bolts.push(g); }
+  const vc = chip(cam, 'ON EN VEND À NOS VOISINS', INK, CREAM, 44);
+  const st = stamp(cam, 'RECORD', RED, 84);
+  const tw = tower(cam, .9);
+  const pl = plate(cam, ['DERNIERS RÉACTEURS', ['FERMÉS EN 2023', RED]], 640, 48);
+  return t => {
+    at(fr, CX - 230, 680, pop(t, a + .05, .35) * .95, -2);
+    at(de, CX + 250, 680, pop(t, tAch - .3, .35) * .95, 2);
+    bolts.forEach((g, i) => { const u = ((t - tVe) * .8 + i / 6) % 1; const on = t > tVe ? 1 : 0; at(g, lerp(CX - 160, CX + 180, u), 680 - 60 * Math.sin(u * Math.PI), on * (t > tAch ? 1 : .8), 0); g.setAttribute('opacity', fmt(on * Math.sin(u * Math.PI))); });
+    vc.update(CX, 290, pop(t, tVe - .4), -2);
+    st.update(CX, 420, t, tRec - .1, -6);
+    tw.update(t, t > tFe + .3 ? 0 : 1);
+    at(tw.g, CX - 330, 1140, pop(t, tFe - .3, .3), 0);
+    at(pl, CX + 110, 1000, pop(t, t23 - .4, .35), 2);
+    shock(t, tRec, .3, .6); shock(t, t23 + .1, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 7. VIVRE SANS NUCLÉAIRE, C'EST POSSIBLE ? RTE : sur le papier, oui, en 2050 ================
+S(T.poss, T.cout, (cam, a) => {
+  const tPo = Wt('possible'), tRT = Wt('RTE,'), tCas = Wt('cas.'), tPa = Wt('papier'), tOui = Wt('oui,'), t50 = Wt('2050');
+  bg(cam);
+  const head = title(cam, ['VIVRE SANS', ['NUCLÉAIRE ?', RED]], { size: 104, shadow: 0, sw: 12 });
+  const rc = plate(cam, ['RTE', ['GÈRE LE RÉSEAU ÉLECTRIQUE', GREY]], 880, 44);
+  const dg = el('g', {}, cam);
+  card(dg, -200, -250, 400, 500, WHITE, 18, 12, 7);
+  const d1 = txt(dg, 'SCÉNARIO', { size: 44 }); d1.g.setAttribute('transform', 'translate(0,-170)');
+  const d2 = txt(dg, '0 NUCLÉAIRE', { size: 44, fill: RED, sw: 8 }); d2.g.setAttribute('transform', 'translate(0,-115)');
+  for (let i = 0; i < 5; i++) el('rect', { x: -150, y: -60 + i * 42, width: i % 2 ? 210 : 300, height: 14, rx: 7, fill: LGREY }, dg);
+  const st = stamp(cam, 'OUI, EN 2050', GREEN, 80);
+  const thk = el('g', {}, cam); emoji(thk, '🤔', 130);
+  return t => {
+    at(head, CX, 280, pop(t, a + .05, .35), -2);
+    at(thk, CX + 340, 760, pop(t, tPo - .2, .3), 10 + 6 * Math.sin(t * 4));
+    at(rc, CX, 520, pop(t, tRT - .2, .35), 2);
+    at(dg, CX - 60, 870, pop(t, tCas - .4, .35) * .9, -3);
+    st.update(CX + 60, 1040, t, tOui - .05, -8);
+    shock(t, tOui + .05, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. MAIS : couvrir le pays d'éoliennes et de panneaux ; +19 milliards € par an ===============
+S(T.cout, T.epr, (cam, a) => {
+  const tEo = Wt("d'eoliennes"), tPa = Wt('panneaux'), tMo = Wt('Montaigne,'), t19 = Wt('19'), tAn = Wt('annee.');
+  bg(cam);
+  const tb = []; for (let i = 0; i < 5; i++) tb.push(turbine(cam, .8));
+  const pn = []; for (let i = 0; i < 6; i++) pn.push(panel(cam, .8));
+  const n = el('g', {}, cam), ns = bigNum(n, 190, RED);
+  const sub = plate(cam, ["MILLIARDS D'EUROS", ['EN PLUS', RED]], 680, 52);
+  const an = stamp(cam, 'CHAQUE ANNÉE', RED, 70);
+  const src = chip(cam, 'INSTITUT MONTAIGNE', INK, CREAM, 34);
+  return t => {
+    const up = p(t, tMo - .4, tMo, E.inOut);
+    tb.forEach((o, i) => { o.update(t + i); at(o.g, CX - 360 + i * 180, lerp(720, 500, up), pop(t, tEo - .3 + i * .08, .3) * lerp(1.3, .9, up), 0); });
+    pn.forEach((g, i) => at(g, CX - 380 + i * 150, lerp(880, 590, up), pop(t, tPa - .3 + i * .06, .25) * lerp(1.2, .8, up), 0));
+    ns.set('+' + Math.round(19 * p(t, t19 - .3, t19 + .5, E.out)));
+    at(n, CX - 200, 760, pop(t, t19 - .3, .3), -3);
+    at(sub, CX, 915, pop(t, t19 + .2, .35), 2);
+    an.update(CX, 1095, t, Wt('chaque') - .1, -6);
+    src.update(CX + 230, 760, pop(t, tMo - .1), 0);
+    shock(t, t19 + .1, .3, .7); shock(t, tAn, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 9. SAUF QUE : l'EPR de Flamanville, 3 milliards prévus… presque 24, 12 ans de retard ======
+S(T.epr, T.flou, (cam, a) => {
+  const tNe = Wt('neuf'), tFl = Wt('Flamanville'), t3 = Wt('3'), tFi = Wt('final'), t24 = Wt('24'), t12 = Wt('12');
+  bg(cam);
+  const head = title(cam, ['LE NUCLÉAIRE NEUF', ['AUSSI COÛTE CHER', RED]], { size: 84, shadow: 0, sw: 10 });
+  const fc = chip(cam, 'EPR DE FLAMANVILLE', INK, CREAM, 46);
+  const tw = tower(cam, 1);
+  const pc = chip(cam, 'PRÉVU', GREEN, CREAM, 40), rc = chip(cam, 'AU FINAL', RED, CREAM, 40);
+  const b1 = hbar(cam, 80, 100, GREEN, '3 MD€'), b2 = hbar(cam, 620, 100, RED, '~24 MD€');
+  const st = stamp(cam, '12 ANS DE RETARD', RED, 64);
+  const src = chip(cam, 'COUR DES COMPTES (2025)', INK, CREAM, 30);
+  return t => {
+    at(head, CX, 280, pop(t, tNe - .5, .35), -2);
+    fc.update(CX, 430, pop(t, tFl - .3), 2);
+    tw.update(t); at(tw.g, CX + 340, 680, pop(t, tFl - .3, .3) * .7, 0);
+    pc.update(CX - 330, 570, pop(t, t3 - .4), 0);
+    at(b1.g, CX - 420, 660, 1, 0); b1.update(p(t, t3 - .3, t3 + .3, E.out));
+    rc.update(CX - 310, 770, pop(t, tFi - .2), 0);
+    at(b2.g, CX - 420, 870, 1, 0); b2.update(p(t, tFi, t24 + .2, E.out));
+    st.update(CX, 1060, t, t12 - .1, -5);
+    src.update(CX + 230, 770, pop(t, t24 + .2), 0);
+    shock(t, t24 + .1, .3, .8); shock(t, t12, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. LE PROGRAMME : ni date… ni prix ; financement dévoilé début 2027 =======================
+S(T.flou, T.cta, (cam, a) => {
+  const tDa = Wt('date'), tPr = Wt('prix.'), tFi = Wt('financement'), t27 = Wt('2027', 2);
+  bg(cam);
+  const bk = book(cam, 340, 450);
+  const d1 = plate(cam, ['DATE ?', ['AUCUNE', RED]], 380, 56), d2 = plate(cam, ['PRIX ?', ['AUCUN', RED]], 380, 56);
+  const qs = [0, 1, 2].map(() => { const g = el('g', {}, cam); emoji(g, '❓', 90); return g; });
+  const fc = plate(cam, ['FINANCEMENT DÉVOILÉ', ['DÉBUT 2027', VIOLET]], 720, 50);
+  return t => {
+    at(bk, CX - 250, 560, pop(t, a + .05, .35) * .9, -5);
+    qs.forEach((g, i) => at(g, CX - 380 + i * 130, 290 + 10 * Math.sin(t * 5 + i), pop(t, a + .2 + i * .1, .3), -10 + i * 10));
+    at(d1, CX + 230, 450, pop(t, tDa - .2, .35), 3);
+    at(d2, CX + 230, 700, pop(t, tPr - .2, .35), -3);
+    at(fc, CX, 990, pop(t, tFi - .2, .35), -2);
+    shock(t, tPr, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 11. FIN : toi, tu sortirais du nucléaire ? OUI / NON + DIS-LE EN COMMENTAIRE ===============
+S(T.cta, M.DUR, (cam, a) => {
+  const tSo = Wt('sortirais'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const L = el('rect', { x: 0, y: 0, width: CX, height: H, fill: GREEN }, cam), R = el('rect', { x: CX, y: 0, width: CX, height: H, fill: RED }, cam);
+  const q = el('g', {}, cam); card(q, -440, -150, 880, 300, CREAM, 36, 14, 8);
+  const ql = title(q, ['TOI, TU SORTIRAIS', ['DU NUCLÉAIRE ?', RED]], { size: 80, shadow: 0, sw: 10 });
+  const yes = txt(cam, 'OUI', { size: 150, fill: CREAM, sw: 16 }), no = txt(cam, 'NON', { size: 150, fill: CREAM, sw: 16 });
+  const ic1 = el('g', {}, cam); emoji(ic1, '☀️', 110); const ic2 = el('g', {}, cam); emoji(ic2, '☢️', 110);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    const sp2 = p(t, a, a + .4, E.out);
+    L.setAttribute('y', fmt(-H * (1 - sp2))); R.setAttribute('y', fmt(H * (1 - sp2)));
+    at(q, CX, 330, pop(t, tSo - .6, .35), -2); tf(ql, 0, -40);
+    at(yes.g, CX / 2, 680, pop(t, tSo + .1, .3), -6); at(no.g, CX * 1.5, 680, pop(t, tSo + .25, .3), 6);
+    at(ic1, CX / 2, 830, pop(t, tSo + .2, .3) * (1 + .06 * Math.sin(t * 5)), 0); at(ic2, CX * 1.5, 830, pop(t, tSo + .35, .3) * (1 + .06 * Math.sin(t * 5 + 1)), 0);
+    at(cta, CX, 1070, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tSo + .1, .25, .4);
+  };
+}, { swipe: GREEN });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>

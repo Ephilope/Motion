@@ -1,0 +1,33 @@
+# Voix-off de nucleaire.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources :
+# - France 24 (6 nov. 2026) : programme LFI 2027 publié le 6 nov., 1 069 mesures dont 238 nouvelles, présenté au Bourget le 7 nov. ;
+#   « La sortie du nucléaire est également toujours au programme » ; financement dévoilé « début 2027 » :
+#   https://www.france24.com/fr/france/20261106-france-insoumise-jean-luc-melenchon-presente-programme-presidentielle-2027-fidele-volonte-rupture-lfi
+# - France-Vote : 100 % d'énergies renouvelables, sortie progressive du nucléaire : https://www.france-vote.fr/actualites/programme-melenchon-lfi-2027
+# - Institut Montaigne : abandon des projets d'EPR, démantèlement et reconversion des sites ; scénario 100 % renouvelables : au moins +19 Md€/an en 2050 :
+#   https://www.institutmontaigne.org/presidentielle-2022/jean-luc-melenchon/sortir-du-nucleaire-par-labandon-des-projets-depr-demanteler-et-reconvertir-les-sites-existants
+# - 21News (28 mai 2026), interview Blast : « on sortira du nucléaire, il n'y a pas besoin de référendum » ; le référendum était un « tarif d'entrée »
+#   pour s'entendre avec les communistes ; 57 réacteurs, ~68 % de l'électricité en 2025 : https://www.21news.be/melenchon-si-je-suis-elu-president-on-sortira-du-nucleaire/
+# - RTE, Bilan électrique 2025 : 95,2 % de production bas carbone (record), exportations nettes record ~92 TWh, Allemagne + Belgique 23,1 TWh nets :
+#   https://analysesetdonnees.rte-france.com/en/annual-review-2025/trade ; https://www.les-energies-renouvelables.eu/article/actualites/energies/exportations-delectricite-la-france-bat-un-record-en-2025-92-twh-nets-226/
+# - Allemagne : derniers réacteurs arrêtés le 15 avril 2023.
+# - RTE Futurs énergétiques 2050, scénario M0 (100 % renouvelables en 2050).
+# - Flamanville : devis initial 3,3 Md€, coût total 23,7 Md€ (Cour des comptes, janv. 2025), raccordé fin 2024 avec 12 ans de retard :
+#   https://www.vie-publique.fr/en-bref/296850-nucleaire-la-filiere-epr-face-des-risques-persistants ;
+#   https://www.connaissancedesenergies.org/lepr-de-flamanville-en-questions-lapproche-de-sa-mise-en-service-240710
+# - Philippe Quirion (CNRS), débat public EPR Penly : RTE optimiste sur le coût du nouveau nucléaire.
+68_%.[Soixante-huit pour cent.] C'est la part de ton électricité qui vient du nucléaire. Mélenchon veut la faire tomber à zéro.
+Vendredi, La France insoumise a publié son programme pour la présidentielle de 2027.[deux mille vingt-sept.] Plus de 1_000[mille] mesures.
+Et dedans, une phrase… « La sortie du nucléaire est toujours au programme. »
+Concrètement_? Fermer, petit à petit, nos 57[cinquante-sept] réacteurs. Abandonner les nouveaux EPR. Et passer à 100_%[cent pour cent] d'énergies renouvelables_: le soleil, le vent, l'eau.
+Et un référendum pour décider_? Avant, il en parlait. En mai, il a dit qu'il n'en avait plus besoin.
+Il a même expliqué que ce référendum… c'était un « tarif d'entrée » pour s'entendre avec les communistes.
+Maintenant, regarde où on en est. L'an dernier, 95_%[quatre-vingt-quinze pour cent] de l'électricité produite en France était bas carbone. Un record.
+Et on en produit tellement… qu'on en vend à nos voisins. Encore un record.
+Parmi les acheteurs_? L'Allemagne. Le pays qui a fermé ses derniers réacteurs… en 2023.[deux mille vingt-trois.]
+Alors, vivre sans nucléaire, c'est possible_? RTE, qui gère le réseau électrique, a étudié le cas. Sur le papier… oui, en 2050.[deux mille cinquante.]
+Mais il faudrait couvrir le pays d'éoliennes et de panneaux solaires. Selon l'Institut Montaigne, ça coûterait au moins 19[dix-neuf] milliards d'euros de plus… chaque année.
+Sauf que le nucléaire neuf aussi coûte cher. Le réacteur EPR de Flamanville devait coûter 3[trois] milliards. Au final… presque 24[vingt-quatre] milliards. Avec 12[douze] ans de retard.
+Et le programme, lui, ne donne ni date… ni prix. Le financement sera dévoilé début 2027.[deux mille vingt-sept.]
+Alors… toi, tu sortirais du nucléaire_? Dis-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
