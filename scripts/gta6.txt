@@ -1,0 +1,28 @@
+# Voix-off de gta6.html. Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Sources :
+# - Sortie le 19 nov. 2026 à minuit heure locale, pays par pays, PS5 et Xbox Series ; Nouvelle-Zélande en premier
+#   (minuit NZDT = UTC+13 = mercredi 18 nov. 12 h à Paris), France à minuit dans la nuit du 18 au 19 :
+#   https://www.journaldugeek.com/2026/11/16/gta-6-comment-y-jouer-des-le-18-novembre-a-midi-12-heures-avant-tout-le-monde/
+#   https://www.xboxygen.com/News/372940-gta-6-comment-jouer-en-avance-astuce
+#   https://www.vice.com/en/article/gta-6-midnight-release-times-file-size-preload/
+#   https://maketecheasier.com/gta-6-unlock-times-midnight-local/
+# - Miami (Vice City) = UTC-5 en novembre, soit 6 h de retard sur Paris (minuit à Miami = 6 h du matin à Paris le 19).
+# - Astuce : sur PlayStation il faut un nouveau compte néo-zélandais et racheter le jeu dessus ; changer l'heure de la
+#   console ne suffit pas ; peut enfreindre les conditions des boutiques (maketecheasier, Journal du Geek).
+# - CNBC (14 nov., maj 16 nov.) : 13 ans depuis GTA 5 ; plus de 12 millions de précommandes au 13 nov. (Sensor Tower) ;
+#   plus d'1 milliard de dollars de développement (analyste Roth) ; BambooHR : près d'1 salarié américain sur 5 prévoit
+#   de poser sa journée : https://www.cnbc.com/2026/11/14/gta-6-grand-theft-auto-launch.html
+GTA_6[GTA six]… les Néo-Zélandais vont y jouer douze heures avant toi.
+Oui. Douze heures.
+Rockstar a choisi une sortie à minuit, heure locale. Le jeu se débloque pays par pays… quand il est minuit chez toi, le 19[dix-neuf] novembre.
+Et le premier pays à passer minuit… c'est la Nouvelle-Zélande. Elle a douze heures d'avance sur la France.
+Résultat_: là-bas, minuit… ça tombe mercredi, à midi, heure de Paris. Pendant que toi, t'es encore en cours.
+Toi, en France_? Il faudra attendre minuit pile, dans la nuit de mercredi à jeudi.
+Et le plus drôle_? Le jeu se passe à Vice City… une ville inspirée de Miami.
+Mais Miami a six heures de retard sur nous. Les Américains joueront… après toi.
+Du coup, certains veulent tricher. L'astuce_: un compte néo-zélandais, pour débloquer le jeu dès midi.
+Sauf que… changer l'heure de ta console ne suffit pas. Sur PlayStation, il faut un nouveau compte… et racheter le jeu. Et ça peut enfreindre les règles de la boutique.
+Tout ça pour un jeu attendu depuis treize ans. Plus de douze millions de précommandes. Plus d'un milliard de dollars de budget.
+Aux États-Unis, presque un salarié sur cinq compte même poser sa journée.
+Alors… tu poses ta journée jeudi_? Ou tu sèches les cours_? Avoue-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!

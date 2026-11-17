@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GTA 6 : la Nouvelle-Zélande joue avant toi</title>
+</head>
+<body>
+<!-- Vidéo TikTok « GTA 6 : la Nouvelle-Zélande va y jouer 12 heures avant toi » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/gta6.txt → node tools/voix.mjs gta6 ; node tools/enveloppe.mjs gta6
+     Chiffres et sources : en tête de scripts/gta6.txt. Aucun logo ni visuel Rockstar : « GTA 6 » est écrit dans la police de la charte. -->
+<script src="lib/motion.js"></script>
+<script src="assets/gta6_words.js"></script>
+<script src="assets/gta6_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, show, tf, txt, title, card, chip, bubble, emoji, bg } = Motion;
+await setup({
+  duration: 72,
+  words: window.WORDS,
+  audio: 'assets/voix_gta6.mp3',
+  emojis: '🇳🇿🇫🇷🇺🇸🎮🕛🌙☀️🎒📚🌴🌇🕹️💸⚠️❌✅🔒⏰🏖️👔💬👇😴🛏️📦💰🗓️',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const PINK = '#FF4FA3', PURPLE = '#7D3C98', YELLOW = '#FFD23F', BLUE = '#3498DB', NIGHT = '#1B2A4A', ORANGE = '#F39C12', GREY = '#95A5A6';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand texte avec contour noir épais.
+function big(parent, str, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, 'font-weight': 900, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  t.textContent = str;
+  return { t, set(s) { t.textContent = s; } };
+}
+// Logo maison « GTA 6 » (police de la charte, pas le logo officiel) sur une plaque rose.
+function gtaPlate(parent, w = 560) {
+  const g = el('g', {}, parent), h = w * .48;
+  card(g, -w / 2, -h / 2, w, h, PINK, 34, 14, 8);
+  const a = txt(g, 'GTA', { size: w * .3, fill: CREAM, sw: 12 }); a.g.setAttribute('transform', `translate(${fmt(-w * .12)},${fmt(w * .108)})`);
+  const b = txt(g, '6', { size: w * .38, fill: YELLOW, sw: 14 }); b.g.setAttribute('transform', `translate(${fmt(w * .3)},${fmt(w * .135)})`);
+  return g;
+}
+// Horloge plate : set(h, m) en heures/minutes, avec un libellé numérique dessous.
+function clock(parent, r = 150, face = WHITE) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 12, cy: 12, r, fill: INK }, g);
+  el('circle', { r, fill: face, stroke: INK, 'stroke-width': 10 }, g);
+  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; el('line', { x1: fmt(Math.sin(a) * r * .78), y1: fmt(-Math.cos(a) * r * .78), x2: fmt(Math.sin(a) * r * .9), y2: fmt(-Math.cos(a) * r * .9), stroke: INK, 'stroke-width': i % 3 ? 5 : 10, 'stroke-linecap': 'round' }, g); }
+  const hh = el('line', { x1: 0, y1: 0, x2: 0, y2: -r * .5, stroke: INK, 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
+  const mm = el('line', { x1: 0, y1: 0, x2: 0, y2: -r * .75, stroke: RED, 'stroke-width': 9, 'stroke-linecap': 'round' }, g);
+  el('circle', { r: 12, fill: INK }, g);
+  return { g, set(h, m) { hh.setAttribute('transform', `rotate(${fmt((h % 12) * 30 + m * .5)})`); mm.setAttribute('transform', `rotate(${fmt(m * 6)})`); } };
+}
+// Carte crème avec texte (une ou plusieurs lignes), centrée.
+function plate(parent, lines, w, size = 52, fill = CREAM) {
+  const g = el('g', {}, parent), h = lines.length * size * 1.2 + size * .9;
+  card(g, -w / 2, -h / 2, w, h, fill, 26, 10, 7);
+  lines.forEach((l, i) => {
+    const [s, col] = Array.isArray(l) ? l : [l, INK];
+    const r = txt(g, s, { size, fill: col, sw: col === INK ? 0 : 8 });
+    r.g.setAttribute('transform', `translate(0,${fmt((i - (lines.length - 1) / 2) * size * 1.2 + size * .36)})`);
+  });
+  return g;
+}
+// Drapeau emoji posé sur un rond crème, avec un nom dessous.
+function flag(parent, ch, name, size = 130) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 8, cy: 8, r: size * .7, fill: INK }, g);
+  el('circle', { r: size * .7, fill: CREAM, stroke: INK, 'stroke-width': 7 }, g);
+  emoji(g, ch, size);
+  if (name) { const c = chip(g, name, INK, CREAM, size * .28); c.update(0, size * .95, 1); }
+  return g;
+}
+// Petit personnage (tête + corps).
+function person(parent, col) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 4, cy: -48, r: 24, fill: INK }, g);
+  el('circle', { cy: -52, r: 24, fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: 'M-36,38 Q-36,-14 0,-14 Q36,-14 36,38 Z', fill: col, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const tCours = Wt('cours.');
+const T = {
+  minuit: Wt('Rockstar') - .15, nz: Wt('Et') - .15, midi: Wt('Resultat') - .15, fr: Wt('Toi', 1, tCours) - .15,
+  miami: Wt('Et', 1, Wt('jeudi.')) - .15, astuce: Wt('Du') - .15, piege: Wt('Sauf') - .15, hype: Wt('Tout') - .15,
+  conges: Wt('Aux') - .15, cta: Wt('Alors') - .15,
+};
+
+// ====== 1. ACCROCHE : GTA 6… les Néo-Zélandais y joueront 12 heures avant toi ======================
+S(0, T.minuit, (cam) => {
+  const tNeo = Wt('Neo-Zelandais'), t12 = Wt('douze'), tAv = Wt('avant'), tOui = Wt('Oui.'), t12b = Wt('Douze', 2);
+  bg(cam);
+  const gp = gtaPlate(cam, 520);
+  const nz = flag(cam, '🇳🇿', 'NOUVELLE-ZÉLANDE', 120);
+  const fr = flag(cam, '🇫🇷', 'TOI', 120);
+  const n = el('g', {}, cam), ns = big(n, '12 H', 230, RED);
+  const st = stamp(cam, 'AVANT TOI', RED, 90);
+  const pad = el('g', {}, cam); emoji(pad, '🎮', 120);
+  return t => {
+    at(gp, CX, 330, pop(t, -.3, .3) * (1 + .03 * Math.sin(t * 5)), -3);
+    at(pad, CX + 340, 230, pop(t, .2, .3), 12 + 6 * Math.sin(t * 6));
+    at(nz, CX - 250, 640, pop(t, tNeo - .2, .35), -4);
+    at(fr, CX + 250, 640, pop(t, tAv - .1, .35), 4);
+    const big2 = 1 + .25 * hit(t, t12b + .1, .4);
+    at(n, CX, 920, pop(t, t12 - .2, .3) * big2, -3);
+    st.update(CX, 1100, t, tAv + .1, -5);
+    shock(t, t12 + .1, .3, .6); shock(t, tAv + .2, .3, .7); shock(t, t12b + .1, .3, .9);
+    void tOui;
+  };
+});
+
+// ====== 2. MINUIT HEURE LOCALE : le jeu se débloque pays par pays, le 19 novembre ==================
+S(T.minuit, T.nz, (cam, a) => {
+  const tMin = Wt('minuit'), tLoc = Wt('locale.'), tPays = Wt('pays'), tChez = Wt('chez'), t19 = Wt('19');
+  bg(cam);
+  const head = title(cam, ['MINUIT,', ['HEURE LOCALE', PINK]], { size: 110, shadow: 0, sw: 12 });
+  const ck = clock(cam, 150);
+  const flags = ['🇳🇿', '🇯🇵', '🇮🇳', '🇫🇷', '🇧🇷', '🇺🇸'].map(c => flag(cam, c, '', 80));
+  const locks = flags.map(() => { const g = el('g', {}, cam); emoji(g, '🔒', 54); return g; });
+  const date = chip(cam, 'LE 19 NOVEMBRE', RED, CREAM, 56);
+  const pp = chip(cam, 'PAYS PAR PAYS', INK, CREAM, 44);
+  return t => {
+    at(head, CX, 300, pop(t, a + .05, .35), -2);
+    const sp = p(t, tMin - .5, tLoc + .2, E.out);
+    ck.set(lerp(9, 12, sp), lerp(0, 0, sp) + 180 * (1 - sp) % 60);
+    at(ck.g, CX, 600, pop(t, tMin - .3, .35) * (1 - .3 * p(t, tPays - .4, tPays)), 0);
+    pp.update(CX, 790, pop(t, tPays - .2), 2);
+    flags.forEach((g, i) => {
+      const on = tPays + .1 + i * .3;
+      at(g, CX - 375 + i * 150, 950, pop(t, tPays - .3 + i * .05, .3), 0);
+      at(locks[i], CX - 375 + i * 150 + 45, 900, pop(t, tPays - .3 + i * .05, .3) * (t < on ? 1 : 0), 0);
+    });
+    date.update(CX, 1120, pop(t, t19 - .3), -2);
+    shock(t, t19 + .1, .3, .6);
+    void tChez;
+  };
+}, { swipe: PINK });
+
+// ====== 3. LA NOUVELLE-ZÉLANDE passe minuit en premier : 12 heures d'avance sur la France ===========
+S(T.nz, T.midi, (cam, a) => {
+  const tPrem = Wt('premier'), tNZ = Wt('Nouvelle-Zelande.'), tAv = Wt("d'avance"), tFr = Wt('France.');
+  bg(cam);
+  const ch = chip(cam, 'LE 1ER PAYS À PASSER MINUIT', INK, CREAM, 44);
+  const nz = flag(cam, '🇳🇿', 'NOUVELLE-ZÉLANDE', 150);
+  const fr = flag(cam, '🇫🇷', 'FRANCE', 110);
+  const arc = el('path', { d: `M${CX - 250},880 Q${CX},700 ${CX + 250},880`, fill: 'none', stroke: INK, 'stroke-width': 10, 'stroke-dasharray': '22 16', 'stroke-linecap': 'round' }, cam);
+  const n = el('g', {}, cam), ns = big(n, '+12 H', 150, GREEN);
+  const sub = plate(cam, ["D'AVANCE", ['SUR LA FRANCE', RED]], 540, 50);
+  const one = el('g', {}, cam), os = big(one, 'N°1', 110, YELLOW);
+  return t => {
+    ch.update(CX, 300, pop(t, tPrem - .3), -2);
+    const side = p(t, tAv - .6, tAv - .1, E.inOut);
+    at(nz, lerp(CX, CX - 260, side), lerp(560, 900, side), pop(t, tNZ - .3, .35) * lerp(1.3, .85, side), -3);
+    at(one, CX + 230, 430, pop(t, tNZ, .3) * (1 - side), 10);
+    at(fr, CX + 260, 900, pop(t, tAv - .2, .35), 3);
+    show(arc, t > tAv - .1); arc.setAttribute('stroke-dashoffset', fmt(-t * 90));
+    at(n, CX, 700, pop(t, tAv - .1, .3), -3);
+    at(sub, CX, 1110, pop(t, tFr - .3, .35), -2);
+    shock(t, tNZ + .1, .3, .6); shock(t, tAv, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. LÀ-BAS MINUIT = MERCREDI MIDI À PARIS… pendant que t'es en cours ========================
+S(T.midi, T.fr, (cam, a) => {
+  const tLab = Wt('la-bas,'), tMin = Wt('minuit', 1, a), tMer = Wt('mercredi,'), tMidi = Wt('midi,'), tPar = Wt('Paris.'), tPend = Wt('Pendant'), tCo = Wt('cours.');
+  bg(cam);
+  const c1 = clock(cam, 120, NIGHT), c2 = clock(cam, 120, WHITE);
+  c1.set(0, 0); c2.set(12, 0);
+  const f1 = chip(cam, '🇳🇿 MINUIT', NIGHT, CREAM, 44), f2 = chip(cam, '🇫🇷 MIDI', ORANGE, INK, 44);
+  const eq = big(el('g', {}, cam), '=', 140, YELLOW);
+  const day = plate(cam, ['MERCREDI 18 NOV.', ['12 H, HEURE DE PARIS', RED]], 760, 54);
+  const kid = el('g', {}, cam); emoji(kid, '🎒', 130);
+  const book = el('g', {}, cam); emoji(book, '📚', 120);
+  const bb = bubble(cam, "T'ES EN COURS 😩", WHITE, INK, 54);
+  const pad = el('g', {}, cam); emoji(pad, '🎮', 110);
+  return t => {
+    const up = p(t, tPend - .4, tPend, E.inOut);
+    at(c1.g, CX - 230, lerp(470, 400, up), pop(t, tLab - .2, .35) * lerp(1, .8, up), 0);
+    f1.update(CX - 230, lerp(640, 545, up), pop(t, tMin - .1), -2);
+    at(eq.t.parentNode, CX, lerp(470, 400, up), pop(t, tMer - .3, .3) * lerp(1, .8, up), 0);
+    at(c2.g, CX + 230, lerp(470, 400, up), pop(t, tMidi - .2, .35) * lerp(1, .8, up), 0);
+    f2.update(CX + 230, lerp(640, 545, up), pop(t, tMidi), 2);
+    at(day, CX, lerp(860, 730, up), pop(t, tMer - .1, .35), -2);
+    at(kid, CX - 260, 960, pop(t, tPend - .1, .3), -5);
+    at(book, CX - 120, 990, pop(t, tPend + .1, .3), 5);
+    bb.update(CX + 200, 940, pop(t, tCo - .5, .35), -3);
+    at(pad, CX + 340, 1110, pop(t, tPend + .2, .3) * (1 + .08 * Math.sin(t * 8)), -12);
+    shock(t, tMidi + .1, .3, .7); shock(t, tCo, .25, .4);
+  };
+}, { swipe: ORANGE });
+
+// ====== 5. EN FRANCE : minuit pile, dans la nuit de mercredi à jeudi ===============================
+S(T.fr, T.miami, (cam, a) => {
+  const tFr = Wt('France', 1, a), tAtt = Wt('attendre'), tPile = Wt('pile,'), tNuit = Wt('nuit', 1, a), tJeu = Wt('jeudi.');
+  const sky = el('g', {}, cam);
+  el('rect', { x: 0, y: 0, width: W, height: H, fill: NIGHT }, sky);
+  const stars = []; const R = Motion.rng(11);
+  for (let i = 0; i < 40; i++) stars.push(el('circle', { cx: fmt(R() * W), cy: fmt(160 + R() * 1000), r: fmt(2 + R() * 4), fill: CREAM }, sky));
+  const fr = flag(cam, '🇫🇷', 'EN FRANCE', 110);
+  const ck = clock(cam, 170, WHITE);
+  const n = el('g', {}, cam), ns = big(n, '00:00', 170, YELLOW);
+  const pl = plate(cam, ['LA NUIT DE', ['MERCREDI À JEUDI', PURPLE]], 700, 54);
+  const moon = el('g', {}, cam); emoji(moon, '🌙', 140);
+  return t => {
+    show(sky, true); stars.forEach((s, i) => s.setAttribute('opacity', fmt(.4 + .6 * Math.abs(Math.sin(t * 2 + i)))));
+    at(fr, CX - 260, 330, pop(t, tFr - .3, .35), -4);
+    at(moon, CX + 300, 320, pop(t, a + .2, .35), 10 + 5 * Math.sin(t * 2));
+    const k = p(t, tAtt - .2, tPile, E.inOut);
+    ck.set(lerp(9, 12, k), (1 - k) * 600 % 60);
+    at(ck.g, CX, 620, pop(t, tAtt - .4, .35), 0);
+    at(n, CX, 900, pop(t, tPile - .2, .3), -2);
+    at(pl, CX, 1100, pop(t, tNuit - .3, .35), 2);
+    shock(t, tPile, .3, .7);
+    void tJeu;
+  };
+}, { swipe: PURPLE });
+
+// ====== 6. LE PLUS DRÔLE : Vice City = Miami, 6 heures de retard → les Américains joueront après toi ==
+S(T.miami, T.astuce, (cam, a) => {
+  const tDr = Wt('drole'), tVice = Wt('Vice'), tMia = Wt('Miami.'), tSix = Wt('six'), tRet = Wt('retard'), tAm = Wt('Americains'), tAp = Wt('apres');
+  const sky = el('g', {}, cam);
+  const gr = el('linearGradient', { id: 'sunset', x1: 0, y1: 0, x2: 0, y2: 1 }, el('defs', {}, sky));
+  el('stop', { offset: 0, 'stop-color': PURPLE }, gr); el('stop', { offset: .55, 'stop-color': PINK }, gr); el('stop', { offset: 1, 'stop-color': ORANGE }, gr);
+  el('rect', { x: 0, y: 0, width: W, height: H, fill: 'url(#sunset)' }, sky);
+  el('circle', { cx: CX, cy: 820, r: 260, fill: YELLOW, opacity: .9 }, sky);
+  for (let i = 0; i < 6; i++) el('rect', { x: 0, y: 760 + i * 46, width: W, height: 10 + i * 3, fill: PINK, opacity: .9 }, sky);
+  const head = title(cam, ['LE PLUS', ['DRÔLE ?', YELLOW]], { size: 110, shadow: 0, sw: 12 });
+  const vc = plate(cam, ['VICE CITY', ['= MIAMI', PINK]], 520, 70);
+  const palms = [0, 1].map(() => { const g = el('g', {}, cam); emoji(g, '🌴', 220); return g; });
+  const us = flag(cam, '🇺🇸', 'MIAMI', 100), fr = flag(cam, '🇫🇷', 'TOI', 100);
+  const n = el('g', {}, cam), ns = big(n, '−6 H', 150, RED);
+  const st = stamp(cam, 'ILS JOUENT APRÈS TOI', RED, 64);
+  return t => {
+    const out = p(t, tSix - .6, tSix - .2, E.inOut);
+    at(head, CX, 300, pop(t, tDr - .4, .35) * (1 - out), -2);
+    at(vc, CX, lerp(560, 330, out), pop(t, tVice - .2, .35) * lerp(1, .8, out), -3);
+    palms.forEach((g, i) => at(g, i ? CX + 380 : CX - 380, 1000, pop(t, tMia - .3 + i * .1, .35), (i ? 6 : -6) + 4 * Math.sin(t * 2 + i)));
+    at(us, CX - 230, 640, pop(t, tSix - .3, .35), -3);
+    at(fr, CX + 230, 640, pop(t, tSix - .2, .35), 3);
+    at(n, CX, 860, pop(t, tSix, .3), -3);
+    st.update(CX, 1090, t, tAp - .1, -4);
+    shock(t, tSix + .2, .3, .5); shock(t, tAp, .3, .8);
+    void tRet; void tAm;
+  };
+}, { swipe: PINK });
+
+// ====== 7. L'ASTUCE : un compte néo-zélandais pour jouer dès midi ==================================
+S(T.astuce, T.piege, (cam, a) => {
+  const tTr = Wt('tricher.'), tAst = Wt("L'astuce"), tCpt = Wt('compte'), tMidi = Wt('midi', 1, a);
+  bg(cam);
+  const st = stamp(cam, 'ILS VEULENT TRICHER', RED, 70);
+  const ch = chip(cam, "L'ASTUCE", PINK, CREAM, 60);
+  const acc = el('g', {}, cam);
+  card(acc, -330, -170, 660, 340, WHITE, 30, 14, 8);
+  const pf = el('g', {}, acc); el('circle', { r: 70, fill: GREY, stroke: INK, 'stroke-width': 6 }, pf); emoji(pf, '🇳🇿', 80); tf(pf, -190, -10);
+  const l1 = txt(acc, 'COMPTE', { size: 54, anchor: 'start' }); l1.g.setAttribute('transform', 'translate(-90,-20)');
+  const l2 = txt(acc, 'NÉO-ZÉLANDAIS', { size: 46, fill: GREEN, sw: 8, anchor: 'start' }); l2.g.setAttribute('transform', 'translate(-90,50)');
+  const ck = chip(cam, 'JOUER DÈS MERCREDI MIDI', GREEN, CREAM, 48);
+  const pad = el('g', {}, cam); emoji(pad, '🎮', 140);
+  return t => {
+    st.update(CX, 330, t, tTr - .3, -4);
+    ch.update(CX, 540, pop(t, tAst - .2), 2);
+    at(acc, CX, 790, pop(t, tCpt - .2, .35), -2);
+    ck.update(CX, 1080, pop(t, Wt('debloquer', 1, a) - .2), -2); void tMidi;
+    at(pad, CX + 360, 560, pop(t, tCpt, .3) * (1 + .08 * Math.sin(t * 8)), 14);
+    shock(t, tTr, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. SAUF QUE… l'heure de la console ne suffit pas, il faut racheter le jeu, règles ===========
+S(T.piege, T.hype, (cam, a) => {
+  const tSa = Wt('Sauf'), tCh = Wt('changer'), tSuf = Wt('suffit'), tPS = Wt('PlayStation,'), tRa = Wt('racheter'), tEnf = Wt('enfreindre'), tBou = Wt('boutique.');
+  bg(cam);
+  const head = title(cam, [['SAUF QUE…', RED]], { size: 120, shadow: 0, sw: 12 });
+  const rows = [
+    ["CHANGER L'HEURE DE LA CONSOLE", 'NE SUFFIT PAS', '⏰', tCh, tSuf],
+    ['NOUVEAU COMPTE', '+ RACHETER LE JEU', '💸', tPS, tRa],
+    ['ÇA PEUT ENFREINDRE', 'LES RÈGLES DE LA BOUTIQUE', '⚠️', tEnf - .3, tBou],
+  ].map(([a1, a2, em, t0, t1]) => {
+    const g = el('g', {}, cam);
+    card(g, -440, -95, 880, 190, WHITE, 26, 10, 7);
+    const ic = el('g', {}, g); emoji(ic, em, 90); tf(ic, -350, 0);
+    const x1 = txt(g, a1, { size: 34, anchor: 'start' }); x1.g.setAttribute('transform', 'translate(-270,-14)');
+    const x2 = txt(g, a2, { size: 44, fill: RED, sw: 8, anchor: 'start' }); x2.g.setAttribute('transform', 'translate(-270,48)');
+    return { g, t0, t1 };
+  });
+  return t => {
+    at(head, CX, 300, pop(t, tSa - .3, .35), -2);
+    rows.forEach((r, i) => at(r.g, CX, 560 + i * 240, pop(t, r.t0 - .2, .35), i % 2 ? 1.5 : -1.5));
+    shock(t, tSuf, .3, .6); shock(t, tRa, .3, .6);
+  };
+}, { swipe: RED });
+
+// ====== 9. TOUT ÇA POUR UN JEU : 13 ans, 12 millions de précommandes, 1 milliard de budget ===========
+S(T.hype, T.conges, (cam, a) => {
+  const t13 = Wt('treize'), t12 = Wt('douze', 1, a), tPre = Wt('precommandes.'), tMd = Wt('milliard'), tBud = Wt('budget.');
+  bg(cam);
+  const gp = gtaPlate(cam, 380);
+  const items = [
+    ['13 ANS', "D'ATTENTE", '🗓️', GREEN, t13],
+    ['+12 M', 'DE PRÉCOMMANDES', '📦', PINK, t12],
+    ['+1 MD $', 'DE BUDGET', '💰', ORANGE, tMd],
+  ].map(([n, l, em, col, t0]) => {
+    const g = el('g', {}, cam);
+    card(g, -430, -100, 860, 200, CREAM, 28, 12, 7);
+    const ic = el('g', {}, g); emoji(ic, em, 100); tf(ic, -340, 0);
+    const a1 = txt(g, n, { size: 96, fill: col, sw: 12, anchor: 'start' }); a1.g.setAttribute('transform', 'translate(-250,30)');
+    const a2 = txt(g, l, { size: 38, anchor: 'end' }); a2.g.setAttribute('transform', 'translate(400,74)');
+    return { g, t0 };
+  });
+  return t => {
+    at(gp, CX, 310, pop(t, a + .05, .35), -3);
+    items.forEach((o, i) => at(o.g, CX, 590 + i * 245, pop(t, o.t0 - .2, .3), i % 2 ? 1.5 : -1.5));
+    items.forEach(o => shock(t, o.t0 + .1, .25, .45));
+    void tPre; void tBud;
+  };
+}, { swipe: PINK });
+
+// ====== 10. AUX ÉTATS-UNIS : presque 1 salarié sur 5 pose sa journée ===============================
+S(T.conges, T.cta, (cam, a) => {
+  const tUS = Wt('Etats-Unis,'), tSal = Wt('salarie'), tCinq = Wt('cinq'), tPos = Wt('poser');
+  bg(cam);
+  const us = chip(cam, '🇺🇸 AUX ÉTATS-UNIS', BLUE, CREAM, 50);
+  const ps = [0, 1, 2, 3, 4].map(i => person(cam, i === 2 ? GREEN : GREY));
+  const n = el('g', {}, cam), ns = big(n, '1 SUR 5', 150, GREEN);
+  const pr = chip(cam, 'PRESQUE', INK, CREAM, 44);
+  const pl = plate(cam, ['POSE SA JOURNÉE', ['POUR GTA 6', PINK]], 640, 56);
+  const beach = el('g', {}, cam); emoji(beach, '🏖️', 110);
+  return t => {
+    us.update(CX, 300, pop(t, tUS - .3), -2);
+    ps.forEach((g, i) => {
+      const jump = i === 2 ? Math.abs(Math.sin(t * 7)) * 40 * p(t, tPos - .3, tPos) : 0;
+      at(g, CX - 360 + i * 180, 620 - jump, pop(t, tSal - .4 + i * .06, .3) * (i === 2 ? 1 + .3 * p(t, tCinq - .2, tCinq + .2, E.out) : 1) * 1.6, 0);
+    });
+    at(beach, CX, 430, pop(t, tPos - .2, .3), 0);
+    pr.update(CX, 770, pop(t, tCinq - .5), -2);
+    at(n, CX, 900, pop(t, tCinq - .3, .3), -3);
+    at(pl, CX, 1095, pop(t, tPos - .2, .35), 2);
+    shock(t, tCinq, .3, .6);
+  };
+}, { swipe: GREEN });
+
+// ====== 11. FIN : tu poses ta journée jeudi ? Ou tu sèches les cours ? Avoue-le en commentaire =====
+S(T.cta, M.DUR, (cam, a) => {
+  const tPo = Wt('poses'), tOu = Wt('Ou'), tSe = Wt('seches'), tAv = Wt('Avoue-le'), tEn = Wt('en', 1, tAv), tCm = Wt('commentaire.');
+  bg(cam);
+  const q1 = title(cam, ['TU POSES', ['TA JOURNÉE ?', GREEN]], { size: 96, shadow: 0, sw: 12 });
+  const q2 = title(cam, ['OU TU SÈCHES', ['LES COURS ?', RED]], { size: 96, shadow: 0, sw: 12 });
+  const bub = el('g', {}, cam); emoji(bub, '💬', 110);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'AVOUE-LE', { size: 80 }), w2 = txt(cta, 'EN', { size: 80 }), w3 = txt(cta, 'COMMENTAIRE', { size: 80, fill: PINK, sw: 10 });
+  const wx = -(w1.w + w2.w + 30) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 30 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,80)');
+  const point = el('g', {}, cta); emoji(point, '👇', 84);
+  return t => {
+    at(q1, CX, 310, pop(t, tPo - .3, .35), -2);
+    at(q2, CX, 570, pop(t, tOu - .2, .35), 2);
+    at(bub, CX - 380, 760, pop(t, tAv - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    at(cta, CX, 860, pop(t, tAv - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tAv ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 66 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+    shock(t, tSe, .25, .4);
+  };
+}, { swipe: PINK });
+
+// Sous-titres jusqu'à la question de fin (la fin a ses propres textes)
+captions({ until: T.cta + .2 });
+// Séléné entre en rebond au début, en bas à gauche, hors zones TikTok et sous les sous-titres
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>
