@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les CRS chez le médecin</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Les CRS n'ont pas le droit de grève… alors ils vont chez le médecin » (charte : docs/MODELE.md), avec Séléné en bas à gauche.
+     Voix-off : scripts/crs_medecin.txt → node tools/voix.mjs crs_medecin ; node tools/enveloppe.mjs crs_medecin
+     Faits et sources : en tête de scripts/crs_medecin.txt. Photos : Wikimedia Commons, crédits à l'écran et dans le script. -->
+<script src="lib/motion.js"></script>
+<script src="assets/crs_medecin_words.js"></script>
+<script src="assets/crs_medecin_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, show, tf, txt, title, card, chip, bubble, emoji, bg } = Motion;
+window.WORDS = window.WORDS.filter(w => /[\p{L}\p{N}]/u.test(w.w));   // retire les « et » isolés
+await setup({
+  duration: 95.5,
+  words: window.WORDS,
+  audio: 'assets/voix_crs_medecin.mp3',
+  emojis: '🩺🏥📋✅❌⚠️😩💤🛡️📅🗓️✉️🖊️🤝💬👇🧊💶🏫🎓👮🔥⏳📉',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const BLUE = '#2F5BD3', NAVY = '#14213D', YELLOW = '#FFD23F', ORANGE = '#F39C12', GREY = '#95A5A6', SKY = '#5DADE2';
+
+// --- briques propres à cette vidéo (reprises de gta6.html) -----------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+// Tampon : arrive grossi puis claque à sa taille.
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -8) { const k = clamp((t - t0) / .18); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.6, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+// Grand texte avec contour noir épais.
+function big(parent, str, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, 'font-weight': 900, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  t.textContent = str;
+  return { t, set(s) { t.textContent = s; } };
+}
+// Vrai logo de GTA VI (Wikimedia Commons, domaine public), centré.
+function gtaPlate(parent, w = 560) {
+  const g = el('g', {}, parent), h = w * 683 / 900;
+  el('image', { href: IMG.logo, x: -w / 2, y: -h / 2, width: w, height: h, preserveAspectRatio: 'xMidYMid meet' }, g);
+  return g;
+}
+// Image sans cadre (logo détouré, console).
+function pic(parent, href, w, h) { const g = el('g', {}, parent); el('image', { href, x: -w / 2, y: -h / 2, width: w, height: h, preserveAspectRatio: 'xMidYMid meet' }, g); return g; }
+// Photo dans un cadre de la charte (contour noir, ombre décalée, coins arrondis, crédit en bas à droite).
+let PID = 0;
+function photo(parent, href, w, h, credit, align = 'xMidYMid slice') {
+  const g = el('g', {}, parent), id = 'ph' + (++PID);
+  const cp = el('clipPath', { id }, M.defs); el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22 }, cp);
+  el('rect', { x: -w / 2 + 14, y: -h / 2 + 14, width: w, height: h, rx: 22, fill: INK }, g);
+  el('image', { href, x: -w / 2, y: -h / 2, width: w, height: h, preserveAspectRatio: align, 'clip-path': `url(#${id})` }, g);
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: 'none', stroke: INK, 'stroke-width': 9 }, g);
+  if (credit) { const c = txt(g, credit, { size: 19, weight: 700, fill: CREAM, sw: 5, anchor: 'end' }); c.g.setAttribute('transform', `translate(${fmt(w / 2 - 16)},${fmt(h / 2 - 16)})`); }
+  return g;
+}
+// Horloge plate : set(h, m) en heures/minutes, avec un libellé numérique dessous.
+function clock(parent, r = 150, face = WHITE) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 12, cy: 12, r, fill: INK }, g);
+  el('circle', { r, fill: face, stroke: INK, 'stroke-width': 10 }, g);
+  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; el('line', { x1: fmt(Math.sin(a) * r * .78), y1: fmt(-Math.cos(a) * r * .78), x2: fmt(Math.sin(a) * r * .9), y2: fmt(-Math.cos(a) * r * .9), stroke: INK, 'stroke-width': i % 3 ? 5 : 10, 'stroke-linecap': 'round' }, g); }
+  const hh = el('line', { x1: 0, y1: 0, x2: 0, y2: -r * .5, stroke: INK, 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
+  const mm = el('line', { x1: 0, y1: 0, x2: 0, y2: -r * .75, stroke: RED, 'stroke-width': 9, 'stroke-linecap': 'round' }, g);
+  el('circle', { r: 12, fill: INK }, g);
+  return { g, set(h, m) { hh.setAttribute('transform', `rotate(${fmt((h % 12) * 30 + m * .5)})`); mm.setAttribute('transform', `rotate(${fmt(m * 6)})`); } };
+}
+// Carte crème avec texte (une ou plusieurs lignes), centrée.
+function plate(parent, lines, w, size = 52, fill = CREAM) {
+  const g = el('g', {}, parent), h = lines.length * size * 1.2 + size * .9;
+  card(g, -w / 2, -h / 2, w, h, fill, 26, 10, 7);
+  lines.forEach((l, i) => {
+    const [s, col] = Array.isArray(l) ? l : [l, INK];
+    const r = txt(g, s, { size, fill: col, sw: col === INK ? 0 : 8 });
+    r.g.setAttribute('transform', `translate(0,${fmt((i - (lines.length - 1) / 2) * size * 1.2 + size * .36)})`);
+  });
+  return g;
+}
+// Drapeau emoji posé sur un rond crème, avec un nom dessous.
+function flag(parent, ch, name, size = 130) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 8, cy: 8, r: size * .7, fill: INK }, g);
+  el('circle', { r: size * .7, fill: CREAM, stroke: INK, 'stroke-width': 7 }, g);
+  emoji(g, ch, size);
+  if (name) { const c = chip(g, name, INK, CREAM, size * .28); c.update(0, size * .95, 1); }
+  return g;
+}
+// Petit personnage (tête + corps).
+function person(parent, col) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 4, cy: -48, r: 24, fill: INK }, g);
+  el('circle', { cy: -52, r: 24, fill: col, stroke: INK, 'stroke-width': 6 }, g);
+  el('path', { d: 'M-36,38 Q-36,-14 0,-14 Q36,-14 36,38 Z', fill: col, stroke: INK, 'stroke-width': 6, 'stroke-linejoin': 'round' }, g);
+  return g;
+}
+
+const IMG = { rivoli: 'assets/crs_medecin/rivoli.jpg', riot: 'assets/crs_medecin/riot.jpg', manif: 'assets/crs_medecin/manif.jpg', manif2: 'assets/crs_medecin/manif2.jpg', nunez: 'assets/crs_medecin/nunez.jpg', beauvau: 'assets/crs_medecin/beauvau.jpg' };
+const CRED = { rivoli: 'Photo : Guilhem Vellut, CC BY 2.0', riot: 'Photo : Kristoffer Trolle, CC BY 2.0', manif: 'Photo : Jules*, CC BY-SA 4.0', manif2: 'Photo : Jules*, CC BY-SA 4.0', nunez: 'Photo : Arthur Empereur, CC BY-SA 4.0', beauvau: 'Photo : Croquant, CC BY-SA 3.0' };
+await Promise.all(Object.values(IMG).map(src => new Promise(r => { const i = new Image(); i.onload = i.onerror = r; i.src = src; })));
+
+// Carte « date » de la frise : pastille de date à gauche, deux lignes de texte.
+function event(parent, date, l1, l2, col, w = 880) {
+  const g = el('g', {}, parent);
+  card(g, -w / 2, -95, w, 190, WHITE, 26, 10, 7);
+  const d = chip(g, date, col, CREAM, 34); d.update(-w / 2 + 128, 0, 1);
+  const a = txt(g, l1, { size: 36, anchor: 'start' }); a.g.setAttribute('transform', `translate(${-w / 2 + 268},-14)`);
+  const b = txt(g, l2, { size: 38, fill: col, sw: 8, anchor: 'start' }); b.g.setAttribute('transform', `translate(${-w / 2 + 268},44)`);
+  return g;
+}
+// Ordonnance / arrêt de travail.
+function sickNote(parent) {
+  const g = el('g', {}, parent);
+  card(g, -230, -290, 460, 580, WHITE, 18, 14, 8);
+  el('rect', { x: -230, y: -290, width: 460, height: 110, rx: 18, fill: SKY, stroke: INK, 'stroke-width': 8 }, g);
+  const h = txt(g, 'ARRÊT DE TRAVAIL', { size: 38, fill: CREAM, sw: 7 }); h.g.setAttribute('transform', 'translate(0,-222)');
+  for (let i = 0; i < 5; i++) el('rect', { x: -170, y: -130 + i * 62, width: i % 2 ? 260 : 340, height: 18, rx: 9, fill: '#D5D8DC' }, g);
+  const st = el('g', {}, g); emoji(st, '🩺', 120); tf(st, 120, 200);
+  el('path', { d: 'M-170,210 q30,-40 60,0 t60,0 t40,-10', fill: 'none', stroke: BLUE, 'stroke-width': 7, 'stroke-linecap': 'round' }, g);
+  return g;
+}
+// Bouclier CRS stylisé.
+function shield(parent, col = NAVY) {
+  const g = el('g', {}, parent);
+  const d = 'M0,-150 L120,-110 Q120,60 0,150 Q-120,60 -120,-110 Z';
+  el('path', { d, fill: INK, transform: 'translate(12,12)' }, g);
+  el('path', { d, fill: col, stroke: INK, 'stroke-width': 9, 'stroke-linejoin': 'round' }, g);
+  const t = txt(g, 'CRS', { size: 70, fill: CREAM, sw: 0 }); t.g.setAttribute('transform', 'translate(0,20)');
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  loi: Wt('Pourquoi') - .15, droit: Wt('Mais') - .15, mardi: Wt('Mardi', 2) - .15, fatigue: Wt('Et', 1, Wt('syndicat')) - .15,
+  prime: Wt('Ce', 1, Wt('secours')) - .15, dates: Wt('Et', 1, Wt('2019')) - .15, t13: Wt('Le', 1, Wt('par-la')) - .15,
+  t17: Wt('Le', 1, Wt('inadmissible')) - .15, signe: Wt('Une', 1, Wt("d'engagement")) - .15, encad: Wt('Ceux') - .15,
+  cta: Wt('Alors,', 1, Wt('Ceux')) - .15,
+};
+
+// ====== 1. ACCROCHE : les CRS en ont marre des manifs… mardi, environ 1 000 chez le médecin ==========
+S(0, T.loi, (cam) => {
+  const tMarre = Wt('marre'), tTel = Wt('Tellement'), tMardi = Wt('mardi,'), tMille = Wt('mille'), tMed = Wt('medecin'), tMeme = Wt('meme'), tManif = Wt('manif');
+  bg(cam);
+  const head = title(cam, ['LES CRS', ['EN ONT MARRE', RED]], { size: 100, shadow: 0, sw: 12 });
+  const ph = photo(cam, IMG.manif, 820, 520, CRED.manif);
+  const n = el('g', {}, cam); big(n, '≈ 1 000', 200, RED);
+  const doc = el('g', {}, cam); emoji(doc, '🩺', 150);
+  const sub = chip(cam, 'CHEZ LE MÉDECIN', INK, CREAM, 60);
+  const day = chip(cam, 'MARDI 17 NOV.', BLUE, CREAM, 50);
+  const st = stamp(cam, 'UN JOUR DE MANIF', RED, 64);
+  return t => {
+    const k = p(t, tTel - .1, tMardi + .1, E.inOut);
+    at(head, CX, 290, pop(t, -.3, .3), -2);
+    at(ph, CX, lerp(720, 560, k), pop(t, tMarre - .4, .35) * lerp(1, .0001, p(t, tMille - .5, tMille - .2)), 2);
+    day.update(CX, 470, pop(t, tMardi - .2), -3);
+    at(n, CX, 680, pop(t, tMille - .2, .3), -3);
+    at(doc, CX - 340, 640, pop(t, tMed - .3, .3), -10 + 6 * Math.sin(t * 4));
+    sub.update(CX, 860, pop(t, tMed - .2), 2);
+    st.update(CX, 1060, t, tManif - .2, -5);
+    shock(t, tMarre, .3, .7); shock(t, tMille + .1, .3, .9); shock(t, tManif, .3, .6);
+    void tMeme;
+  };
+});
+
+// ====== 2. POURQUOI LE MÉDECIN ? Pas le droit de grève : loi de 1947, grève = abandon de poste =======
+S(T.loi, T.droit, (cam, a) => {
+  const tDroit = Wt('droit', 1, a), tLoi = Wt('loi'), t47 = Wt('1947'), tAb = Wt('abandon');
+  bg(cam);
+  const q = title(cam, ['POURQUOI', ['LE MÉDECIN ?', BLUE]], { size: 110, shadow: 0, sw: 12 });
+  const sh = shield(cam);
+  const no = plate(cam, ['DROIT DE GRÈVE', ['INTERDIT', RED]], 600, 64);
+  const law = chip(cam, 'LOI DU 27 DÉCEMBRE 1947', INK, CREAM, 46);
+  const st = stamp(cam, 'GRÈVE = ABANDON DE POSTE', RED, 58);
+  return t => {
+    at(q, CX, 300, pop(t, a + .05, .35), -2);
+    at(sh, CX - 300, 640, pop(t, tDroit - .5, .35) * .9, -6);
+    at(no, CX + 130, 640, pop(t, tDroit - .2, .35), 3);
+    law.update(CX, 870, pop(t, tLoi - .2), -2);
+    st.update(CX, 1060, t, tAb - .15, -4);
+    shock(t, tDroit + .1, .3, .6); shock(t, t47, .3, .5); shock(t, tAb + .1, .3, .8);
+  };
+}, { swipe: RED });
+
+// ====== 3. MAIS LE MÉDECIN, C'EST UN DROIT… arrêté = pas sur le terrain ==============================
+S(T.droit, T.mardi, (cam, a) => {
+  const tMed = Wt('medecin', 1, a), tDroit = Wt('droit', 1, a), tArr = Wt("t'arrete"), tTer = Wt('terrain', 1, a);
+  bg(cam);
+  const head = title(cam, ['LE MÉDECIN :', ['UN DROIT', GREEN]], { size: 110, shadow: 0, sw: 12 });
+  const note = sickNote(cam);
+  const ok = el('g', {}, cam); emoji(ok, '✅', 120);
+  const st = stamp(cam, 'PAS SUR LE TERRAIN', RED, 66);
+  return t => {
+    at(head, CX, 300, pop(t, tMed - .5, .35), -2);
+    at(note, CX, 720, pop(t, tMed - .1, .35) * (.85 + .08 * hit(t, tArr + .1, .3)), -4 + 2 * Math.sin(t * 2));
+    at(ok, CX + 360, 520, pop(t, tDroit - .1, .3) * .8, 8);
+    st.update(CX, 1070, t, tTer - .35, -5);
+    shock(t, tDroit, .3, .5); shock(t, tTer, .3, .7);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. MARDI : manifs contre la vie chère, 1 000 CRS absents selon leur syndicat ==================
+S(T.mardi, T.fatigue, (cam, a) => {
+  const tMan = Wt('manifestations'), tVie = Wt('vie'), tFr = Wt('France.'), tMille = Wt('mille', 1, a), tSyn = Wt('syndicat.');
+  bg(cam);
+  const ch = chip(cam, 'MARDI 17 NOVEMBRE', BLUE, CREAM, 52);
+  const ph = photo(cam, IMG.rivoli, 860, 500, CRED.rivoli);
+  const vc = chip(cam, 'CONTRE LA VIE CHÈRE', RED, CREAM, 52);
+  const n = el('g', {}, cam); big(n, '≈ 1 000', 130, RED);
+  const src = plate(cam, ['CRS ABSENTS SELON UN1TÉ', ['+ DE 500 SELON OUEST-FRANCE', GREY]], 820, 40);
+  return t => {
+    const k = p(t, tMille - .6, tMille - .2, E.inOut);
+    ch.update(CX, 290, pop(t, a + .05), -2);
+    at(ph, CX, lerp(640, 570, k), pop(t, tMan - .4, .35) * lerp(1, .74, k), 2);
+    vc.update(CX, lerp(950, 820, k), pop(t, tVie - .2), -3);
+    at(n, CX, 955, pop(t, tMille - .2, .3) * (k > 0 ? 1 : 0), -2);
+    at(src, CX, 1100, pop(t, tMille + .3, .35) * .82, 1);
+    shock(t, tMille + .1, .3, .7);
+    void tFr;
+  };
+}, { swipe: BLUE });
+
+// ====== 5. ILS SONT ÉPUISÉS : +1 mois de manifs, blocages, sous-effectif, peur au ventre, appel au secours ==
+S(T.fatigue, T.prime, (cam, a) => {
+  const tEp = Wt('epuises.'), tMois = Wt('mois'), tBloc = Wt('blocages'), tSous = Wt('sous-effectif.'), tPeur = Wt('peur'), tSec = Wt('secours');
+  bg(cam);
+  const head = title(cam, [['ÉPUISÉS', RED]], { size: 130, shadow: 0, sw: 13 });
+  const zz = el('g', {}, cam); emoji(zz, '😩', 120);
+  const rows = [
+    ["+ D'UN MOIS", 'DE MANIFS', '📅', tMois],
+    ['LYCÉES ET FACS', 'BLOQUÉS', '🏫', tBloc],
+    ['DES COMPAGNIES', 'EN SOUS-EFFECTIF', '📉', tSous],
+  ].map(([a1, a2, em, t0]) => {
+    const g = el('g', {}, cam);
+    card(g, -420, -80, 840, 160, WHITE, 26, 10, 7);
+    const ic = el('g', {}, g); emoji(ic, em, 80); tf(ic, -340, 0);
+    const x1 = txt(g, a1, { size: 40, anchor: 'start' }); x1.g.setAttribute('transform', 'translate(-270,-10)');
+    const x2 = txt(g, a2, { size: 46, fill: RED, sw: 8, anchor: 'start' }); x2.g.setAttribute('transform', 'translate(-270,48)');
+    return { g, t0 };
+  });
+  const ph = photo(cam, IMG.riot, 840, 470, CRED.riot);
+  const q = bubble(cam, '« AVEC LA PEUR AU VENTRE »', WHITE, INK, 50);
+  const st = stamp(cam, 'APPEL AU SECOURS', RED, 62);
+  return t => {
+    const sw = p(t, tPeur - 1.2, tPeur - .8, E.inOut);
+    at(head, CX, 290, pop(t, tEp - .4, .35), -2);
+    at(zz, CX + 400, 290, pop(t, tEp - .2, .3) * .8, 8);
+    rows.forEach((r, i) => at(r.g, CX, 520 + i * 200, pop(t, r.t0 - .3, .35) * (1 - sw), i % 2 ? 1.5 : -1.5));
+    at(ph, CX, 640, pop(t, tPeur - 1, .35), -2);
+    q.update(CX, 960, pop(t, tPeur - .4, .35), 2);
+    st.update(CX, 1110, t, tSec - .3, -5);
+    shock(t, tEp, .3, .6); shock(t, tSec, .3, .8);
+  };
+}, { swipe: RED });
+
+// ====== 6. CE QU'ILS DEMANDENT : la prime de risque, gelée depuis 2019 ==============================
+S(T.prime, T.dates, (cam, a) => {
+  const tHau = Wt('hausse'), tPrime = Wt('prime'), tBou = Wt('bouge'), t19 = Wt('2019');
+  bg(cam);
+  const q = title(cam, ["CE QU'ILS", ['DEMANDENT ?', BLUE]], { size: 100, shadow: 0, sw: 12 });
+  const pr = plate(cam, ['UNE HAUSSE DE LEUR', ['PRIME DE RISQUE', GREEN]], 760, 62);
+  const ice = el('g', {}, cam); emoji(ice, '🧊', 130);
+  const fr = chip(cam, 'BLOQUÉE DEPUIS', INK, CREAM, 50);
+  const n = el('g', {}, cam); big(n, '2019', 220, SKY);
+  return t => {
+    at(q, CX, 300, pop(t, a + .05, .35), -2);
+    at(pr, CX, 580, pop(t, tHau - .2, .35), 2);
+    at(ice, CX - 330, 830, pop(t, tBou - .2, .3), -8);
+    fr.update(CX + 60, 800, pop(t, tBou - .2), -2);
+    at(n, CX + 60, 1000, pop(t, t19 - .2, .3), -3);
+    shock(t, tPrime, .3, .5); shock(t, t19 + .1, .3, .8);
+  };
+}, { swipe: BLUE });
+
+// ====== 7. REGARDE BIEN LES DATES : début novembre, puis le 13 novembre ===============================
+const frise = (cam, items, t, ystart = 560, gap = 230) => items.forEach((o, i) => at(o.g, CX, ystart + i * gap, pop(t, o.t0 - .25, .35), i % 2 ? 1.2 : -1.2));
+S(T.dates, T.t17, (cam, a) => {
+  const tDat = Wt('dates.'), tDeb = Wt('Debut'), tDeux = Wt('Deux'), t13 = Wt('13'), tProp = Wt('propose'), tEt = Wt('etalee'), tAvr = Wt('avril'), tIn = Wt('inadmissible');
+  bg(cam);
+  const head = title(cam, ['REGARDE', ['BIEN LES DATES', ORANGE]], { size: 100, shadow: 0, sw: 12 });
+  const items = [
+    { g: event(cam, 'DÉBUT NOV.', 'QUELQUES CRS', 'CHEZ LE MÉDECIN', BLUE), t0: tDeb },
+    { g: event(cam, '13 NOV.', 'LE MINISTRE PROPOSE', 'UNE HAUSSE SUR 3 ANS', GREEN), t0: t13 },
+  ];
+  const av = chip(cam, '1RE MARCHE : AVRIL 2027', INK, CREAM, 48);
+  const st = stamp(cam, '« INADMISSIBLE »', RED, 62);
+  return t => {
+    at(head, CX, 290, pop(t, a + .05, .35), -2);
+    frise(cam, items, t);
+    av.update(CX, 1000, pop(t, tAvr - .2), -2);
+    st.update(CX, 1140, t, tIn - .2, -5);
+    shock(t, t13, .3, .5); shock(t, tIn + .1, .3, .8);
+    void tDeux; void tProp; void tEt;
+  };
+}, { swipe: ORANGE });
+
+// ====== 8. LE 17 : 1 000 chez le médecin. LE 18 : devant le ministère, reçus à midi, lettre d'engagement ==
+S(T.t17, T.signe, (cam, a) => {
+  const t17 = Wt('17'), t18 = Wt('18'), tMin = Wt('ministere.'), tRec = Wt('recoit'), tLet = Wt('lettre');
+  bg(cam);
+  const items = [
+    { g: event(cam, '17 NOV.', '≈ 1 000 CRS', 'CHEZ LE MÉDECIN', RED), t0: t17 },
+    { g: event(cam, '18 NOV.', 'RASSEMBLEMENT', 'DEVANT LE MINISTÈRE', BLUE), t0: t18 },
+  ];
+  const bv = photo(cam, IMG.beauvau, 520, 340, 'Croquant, CC BY-SA 3.0');
+  const nz = photo(cam, IMG.nunez, 280, 340, 'A. Empereur, CC BY-SA 4.0', 'xMidYMin slice');
+  const nzl = chip(cam, 'LAURENT NUÑEZ', INK, CREAM, 38);
+  const let_ = plate(cam, ['IL PROMET UNE', ['LETTRE D’ENGAGEMENT', GREEN]], 760, 52);
+  const env = el('g', {}, cam); emoji(env, '✉️', 110);
+  return t => {
+    frise(cam, items, t, 300, 210);
+    at(bv, CX - 190, 795, pop(t, tMin - .4, .35), -2);
+    at(nz, CX + 270, 795, pop(t, tRec - .4, .35), 3);
+    nzl.update(CX + 270, 985, pop(t, tRec - .2), -2);
+    at(let_, CX, 1110, pop(t, tLet - .3, .35), 2);
+    at(env, CX - 400, 1060, pop(t, tLet, .3), -10);
+    shock(t, t17 + .1, .3, .6); shock(t, tLet, .3, .5);
+  };
+}, { swipe: BLUE });
+
+// ====== 9. UNE LETTRE. PAS UN ACCORD. RIEN N'EST SIGNÉ ===========================================
+S(T.signe, T.encad, (cam, a) => {
+  const tLet = Wt('lettre', 1, a), tAcc = Wt('accord.'), tRien = Wt('rien', 1, a), tSig = Wt('signe.');
+  bg(cam);
+  const l = plate(cam, [['UNE LETTRE', INK]], 600, 80);
+  const ac = el('g', {}, cam); { plate(ac, [['UN ACCORD', INK]], 600, 80); el('line', { x1: -280, y1: 30, x2: 280, y2: -30, stroke: RED, 'stroke-width': 20, 'stroke-linecap': 'round' }, ac); }
+  const pen = el('g', {}, cam); emoji(pen, '🖊️', 120);
+  const st = stamp(cam, "RIEN N'EST SIGNÉ", RED, 90);
+  const pas = chip(cam, 'PAS', RED, CREAM, 60);
+  return t => {
+    at(l, CX, 400, pop(t, tLet - .3, .35), -2);
+    pas.update(CX, 560, pop(t, tAcc - .5), 0);
+    at(ac, CX, 700, pop(t, tAcc - .3, .35), 2);
+    at(pen, CX + 330, 900, pop(t, tRien - .2, .3), -20 + 10 * Math.sin(t * 5));
+    st.update(CX, 980, t, tSig - .25, -6);
+    shock(t, tAcc, .3, .6); shock(t, tSig, .3, .9);
+    void tRien;
+  };
+}, { swipe: RED });
+
+// ====== 10. CEUX QUI ENCADRENT LES MANIFS… ont trouvé leur propre façon de manifester ==================
+S(T.encad, T.cta, (cam, a) => {
+  const tEnc = Wt('encadrent'), tTr = Wt('trouve'), tMan = Wt('manifester.');
+  bg(cam);
+  const ph = photo(cam, IMG.manif2, 860, 500, CRED.manif2);
+  const t1 = title(cam, ['CEUX QUI ENCADRENT', ['LES MANIFS…', BLUE]], { size: 76, shadow: 0, sw: 10 });
+  const t2 = plate(cam, ['ONT TROUVÉ LEUR FAÇON', ['DE MANIFESTER', RED]], 860, 56);
+  return t => {
+    at(t1, CX, 320, pop(t, tEnc - .4, .35), -2);
+    at(ph, CX, 680, pop(t, a + .1, .35), 2);
+    at(t2, CX, 1050, pop(t, tTr - .3, .35), -2);
+    shock(t, tMan, .3, .7);
+  };
+}, { swipe: BLUE });
+
+// ====== 11. FIN : le ministre aurait-il bougé s'ils étaient tous restés au travail ? Dis-le en commentaire ==
+S(T.cta, M.DUR, (cam, a) => {
+  const tMin = Wt('ministre', 1, a), tRes = Wt('restes'), tDis = Wt('Dis-le'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire.');
+  bg(cam);
+  const q1 = title(cam, ['LE MINISTRE', ['AURAIT-IL BOUGÉ…', ORANGE]], { size: 92, shadow: 0, sw: 12 });
+  const q2 = title(cam, ["S'ILS ÉTAIENT TOUS", ['RESTÉS AU TRAVAIL ?', BLUE]], { size: 76, shadow: 0, sw: 10 });
+  const bub = el('g', {}, cam); emoji(bub, '💬', 110);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 80 }), w2 = txt(cta, 'EN', { size: 80 }), w3 = txt(cta, 'COMMENTAIRE', { size: 80, fill: RED, sw: 10 });
+  const wx = -(w1.w + w2.w + 30) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 30 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,80)');
+  const point = el('g', {}, cta); emoji(point, '👇', 84);
+  return t => {
+    at(q1, CX, 310, pop(t, a + .05, .35), -2);
+    at(q2, CX, 560, pop(t, tRes - .6, .35), 2);
+    at(bub, CX - 380, 790, pop(t, tDis - .3, .4) * (1 + .08 * Math.sin(t * 7)), Math.sin(t * 3.5) * 5);
+    at(cta, CX, 880, pop(t, tDis - .1, .35), -2);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 66 + Math.abs(Math.sin(t * 6)) * 18, pop(t, tCm + .2), 0);
+  };
+}, { swipe: ORANGE });
+
+captions({ until: T.cta + .2 });
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.back(clamp((t - .15) / .4)) }) });
+start();
+})();
+</script>
+</body>
+</html>
