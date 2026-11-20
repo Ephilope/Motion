@@ -20,7 +20,7 @@
 (async () => {
 const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, hash } = Motion;
 await setup({
-  duration: 101.5,
+  duration: 106,
   words: window.WORDS,
   audio: 'assets/voix_poulet_turbo.mp3',
   emojis: '🍗🐣🧬💉🚿🎥💡🌙🌍🐢💰💬👇⚖️📅🔬',
@@ -112,22 +112,28 @@ const T = {
 };
 const tDis = Wt('Dis-le');
 
-// ====== 1. ACCROCHE : le poulet de tes nuggets… avait cinq semaines. Il ne tenait déjà plus debout ======
+// ====== 1. ACCROCHE : le poulet que tu manges… avait tellement de viande… qu'il avait du mal à tenir debout.
+//        Et il n'avait que cinq semaines. (hook demandé par Benoit ; le sujet est à l'écran dès la 1re image)
 S(0, T.fr, (cam) => {
-  const tAv = Wt('avait'), tSem = Wt('semaines'), tDeb = Wt('debout'), tMal = Wt('mal');
+  const tVia = Wt('viande'), tMal = Wt('mal'), tDeb = Wt('debout'), tCinq = Wt('cinq'), tSem = Wt('semaines');
   bg(cam);
-  const head = title(cam, ['LE POULET', ['DE TES NUGGETS', RED]], { size: 100, shadow: 0, sw: 12 });
-  const box = nuggets(cam, null);
-  const n = el('g', {}, cam), nb = bigNum(n, 118, RED); nb.set('5 SEMAINES');
+  const head = title(cam, ['LE POULET', ['QUE TU MANGES', RED]], { size: 88, shadow: 0, sw: 12 });
+  const via = chip(cam, 'TELLEMENT DE VIANDE…', RED, CREAM, 52);
+  const n = el('g', {}, cam), nb = bigNum(n, 110, RED); nb.set('5 SEMAINES');
+  const age = chip(cam, 'ET IL AVAIT', INK, CREAM, 40);
   const ch = chicken(cam);
+  const deb = chip(cam, 'DU MAL À TENIR DEBOUT', INK, CREAM, 46);
   return t => {
-    at(head, CX, 300, lerp(1.1, 1, p(t, 0, .3, E.out)), -2);
-    const kOut = p(t, tAv - .3, tAv);
-    at(box, CX, 600, 1.2 * pop(t, -.3, .35) * (1 - kOut), Math.sin(t * 1.5) * 2);
-    at(n, CX, 560, pop(t, tAv, .35), -3);
-    const kC = pop(t, tSem + .2, .4);
-    ch.set({ body: 1.15, legs: 1 - .8 * p(t, tMal, tDeb + .3), sad: 1, wob: Math.sin(t * 6) * 6 * p(t, tMal, tDeb) });
-    at(ch.g, CX + 40, 1030, .95 * kC);
+    at(head, CX, 270, lerp(1.1, 1, p(t, 0, .3, E.out)), -2);
+    const kN = p(t, tCinq - .5, tCinq - .2);
+    via.update(CX, 480, pop(t, tVia - .2) * (1 - kN), -3);
+    age.update(CX, 445, pop(t, tCinq - .3), -2);
+    at(n, CX, 535, pop(t, tCinq - .1, .35), -3);
+    const grow = p(t, tVia - .2, tVia + .7, E.out);
+    ch.set({ body: lerp(1, 1.7, grow), legs: 1 - .8 * p(t, tMal - .1, tDeb + .3), sad: 1, wob: Math.sin(t * 6) * 6 * p(t, tMal - .1, tDeb) });
+    at(ch.g, CX + 30, 1070, pop(t, -.3, .35));
+    deb.update(CX, 1122, pop(t, tDeb - .2), 2);
+    shock(t, tVia + .1, .3, .2);
     shock(t, tSem, .3, .25);
   };
 });
@@ -409,7 +415,7 @@ S(T.fr2, T.nug, (cam, a) => {
 
 // ====== 13. MAIS POUR LES NUGGETS ET LES PLATS TOUT PRÊTS : « changer coûte trop cher » ================
 S(T.nug, T.cta, (cam, a) => {
-  const tNug = Wt('nuggets', 2), tPla = Wt('plats'), tFil = Wt('filière'), tCh = Wt('cher');
+  const tNug = Wt('nuggets'), tPla = Wt('plats'), tFil = Wt('filière'), tCh = Wt('cher');
   bg(cam);
   const head = title(cam, ['MAIS…'], { size: 120, shadow: 0 });
   const box = nuggets(cam, 'NUGGETS');
