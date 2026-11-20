@@ -1,0 +1,34 @@
+# Voix-off de poulet_turbo.html (sujet du 20 novembre 2026, choisi par Benoit, style « crevettes »). Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Ton triste : balises d'émotion eleven_v3 entre accolades, non affichées.
+# Sources :
+# - Ministère de l'Agriculture : poulets de chair abattus vers 35 jours, environ 1,8 kg. https://agriculture.gouv.fr/telecharger/129009
+# - ITAVI 2025 (repris par Agri-Mutuel) : poulet standard, abattage à 34 jours, 21 animaux/m². https://www.agri-mutuel.com/wp-content/uploads/2025/09/fiche-Question-sur-03-01-Q08-Diversite-des-productions-de-volailles-de-chair-en-France.pdf
+# - Zuidhof et al. 2014, Poultry Science 93(12):2970-2982 (Université de l'Alberta) : souches de 1957, 1978 et 2005 élevées avec la même alimentation ;
+#   à 56 jours : 905 g (1957), 4 202 g (2005). https://www.thepoultrysite.com/articles/growth-efficiency-and-yield-of-commercial-broilers-from-1957-1978-and-2005
+# - Knowles et al. 2008, PLoS ONE (Royaume-Uni, ~51 000 poulets) : 27,6 % avec une démarche altérée (score ≥ 3), 3,3 % presque incapables de marcher.
+# - Hormones de croissance interdites chez les animaux d'élevage dans l'UE (directive 96/22/CE).
+# - Directive 2007/43/CE : au moins 6 h d'obscurité par 24 h.
+# - CNews, 28/10/2026, La France Agricole, Agra : caméra cachée TV2 chez un des plus gros producteurs danois, nuit de 3 h ;
+#   le ministre Christian Rabjerg Madsen veut interdire le « poulet turbo » au Danemark puis dans l'UE ; Norvège : abandon d'ici fin 2027.
+#   https://www.cnews.fr/monde/2026-10-28/poulet-turbo-quelle-est-cette-volaille-qui-inquiete-le-danemark-au-point-de
+#   https://www.lafranceagricole.fr/poulet/article/905444/le-danemark-envisage-d-interdire-le-turbo-poulet
+# - LDC via consoGlobe : 98 % des poulets du monde issus de souches à croissance rapide. https://www.consoglobe.com/poulet-ldc-video-l214-cg?amp
+# - Reporterre : LDC bascule Le Gaulois et Maître Coq vers l'European Chicken Commitment d'ici 2028.
+#   https://reporterre.net/Historique-un-geant-de-la-volaille-s-engage-a-changer-ses-pratiques-d-elevage-et-abattage
+# - Réussir : l'ECC jugé inadapté économiquement pour les premiers prix et les produits transformés.
+#   https://www.reussir.fr/lesmarches/le-poulet-ecc-est-il-economiquement-et-techniquement-viable-en-france
+{sad} Le poulet de tes nuggets… avait cinq semaines. Et il avait déjà du mal à tenir debout.
+En France, un poulet standard est tué vers 35[trente-cinq] jours. Il pèse alors presque deux kilos. Un poussin qui devient un poulet de deux kilos… en un mois.
+Comment c'est possible_? Pas avec des hormones_: c'est interdit en Europe. Avec la génétique. Depuis des décennies, on garde les poulets qui grossissent le plus vite… et on les fait se reproduire.
+Des chercheurs canadiens ont fait le test. Ils ont élevé côte à côte des poulets de 1957[mille neuf cent cinquante-sept] et des poulets modernes, avec la même nourriture.
+À huit semaines, celui de 1957[mille neuf cent cinquante-sept] pesait 900[neuf cents] grammes. Le moderne… plus de quatre kilos.
+{sighs} Le problème, c'est que son corps ne suit pas. Sa viande pousse plus vite que ses pattes et son cœur.
+Une grande étude britannique a observé 51 000[cinquante et un mille] poulets. Plus d'un sur quatre marchait mal. Et certains ne pouvaient presque plus marcher du tout.
+{softly} Alors ils restent assis. Une vingtaine par mètre carré. À peu près la place d'une douche.
+Le mois dernier, au Danemark, une caméra cachée a filmé un des plus gros élevages du pays. La nuit n'y durait que trois heures. La loi en impose six. Plus de lumière… plus de temps pour manger.
+Le lendemain, le ministre danois a annoncé qu'il voulait interdire ces poulets. Chez lui… puis dans toute l'Europe.
+Et ce n'est pas une petite niche. Selon un géant français de la volaille, 98[quatre-vingt-dix-huit] % des poulets du monde viennent de ces souches.
+En France, des marques ont promis de passer à des poulets qui grandissent plus lentement. Le Gaulois et Maître Coq, d'ici 2028.[deux mille vingt-huit]
+{sad} Mais pour les nuggets et les plats tout prêts, la filière dit que changer coûte trop cher.
+Et toi… tu savais que ton poulet avait cinq semaines_? Dis-le en commentaire.
+{softly} Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
