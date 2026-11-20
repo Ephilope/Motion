@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le poulet turbo : 5 semaines</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Le poulet de tes nuggets avait cinq semaines » (charte : docs/MODELE.md),
+     avec Séléné en bas à gauche, en mode triste (sujet du 20 novembre 2026, choisi par Benoit, style « crevettes »).
+     Voix-off : scripts/poulet_turbo.txt → node tools/voix.mjs poulet_turbo ; node tools/enveloppe.mjs poulet_turbo
+     Chiffres et sources : en tête de scripts/poulet_turbo.txt.
+     Photos (Wikimedia Commons) : « Broiler house.jpg » (Joe Valbuena, USDA, domaine public),
+     « Broilers.jpg » (ThereMazo, CC BY-SA 4.0), « Chicken farm.jpg » (Haszhaseeb, CC BY-SA 4.0). -->
+<script src="lib/motion.js"></script>
+<script src="assets/poulet_turbo_words.js"></script>
+<script src="assets/poulet_turbo_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, hash } = Motion;
+await setup({
+  duration: 101.5,
+  words: window.WORDS,
+  audio: 'assets/voix_poulet_turbo.mp3',
+  emojis: '🍗🐣🧬💉🚿🎥💡🌙🌍🐢💰💬👇⚖️📅🔬',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YEL = '#FFD23F', ORA = '#F39C12', BLUE = '#3498DB', GREY = '#B8B2A7', NIGHT = '#2C3E50';
+
+const IMG = { hangar: 'assets/poulet_turbo/hangar.jpg', assis: 'assets/poulet_turbo/assis.jpg', poussins: 'assets/poulet_turbo/poussins.jpg' };
+const CRED = { hangar: 'Photo : Joe Valbuena, USDA (domaine public)', assis: 'Photo : ThereMazo, CC BY-SA 4.0', poussins: 'Photo : Haszhaseeb, CC BY-SA 4.0' };
+await Promise.all(Object.values(IMG).map(src => new Promise(r => { const i = new Image(); i.onload = i.onerror = r; i.src = src; })));
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .25) => addShake(hit(t, t0, w) * k);   // sujet triste : secousses discrètes
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -6) { const k = clamp((t - t0) / .25); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.2, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+let PID = 0;
+function photo(parent, href, w, h, credit, align = 'xMidYMid slice') {
+  const g = el('g', {}, parent), id = 'ph' + (++PID);
+  const cp = el('clipPath', { id }, M.defs); el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22 }, cp);
+  el('rect', { x: -w / 2 + 14, y: -h / 2 + 14, width: w, height: h, rx: 22, fill: INK }, g);
+  el('image', { href, x: -w / 2, y: -h / 2, width: w, height: h, preserveAspectRatio: align, 'clip-path': `url(#${id})` }, g);
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: 'none', stroke: INK, 'stroke-width': 9 }, g);
+  if (credit) { const c = txt(g, credit, { size: 19, weight: 700, fill: CREAM, sw: 5, anchor: 'end' }); c.g.setAttribute('transform', `translate(${fmt(w / 2 - 16)},${fmt(h / 2 - 16)})`); }
+  return g;
+}
+// Poulet de chair dessiné (origine aux pieds, ≈ 300 px de haut à s = 1).
+// set({ body, legs, sad, wob }) : body = taille du corps, legs = solidité des pattes (1 droites, 0 pliées).
+function chicken(parent, o = {}) {
+  const g = el('g', {}, parent);
+  const st = { stroke: INK, 'stroke-width': 7, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
+  const legs = el('g', {}, g);
+  const lL = el('path', { fill: 'none', stroke: ORA, 'stroke-width': 11, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, legs);
+  const lR = el('path', { fill: 'none', stroke: ORA, 'stroke-width': 11, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, legs);
+  const lLo = el('path', { fill: 'none', stroke: INK, 'stroke-width': 19, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, legs);
+  const lRo = el('path', { fill: 'none', stroke: INK, 'stroke-width': 19, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, legs);
+  legs.insertBefore(lLo, lL); legs.insertBefore(lRo, lL);
+  const body = el('g', {}, g);
+  el('path', { d: 'M70,-60 C130,-80 150,-150 120,-190 C110,-150 90,-130 70,-120 Z', fill: WHITE, ...st }, body);        // queue
+  el('ellipse', { cx: 0, cy: -100, rx: 105, ry: 85, fill: WHITE, ...st }, body);                                   // corps
+  el('path', { d: 'M-20,-110 C10,-70 60,-80 70,-110', fill: 'none', stroke: GREY, 'stroke-width': 8, 'stroke-linecap': 'round' }, body); // aile
+  const head = el('g', {}, body);
+  el('path', { d: 'M-95,-215 C-110,-240 -90,-250 -80,-232 C-78,-255 -55,-255 -58,-230 C-50,-248 -28,-240 -42,-215 Z', fill: RED, ...st, 'stroke-width': 5 }, head); // crête
+  el('circle', { cx: -70, cy: -185, r: 42, fill: WHITE, ...st }, head);
+  el('path', { d: 'M-112,-190 L-140,-180 L-110,-172 Z', fill: YEL, ...st, 'stroke-width': 5 }, head);              // bec
+  el('path', { d: 'M-108,-170 C-112,-150 -95,-148 -96,-166 Z', fill: RED, ...st, 'stroke-width': 4 }, head);         // barbillon
+  el('circle', { cx: -80, cy: -192, r: 7, fill: INK }, head);
+  const brow = el('path', { d: 'M-94,-212 L-70,-204', fill: 'none', stroke: INK, 'stroke-width': 5, 'stroke-linecap': 'round' }, head);
+  return {
+    g,
+    set({ body: b = 1, legs: lg = 1, sad = 0, wob = 0 } = {}) {
+      const bend = 1 - lg, ly = 90 * (1 - .55 * bend);                 // les pattes plient sous le poids
+      const leg = (x) => `M${x},-${fmt(ly + 10)} L${fmt(x + bend * 34)},-${fmt(ly * .5)} L${x},0 M${x - 22},0 L${x + 22},0`;
+      [lL, lLo].forEach(e => e.setAttribute('d', leg(-30))); [lR, lRo].forEach(e => e.setAttribute('d', leg(30)));
+      body.setAttribute('transform', `translate(0,${fmt(-(ly - 90))}) rotate(${fmt(wob)},0,-${fmt(ly)}) translate(0,${fmt(-100 * (b - 1) * .4)}) scale(${fmt(b)}) translate(0,${fmt(100 * (1 - 1 / b) * 0)})`);
+      brow.setAttribute('transform', `rotate(${fmt(sad * -22)},-82,-208)`);
+    },
+  };
+}
+// Barquette de nuggets (≈ 360 × 230).
+function nuggets(parent, label) {
+  const g = el('g', {}, parent);
+  card(g, -180, -100, 360, 210, RED, 26, 10, 8);
+  el('rect', { x: -150, y: -70, width: 300, height: 150, rx: 18, fill: YEL, stroke: INK, 'stroke-width': 5 }, g);
+  [[-90, -10, -12], [0, 10, 8], [90, -12, 20], [-45, 40, 30], [50, 45, -18]].forEach(([x, y, r]) =>
+    el('path', { d: 'M-42,-6 C-40,-30 0,-34 20,-28 C46,-22 48,10 30,24 C8,36 -30,34 -40,18 Z', fill: '#E3A44A', stroke: INK, 'stroke-width': 5, transform: `translate(${x},${y}) rotate(${r})` }, g));
+  if (label) { const c = chip(g, label, INK, CREAM, 40); c.update(0, -118, 1, -3); }
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  fr: Wt('En') - .2, how: Wt('Comment') - .2, gen: Wt('Depuis') - .25, test: Wt('chercheurs') - .45,
+  corps: Wt('problème') - .5, etude: Wt('grande') - .5, assis: Wt('Alors', 1, Wt('tout')) - .2,
+  dk: Wt('dernier') - .55, min: Wt('lendemain') - .4, p98: Wt('Et', 1, Wt("l'Europe", 1, Wt('lendemain'))) - .2,
+  fr2: Wt('En', 1, Wt('souches')) - .2, nug: Wt('Mais', 1, Wt('Coq')) - .2, cta: Wt('Et', 1, Wt('cher')) - .2,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : le poulet de tes nuggets… avait cinq semaines. Il ne tenait déjà plus debout ======
+S(0, T.fr, (cam) => {
+  const tAv = Wt('avait'), tSem = Wt('semaines'), tDeb = Wt('debout'), tMal = Wt('mal');
+  bg(cam);
+  const head = title(cam, ['LE POULET', ['DE TES NUGGETS', RED]], { size: 100, shadow: 0, sw: 12 });
+  const box = nuggets(cam, null);
+  const n = el('g', {}, cam), nb = bigNum(n, 118, RED); nb.set('5 SEMAINES');
+  const ch = chicken(cam);
+  return t => {
+    at(head, CX, 300, lerp(1.1, 1, p(t, 0, .3, E.out)), -2);
+    const kOut = p(t, tAv - .3, tAv);
+    at(box, CX, 600, 1.2 * pop(t, -.3, .35) * (1 - kOut), Math.sin(t * 1.5) * 2);
+    at(n, CX, 560, pop(t, tAv, .35), -3);
+    const kC = pop(t, tSem + .2, .4);
+    ch.set({ body: 1.15, legs: 1 - .8 * p(t, tMal, tDeb + .3), sad: 1, wob: Math.sin(t * 6) * 6 * p(t, tMal, tDeb) });
+    at(ch.g, CX + 40, 1030, .95 * kC);
+    shock(t, tSem, .3, .25);
+  };
+});
+
+// ====== 2. EN FRANCE : tué vers 35 jours, presque 2 kilos. Un poussin → 2 kilos en un mois ==========
+S(T.fr, T.how, (cam, a) => {
+  const t35 = Wt('35'), tKg = Wt('kilos'), tPou = Wt('poussin'), tKg2 = Wt('kilos', 2), tMois = Wt('mois');
+  bg(cam);
+  const tag = chip(cam, 'EN FRANCE', INK, CREAM, 50);
+  const cal = el('g', {}, cam);
+  card(cal, -230, -120, 460, 240, WHITE, 30, 12, 8);
+  el('rect', { x: -230, y: -120, width: 460, height: 70, rx: 26, fill: RED, stroke: INK, 'stroke-width': 8 }, cal);
+  const ct = txt(cal, 'POULET STANDARD', { size: 34, fill: CREAM }); ct.g.setAttribute('transform', 'translate(0,-72)');
+  const cn = el('text', { 'text-anchor': 'middle', 'font-size': 120, y: 75, fill: INK }, cal);
+  const tue = chip(cam, 'TUÉ VERS 35 JOURS', RED, CREAM, 48);
+  const kg = chip(cam, '⚖️ ≈ 2 KILOS', INK, CREAM, 52);
+  const ph = photo(cam, IMG.poussins, 380, 380, CRED.poussins.replace('Photo : ', ''));
+  const arrow = el('path', { d: 'M-70,0 L50,0 M20,-30 L55,0 L20,30', fill: 'none', stroke: INK, 'stroke-width': 14, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, cam);
+  const ch = chicken(cam);
+  const mo = stamp(cam, 'EN UN MOIS', RED, 70);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    const kA = 1 - p(t, tPou - .4, tPou - .1);
+    at(cal, CX, 520, pop(t, a + .1, .35) * kA, -2);
+    const d = Math.round(35 * p(t, a + .3, t35 + .2, E.out));
+    cn.textContent = d + ' J';
+    tue.update(CX, 720, pop(t, t35 - .1) * kA, 2);
+    kg.update(CX, 850, pop(t, tKg - .3) * kA, -2);
+    at(ph, CX - 230, 640, pop(t, tPou - .2, .35), -3);
+    at(arrow, CX + 10, 640, pop(t, tPou + .3, .3));
+    ch.set({ body: lerp(.6, 1.15, p(t, tPou + .3, tKg2, E.out)), sad: 1 });
+    at(ch.g, CX + 250, 820, pop(t, tPou + .3, .35));
+    mo.update(CX, 1010, t, tMois - .1, -4);
+    shock(t, tMois + .1, .3, .25);
+  };
+}, { swipe: RED });
+
+// ====== 3. COMMENT C'EST POSSIBLE ? Pas d'hormones (interdit en Europe). La génétique ===============
+S(T.how, T.gen, (cam, a) => {
+  const tHor = Wt('hormones'), tInt = Wt('interdit'), tGen = Wt('génétique');
+  bg(cam);
+  const head = title(cam, ["COMMENT C'EST", ['POSSIBLE ?', RED]], { size: 110, shadow: 0, sw: 12 });
+  const sy = el('g', {}, cam); emoji(sy, '💉', 190);
+  const no = chip(cam, 'HORMONES', INK, CREAM, 56);
+  const st = stamp(cam, 'INTERDIT EN EUROPE', RED, 46);
+  const dna = el('g', {}, cam); emoji(dna, '🧬', 230);
+  const gen = chip(cam, 'LA GÉNÉTIQUE', GREEN, INK, 70);
+  return t => {
+    at(head, CX, 300, pop(t, a + .05, .35), -2);
+    const kG = p(t, tGen - .4, tGen - .1);
+    at(sy, CX, 640, pop(t, tHor - .3, .35) * (1 - kG), -20);
+    no.update(CX, 800, pop(t, tHor - .1) * (1 - kG), 2);
+    st.update(CX, 960, t, tInt - .1, -5); show(st.g, t >= tInt - .1 && kG < 1);
+    at(dna, CX, 660, pop(t, tGen - .1, .4), Math.sin(t * 2) * 8);
+    gen.update(CX, 900, pop(t, tGen), -2);
+    shock(t, tInt + .1, .3, .2);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. DEPUIS DES DÉCENNIES : on garde les plus gros… et on les fait se reproduire ===============
+S(T.gen, T.test, (cam, a) => {
+  const tGar = Wt('garde'), tVite = Wt('vite', 1, a), tRep = Wt('reproduire');
+  bg(cam);
+  const head = title(cam, ['DEPUIS', ['DES DÉCENNIES', RED]], { size: 96, shadow: 0, sw: 12 });
+  const sizes = [.55, .7, 1, .6, .75];
+  const cs = sizes.map(() => chicken(cam));
+  const keep = chip(cam, 'ON GARDE LES PLUS GROS…', INK, CREAM, 44);
+  const rep = chip(cam, '…ET ON LES FAIT SE REPRODUIRE', RED, CREAM, 40);
+  const kids = [0, 1, 2].map(() => chicken(cam));
+  return t => {
+    at(head, CX, 290, pop(t, a + .05, .35), -2);
+    const kSel = p(t, tVite - .2, tVite + .3);
+    const kUp = p(t, tRep - .6, tRep);
+    cs.forEach((c, i) => {
+      const big = sizes[i] === 1;
+      c.set({ body: sizes[i] * (big ? 1 + .1 * kSel : 1), sad: .5 });
+      c.g.setAttribute('opacity', fmt(big ? 1 : 1 - .8 * kSel));
+      at(c.g, CX - 360 + i * 180, 820 - kUp * 0, pop(t, tGar - .8 + i * .08, .3) * .6 * (1 - kUp * (big ? 0 : 1)));
+    });
+    kids.forEach((c, i) => { c.set({ body: 1.15, sad: 1 }); at(c.g, CX - 260 + i * 260, 820, .6 * pop(t, tRep - .2 + i * .1, .35)); });
+    show(cs[2].g, kUp < .9);
+    keep.update(CX, 970, pop(t, tGar - .2) * (1 - kUp), -2);
+    rep.update(CX, 970, pop(t, tRep - .4), 2);
+  };
+}, { swipe: RED });
+
+// ====== 5. LE TEST CANADIEN : poulets de 1957 vs modernes, même nourriture ; 8 semaines : 900 g vs 4 kg+ ==
+S(T.test, T.corps, (cam, a) => {
+  const t57 = Wt('1957'), tMod = Wt('modernes'), tNou = Wt('nourriture'), tHuit = Wt('huit'), t900 = Wt('900'), tMod2 = Wt('moderne'), tQua = Wt('quatre', 1, tMod2);
+  bg(cam);
+  const tag = chip(cam, '🔬 ÉTUDE CANADIENNE (2014)', INK, CREAM, 42);
+  const L = chicken(cam), R = chicken(cam);
+  const yL = chip(cam, '1957', BLUE, CREAM, 48), yR = chip(cam, "AUJOURD'HUI", RED, CREAM, 48);
+  const food = chip(cam, 'MÊME NOURRITURE', GREEN, INK, 44);
+  const age = chip(cam, 'À 8 SEMAINES', INK, CREAM, 50);
+  const nL = el('g', {}, cam), bL = bigNum(nL, 96, BLUE); bL.set('900 G');
+  const nR = el('g', {}, cam), bR = bigNum(nR, 96, RED); bR.set('4,2 KG');
+  return t => {
+    tag.update(CX, 235, pop(t, a + .1), -2);
+    const g = p(t, tHuit, tQua + .4, E.out);
+    L.set({ body: .7 + .1 * g, sad: .3 }); R.set({ body: .75 + 1.0 * p(t, tMod2 - .2, tQua + .4, E.out), legs: 1 - .5 * p(t, tQua, tQua + .6), sad: 1 });
+    at(L.g, CX - 230, 880, pop(t, Wt('élevé') - .2, .35));
+    at(R.g, CX + 200, 880, pop(t, Wt('élevé') + .1, .35));
+    yL.update(CX - 230, 960, pop(t, t57 - .1), -2);
+    yR.update(CX + 200, 960, pop(t, tMod - .1), 2);
+    food.update(CX, 400, pop(t, tNou - .3) * (1 - p(t, tHuit - .3, tHuit)), -2);
+    age.update(CX, 400, pop(t, tHuit - .2), 2);
+    at(nL, CX - 230, 1090, pop(t, t900 - .1, .35), -3);
+    at(nR, CX + 200, 1090, pop(t, tQua - .1, .35), 3);
+    shock(t, tQua + .1, .3, .3);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. SON CORPS NE SUIT PAS : la viande pousse plus vite que les pattes et le cœur =============
+S(T.corps, T.etude, (cam, a) => {
+  const tSuit = Wt('suit'), tVia = Wt('viande'), tPat = Wt('pattes'), tCoe = Wt('cœur');
+  bg(cam);
+  const head = title(cam, ['SON CORPS', ['NE SUIT PAS', RED]], { size: 110, shadow: 0, sw: 12 });
+  const ch = chicken(cam);
+  const c1 = chip(cam, '🍗 VIANDE ↑↑', GREEN, INK, 44), c2 = chip(cam, 'PATTES ✗', RED, CREAM, 44), c3 = chip(cam, 'CŒUR ✗', RED, CREAM, 44);
+  return t => {
+    at(head, CX, 300, pop(t, a + .05, .35), -2);
+    ch.set({ body: lerp(1.2, 1.55, p(t, tVia - .2, tVia + .6, E.out)), legs: 1 - .75 * p(t, tSuit, tPat + .4), sad: 1, wob: Math.sin(t * 5) * 4 });
+    at(ch.g, CX - 140, 1000, .95 * pop(t, a + .1, .4));
+    c1.update(CX + 250, 560, pop(t, tVia - .1), 3);
+    c2.update(CX + 270, 700, pop(t, tPat - .2), -3);
+    c3.update(CX + 270, 830, pop(t, tCoe - .2), 3);
+    shock(t, tPat, .3, .2);
+  };
+}, { swipe: RED });
+
+// ====== 7. ÉTUDE BRITANNIQUE, 51 000 POULETS : plus d'un sur quatre marchait mal ======================
+S(T.etude, T.assis, (cam, a) => {
+  const t51 = Wt('51'), tPlus = Wt('Plus', 1, t51), tQua = Wt('quatre', 1, t51), tCer = Wt('certains');
+  bg(cam);
+  const tag = chip(cam, 'ÉTUDE BRITANNIQUE', INK, CREAM, 46);
+  const n = el('g', {}, cam), nb = bigNum(n, 130, INK);
+  const sub = chip(cam, 'POULETS OBSERVÉS', INK, CREAM, 40);
+  const cs = [0, 1, 2, 3].map(() => chicken(cam));
+  const r = title(cam, ["PLUS D'1 SUR 4", ['MARCHAIT MAL', RED]], { size: 80, shadow: 0, sw: 11 });
+  const c2 = chip(cam, 'CERTAINS NE MARCHAIENT PRESQUE PLUS', RED, CREAM, 34);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .1), -2);
+    nb.set(Math.round(51000 * p(t, t51 - .2, t51 + .6, E.out)).toLocaleString('fr-FR').replace(/ | /g, ' '));
+    nb.t.setAttribute('fill', WHITE);
+    const kN = 1 - p(t, tPlus - .3, tPlus);
+    at(n, CX, 430, pop(t, t51 - .3, .35) * kN, -2);
+    sub.update(CX, 560, pop(t, t51 + .2) * kN, 2);
+    at(r, CX, 410, pop(t, tPlus - .1, .35), -1);
+    cs.forEach((c, i) => {
+      const bad = i === 3;
+      c.set({ body: 1.1, legs: bad ? 1 - .85 * p(t, tQua, tQua + .5) : 1, sad: 1 });
+      at(c.g, CX - 330 + i * 220, 870, .7 * pop(t, tPlus + i * .1, .3));
+      c.g.setAttribute('opacity', t < tQua || bad ? 1 : .45);
+    });
+    c2.update(CX, 1010, pop(t, tCer - .2), 2);
+    shock(t, tQua + .2, .3, .2);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. ALORS ILS RESTENT ASSIS : une vingtaine par m², la place d'une douche ======================
+S(T.assis, T.dk, (cam, a) => {
+  const tAss = Wt('assis'), tVin = Wt('vingtaine'), tDou = Wt('douche');
+  bg(cam);
+  const head = title(cam, ['ILS RESTENT', ['ASSIS', RED]], { size: 110, shadow: 0, sw: 12 });
+  const ph = photo(cam, IMG.assis, 860, 520, CRED.assis);
+  const ph2 = photo(cam, IMG.hangar, 860, 520, CRED.hangar);
+  const sq = el('g', {}, cam);
+  el('rect', { x: -170 + 12, y: -170 + 12, width: 340, height: 340, fill: INK }, sq);
+  el('rect', { x: -170, y: -170, width: 340, height: 340, fill: WHITE, stroke: INK, 'stroke-width': 9, 'stroke-dasharray': '30 16' }, sq);
+  const dots = Array.from({ length: 20 }, (_, i) => { const g = el('g', {}, sq); const c = chicken(g); c.set({ body: 1.1, sad: 1 }); return { g, x: -125 + (i % 5) * 62 + (Math.floor(i / 5) % 2) * 20, y: -110 + Math.floor(i / 5) * 62 + 50 }; });
+  const m2 = chip(cam, '≈ 20 POULETS / M²', INK, CREAM, 44);
+  const sh = el('g', {}, cam); emoji(sh, '🚿', 150);
+  const dou = chip(cam, 'LA PLACE D\'UNE DOUCHE', RED, CREAM, 44);
+  return t => {
+    const kV = p(t, tVin - .4, tVin - .1);
+    at(head, CX, 290, pop(t, a + .05, .35) * (1 - kV), -2);
+    at(ph, CX, 700, pop(t, a + .1, .35) * (1 - kV), -2);
+    at(ph2, CX, 470, pop(t, tVin - .2, .35) * .75, 2);
+    m2.update(CX, 712, pop(t, tVin), -2);
+    at(sq, CX - 120, 895, pop(t, tVin + .2, .35) * .8);
+    dots.forEach((d, i) => at(d.g, d.x, d.y, .17 * pop(t, tVin + .3 + i * .03, .25)));
+    at(sh, CX + 230, 890, pop(t, tDou - .3, .35));
+    dou.update(CX, 1095, pop(t, tDou - .1), 3);
+  };
+}, { swipe: RED });
+
+// ====== 9. DANEMARK, LE MOIS DERNIER : caméra cachée, nuit de 3 h (la loi : 6 h) — plus de lumière = plus manger
+S(T.dk, T.min, (cam, a) => {
+  const tDan = Wt('Danemark'), tCam = Wt('caméra'), tNuit = Wt('nuit'), tTro = Wt('trois'), tLoi = Wt('loi'), tSix = Wt('six'), tLum = Wt('lumière'), tMan = Wt('manger');
+  bg(cam);
+  const tag = chip(cam, 'DANEMARK · OCTOBRE 2026', RED, CREAM, 44);
+  const cm = el('g', {}, cam); emoji(cm, '🎥', 150);
+  const cc = chip(cam, 'CAMÉRA CACHÉE', INK, CREAM, 50);
+  const bar = (col, lab) => { const g = el('g', {}, cam); card(g, -380, -50, 760, 100, WHITE, 24, 8, 6); const f = el('rect', { x: -380, y: -50, width: 0, height: 100, rx: 24, fill: col }, g); el('rect', { x: -380, y: -50, width: 760, height: 100, rx: 24, fill: 'none', stroke: INK, 'stroke-width': 6 }, g); const tx = txt(g, lab, { size: 44, fill: INK }); tx.g.setAttribute('transform', 'translate(0,16)'); return { g, f }; };
+  const b1 = bar(NIGHT, ''), b2 = bar(GREEN, '');
+  const l1 = chip(cam, '🌙 NUIT : 3 H', NIGHT, CREAM, 46), l2 = chip(cam, '⚖️ LA LOI : 6 H MINIMUM', GREEN, INK, 42);
+  const bulb = el('g', {}, cam); emoji(bulb, '💡', 150);
+  const eat = title(cam, ['PLUS DE LUMIÈRE', ['= PLUS DE TEMPS', RED], ['POUR MANGER', RED]], { size: 62, shadow: 0, sw: 9 });
+  return t => {
+    tag.update(CX, 235, pop(t, tDan - .3), -2);
+    const kL = p(t, tLum - .4, tLum - .1);
+    at(cm, CX - 200, 450, pop(t, a + .2, .35) * (1 - kL), -8);
+    cc.update(CX + 120, 450, pop(t, tCam), 3); show(cc.g, kL < 1);
+    at(b1.g, CX, 640, pop(t, tNuit - .2, .3) * (1 - kL));
+    b1.f.setAttribute('width', fmt(760 * .125 * p(t, tTro - .1, tTro + .4)));      // 3 h sur 24
+    l1.update(CX, 750, pop(t, tTro - .1) * (1 - kL), -2);
+    at(b2.g, CX, 880, pop(t, tLoi - .2, .3) * (1 - kL));
+    b2.f.setAttribute('width', fmt(760 * .25 * p(t, tSix - .1, tSix + .4)));       // 6 h sur 24
+    l2.update(CX, 990, pop(t, tSix - .1) * (1 - kL), 2);
+    at(bulb, CX, 560, pop(t, tLum - .2, .35) * (1 + .05 * Math.sin(t * 8)));
+    at(eat, CX, 840, pop(t, tLum + .1, .35), -1);
+    shock(t, tTro + .1, .3, .25);
+    shock(t, tMan, .3, .15);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. LE LENDEMAIN : le ministre danois veut les interdire, chez lui… puis dans toute l'Europe ======
+S(T.min, T.p98, (cam, a) => {
+  const tMin = Wt('ministre'), tInt = Wt('interdire'), tChez = Wt('Chez'), tEur = Wt("l'Europe", 1, a);
+  bg(cam);
+  const tag = chip(cam, 'LE LENDEMAIN', INK, CREAM, 46);
+  const head = title(cam, ['LE MINISTRE DANOIS', ['VEUT LES INTERDIRE', RED]], { size: 74, shadow: 0, sw: 10 });
+  const ch = chicken(cam);
+  const st = stamp(cam, 'INTERDIT', RED, 90);
+  const c1 = chip(cam, '1. AU DANEMARK', RED, CREAM, 46), c2 = chip(cam, '2. DANS TOUTE L\'EUROPE', BLUE, CREAM, 46);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .1), -2);
+    at(head, CX, 400, pop(t, tMin - .3, .35), -1);
+    ch.set({ body: 1.3, legs: .4, sad: 1 });
+    at(ch.g, CX, 820, .9 * pop(t, tMin, .35));
+    st.update(CX, 700, t, tInt - .1, -8);
+    c1.update(CX, 950, pop(t, tChez - .1), -2);
+    c2.update(CX, 1070, pop(t, tEur - .3), 2);
+    shock(t, tInt + .1, .3, .25);
+  };
+}, { swipe: RED });
+
+// ====== 11. PAS UNE PETITE NICHE : selon LDC, 98 % des poulets du monde viennent de ces souches =======
+S(T.p98, T.fr2, (cam, a) => {
+  const tNi = Wt('niche'), tGe = Wt('géant'), t98 = Wt('98'), tMon = Wt('monde');
+  bg(cam);
+  const head = title(cam, ['PAS UNE', ['PETITE NICHE', RED]], { size: 100, shadow: 0, sw: 12 });
+  const src = chip(cam, 'SELON LE GROUPE LDC (GÉANT DE LA VOLAILLE)', INK, CREAM, 30);
+  const globe = el('g', {}, cam); emoji(globe, '🌍', 240);
+  const n = el('g', {}, cam), nb = bigNum(n, 220, RED);
+  const sub = chip(cam, 'DES POULETS DU MONDE', INK, CREAM, 46);
+  return t => {
+    at(head, CX, 300, pop(t, a + .05, .35) * (1 - p(t, tGe - .3, tGe)), -2);
+    src.update(CX, 290, pop(t, tGe - .1), 2);
+    at(globe, CX, 640, pop(t, tNi - .1, .4) * (1 - p(t, t98 - .3, t98)), t * 5);
+    nb.set(Math.round(98 * p(t, t98 - .1, t98 + .5, E.out)) + ' %');
+    at(n, CX, 680, pop(t, t98 - .2, .35), -3);
+    sub.update(CX, 900, pop(t, tMon - .3), 2);
+    shock(t, t98 + .4, .3, .3);
+  };
+}, { swipe: GREEN });
+
+// ====== 12. EN FRANCE : Le Gaulois et Maître Coq promettent des poulets plus lents, d'ici 2028 ============
+S(T.fr2, T.nug, (cam, a) => {
+  const tMar = Wt('marques'), tLen = Wt('lentement'), tGau = Wt('Gaulois'), tMai = Wt('Maître'), t28 = Wt('2028');
+  bg(cam);
+  const tag = chip(cam, 'EN FRANCE', INK, CREAM, 50);
+  const head = title(cam, ['DES MARQUES', ['ONT PROMIS', GREEN]], { size: 96, shadow: 0, sw: 12 });
+  const tu = el('g', {}, cam); emoji(tu, '🐢', 150);
+  const len = chip(cam, 'DES POULETS QUI GRANDISSENT PLUS LENTEMENT', GREEN, INK, 30);
+  const b1 = chip(cam, 'LE GAULOIS', RED, CREAM, 56), b2 = chip(cam, 'MAÎTRE COQ', INK, CREAM, 56);
+  const yr = stamp(cam, "D'ICI 2028", GREEN, 56);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(head, CX, 400, pop(t, tMar - .3, .35), -1);
+    at(tu, CX, 620, pop(t, tLen - .5, .35), Math.sin(t * 2) * 4);
+    len.update(CX, 760, pop(t, tLen - .3), 2);
+    b1.update(CX, 880, pop(t, tGau - .2), -3);
+    b2.update(CX, 985, pop(t, tMai - .2), 3);
+    yr.update(CX, 1110, t, t28 - .1, -4);
+  };
+}, { swipe: RED });
+
+// ====== 13. MAIS POUR LES NUGGETS ET LES PLATS TOUT PRÊTS : « changer coûte trop cher » ================
+S(T.nug, T.cta, (cam, a) => {
+  const tNug = Wt('nuggets', 2), tPla = Wt('plats'), tFil = Wt('filière'), tCh = Wt('cher');
+  bg(cam);
+  const head = title(cam, ['MAIS…'], { size: 120, shadow: 0 });
+  const box = nuggets(cam, 'NUGGETS');
+  const pl = chip(cam, 'PLATS TOUT PRÊTS', INK, CREAM, 46);
+  const fil = chip(cam, 'LA FILIÈRE :', INK, CREAM, 44);
+  const st = stamp(cam, 'TROP CHER DE CHANGER', RED, 56);
+  const m = el('g', {}, cam); emoji(m, '💰', 120);
+  return t => {
+    at(head, CX, 280, pop(t, a + .05, .35), -2);
+    at(box, CX, 560, 1.2 * pop(t, tNug - .3, .35), -3);
+    pl.update(CX, 760, pop(t, tPla - .2), 2);
+    fil.update(CX, 900, pop(t, tFil - .2), -2);
+    st.update(CX, 1040, t, tCh - .4, -4);
+    at(m, CX + 330, 560, pop(t, tCh - .5, .35), 10);
+    shock(t, tCh, .3, .25);
+  };
+}, { swipe: GREEN });
+
+// ====== 14. FIN : et toi… tu savais que ton poulet avait cinq semaines ? ===========================
+S(T.cta, M.DUR, (cam, a) => {
+  const tSav = Wt('savais'), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire');
+  bg(cam);
+  const q = title(cam, ['ET TOI, TU SAVAIS', ['QUE TON POULET', RED], ['AVAIT 5 SEMAINES ?', RED]], { size: 76, shadow: 0, sw: 11 });
+  const ch = chicken(cam);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 150);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 330, pop(t, a + .05, .35), -2);
+    ch.set({ body: 1.15, sad: 1, legs: .7 });
+    at(ch.g, CX - 140, 860, .8 * pop(t, tSav - .2, .35));
+    at(cta, CX, 1090, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 220, 720, pop(t, tDis - .3, .4) * (1 + .06 * Math.sin(t * 5)), Math.sin(t * 2.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 5)) * 14, pop(t, tCm + .2), 0);
+  };
+}, { swipe: RED });
+
+captions({ until: T.cta + .2 });
+Motion.selene({ env: window.ENV, mood: 'sad', pos: t => ({ x: 165, y: 1660, k: E.out(clamp((t - .1) / .5)) }) });
+start();
+})();
+</script>
+</body>
+</html>
