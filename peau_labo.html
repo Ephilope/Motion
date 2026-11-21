@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peau humaine fabriquée en labo</title>
+</head>
+<body>
+<!-- Vidéo TikTok « Greffé avec la peau d'un mort ? Des Français ont fabriqué une peau qui pourrait la remplacer »
+     (charte : docs/MODELE.md), avec Séléné en bas à gauche, ton curieux et plein d'espoir.
+     Sujet du 21 novembre 2026, choisi par Benoit : projet GENESIS (Urgo, CNRS, Lyon 1, CECS/I-Stem, EFS, Dassault Systèmes).
+     Voix-off : scripts/peau_labo.txt → node tools/voix.mjs peau_labo ; node tools/enveloppe.mjs peau_labo
+     Chiffres et sources : en tête de scripts/peau_labo.txt. Tout est dessiné (pas de photo). -->
+<script src="lib/motion.js"></script>
+<script src="assets/peau_labo_words.js"></script>
+<script src="assets/peau_labo_env.js"></script>
+<script src="lib/selene.js"></script>
+<script>
+(async () => {
+const { M, setup, start, S, Wt, captions, addShake, E, p, pop, lerp, clamp, fmt, el, set, show, tf, txt, title, card, chip, emoji, bg, burst, sparkles } = Motion;
+await setup({
+  duration: 104,
+  words: window.WORDS,
+  audio: 'assets/voix_peau_labo.mp3',
+  emojis: '🔥🩹💀🧫🔬❄️🏥📦💶⏳🤔💬👇🇫🇷🛡️❤️✅❌🧬',
+});
+const { W, H, CX } = M, { GREEN, RED, CREAM, INK, WHITE } = M.C;
+const YEL = '#FFD23F', ORA = '#F39C12', BLUE = '#3498DB', ICE = '#BFE6FF', GREY = '#B8B2A7';
+const SKIN = '#F2C4A0', SKIN_D = '#D99A78', EPI = '#F7CDB8', DER = '#E59A8A', HYPO = '#F6DB8C', BURN = '#E74C3C';
+
+// --- briques propres à cette vidéo ----------------------------------------------
+const at = (g, x, y, s = 1, r = 0) => tf(g, x, y, s, r);
+const hit = (t, t0, w = .3) => Math.max(0, 1 - Math.abs(t - t0) / w);
+const shock = (t, t0, w = .3, k = .5) => addShake(hit(t, t0, w) * k);
+function stamp(parent, str, color = RED, size = 100) {
+  const g = el('g', {}, parent), inner = el('g', {}, g);
+  const t = txt(inner, str, { size, fill: color });
+  t.t.setAttribute('y', size * .36);
+  const w = t.w + size * .9, h = size * 1.5;
+  inner.insertBefore(el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 22, fill: CREAM, stroke: color, 'stroke-width': 14 }), t.g);
+  inner.insertBefore(el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 22, fill: INK }), inner.firstChild);
+  return { g, update(x, y, t, t0, r = -6) { const k = clamp((t - t0) / .25); show(g, t >= t0); tf(g, x, y, 1, r); tf(inner, 0, 0, lerp(2.2, 1, E.out(k))); g.setAttribute('opacity', fmt(Math.min(1, k * 2))); } };
+}
+function bigNum(parent, size, fill = RED) {
+  const t = el('text', { 'text-anchor': 'middle', 'font-size': size, y: size * .36, fill, stroke: INK, 'stroke-width': size * .09, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, parent);
+  return { t, set(s) { t.textContent = s; } };
+}
+let CID = 0;
+// Morceau de peau en coupe (épiderme, derme, hypoderme), centré, w × h.
+function skin(parent, w = 340, h = 220, o = {}) {
+  const g = el('g', {}, parent), id = 'sk' + (++CID);
+  const cp = el('clipPath', { id }, M.defs); el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 26 }, cp);
+  el('rect', { x: -w / 2 + 12, y: -h / 2 + 12, width: w, height: h, rx: 26, fill: INK }, g);
+  const c = el('g', { 'clip-path': `url(#${id})` }, g);
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, fill: HYPO }, c);
+  el('path', { d: `M${-w / 2},${-h * .02} ${Array.from({ length: 9 }, (_, i) => `Q${fmt(-w / 2 + w * (i + .5) / 9)},${fmt(h * (i % 2 ? .12 : -.1))} ${fmt(-w / 2 + w * (i + 1) / 9)},${fmt(h * .02)}`).join(' ')} L${w / 2},${-h / 2} L${-w / 2},${-h / 2} Z`, fill: DER, stroke: INK, 'stroke-width': 4 }, c);
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h * .2, fill: o.top || EPI, stroke: INK, 'stroke-width': 4 }, c);
+  [[-.3, .3], [-.05, .35], [.25, .28], [.38, .4], [-.4, .42]].forEach(([x, y]) => el('circle', { cx: x * w, cy: y * h, r: h * .05, fill: '#F9E7B5', stroke: INK, 'stroke-width': 3 }, c));
+  [-.28, .05, .32].forEach(x => el('path', { d: `M${x * w},${-h * .5} q${w * .03},${-h * .18} ${w * .01},${-h * .3}`, fill: 'none', stroke: INK, 'stroke-width': 4, 'stroke-linecap': 'round' }, g));
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 26, fill: 'none', stroke: INK, 'stroke-width': 8 }, g);
+  return g;
+}
+// Silhouette de face (origine au centre du torse, ≈ 700 px de haut). burn(k) : brûlure qui monte des pieds (0 → 1).
+function body(parent, o = {}) {
+  const g = el('g', {}, parent), id = 'bd' + (++CID);
+  const parts = [
+    ['circle', { cx: 0, cy: -270, r: 72 }],
+    ['rect', { x: -110, y: -190, width: 220, height: 280, rx: 60 }],
+    ['rect', { x: -170, y: -180, width: 62, height: 270, rx: 31, transform: 'rotate(8,-139,-180)' }],
+    ['rect', { x: 108, y: -180, width: 62, height: 270, rx: 31, transform: 'rotate(-8,139,-180)' }],
+    ['rect', { x: -100, y: 60, width: 88, height: 330, rx: 40 }],
+    ['rect', { x: 12, y: 60, width: 88, height: 330, rx: 40 }],
+  ];
+  const sh = el('g', { transform: 'translate(12,12)' }, g);
+  parts.forEach(([t, a]) => el(t, { ...a, fill: INK }, sh));
+  parts.forEach(([t, a]) => el(t, { ...a, fill: SKIN, stroke: INK, 'stroke-width': 7 }, g));
+  const cp = el('clipPath', { id }, M.defs); const cr = el('rect', { x: -260, y: 400, width: 520, height: 0 }, cp);
+  const bu = el('g', { 'clip-path': `url(#${id})` }, g);
+  parts.forEach(([t, a]) => el(t, { ...a, fill: BURN, stroke: INK, 'stroke-width': 7 }, bu));
+  // visage
+  el('circle', { cx: -24, cy: -278, r: 8, fill: INK }, g); el('circle', { cx: 24, cy: -278, r: 8, fill: INK }, g);
+  const mouth = el('path', { d: 'M-22,-240 Q0,-226 22,-240', fill: 'none', stroke: INK, 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+  return {
+    g,
+    burn(k) { const top = 400 - 760 * k; set(cr, { y: fmt(top), height: fmt(400 - top) }); mouth.setAttribute('d', k > .3 ? 'M-22,-232 Q0,-248 22,-232' : 'M-22,-240 Q0,-226 22,-240'); },
+  };
+}
+// Boîte de Petri vue de dessus, avec des cellules qui se multiplient (n de 0 à 1).
+function petri(parent, r = 200) {
+  const g = el('g', {}, parent);
+  el('circle', { cx: 12, cy: 12, r, fill: INK }, g);
+  el('circle', { r, fill: '#E8F6FF', stroke: INK, 'stroke-width': 8 }, g);
+  el('circle', { r: r * .86, fill: '#FCE3D6', stroke: INK, 'stroke-width': 4, opacity: .9 }, g);
+  const cells = [];
+  for (let i = 0; i < 60; i++) {
+    const a = i * 2.39996, d = r * .78 * Math.sqrt((i + .5) / 60);
+    cells.push(el('circle', { cx: fmt(Math.cos(a) * d), cy: fmt(Math.sin(a) * d), r: r * .07, fill: DER, stroke: INK, 'stroke-width': 3 }, g));
+  }
+  el('path', { d: `M${-r * .55},${-r * .6} q${r * .2},${-r * .15} ${r * .45},${-r * .2}`, fill: 'none', stroke: WHITE, 'stroke-width': 10, 'stroke-linecap': 'round', opacity: .8 }, g);
+  return { g, set(n) { cells.forEach((c, i) => show(c, i < Math.round(n * cells.length))); } };
+}
+// Calendrier qui tourne les semaines.
+function calendar(parent) {
+  const g = el('g', {}, parent);
+  card(g, -170, -150, 340, 300, WHITE, 28, 12, 8);
+  el('rect', { x: -170, y: -150, width: 340, height: 80, rx: 26, fill: RED, stroke: INK, 'stroke-width': 8 }, g);
+  const h = txt(g, 'SEMAINE', { size: 40, fill: CREAM }); h.g.setAttribute('transform', 'translate(0,-96)');
+  const n = el('text', { 'text-anchor': 'middle', 'font-size': 150, y: 100, fill: INK }, g);
+  return { g, set(v) { n.textContent = String(v); } };
+}
+// Pansement (sans logo).
+function plaster(parent) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -210 + 12, y: -70 + 12, width: 420, height: 140, rx: 70, fill: INK }, g);
+  el('rect', { x: -210, y: -70, width: 420, height: 140, rx: 70, fill: '#F4B183', stroke: INK, 'stroke-width': 8 }, g);
+  el('rect', { x: -75, y: -55, width: 150, height: 110, rx: 18, fill: CREAM, stroke: INK, 'stroke-width': 5 }, g);
+  [[-150, -20], [-130, 20], [-170, 10], [130, -20], [150, 20], [170, -5]].forEach(([x, y]) => el('circle', { cx: x, cy: y, r: 7, fill: SKIN_D }, g));
+  return g;
+}
+// Tube à essai (banque de cellules).
+function vial(parent, col = DER) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -32 + 8, y: -120 + 8, width: 64, height: 240, rx: 32, fill: INK }, g);
+  el('rect', { x: -32, y: -120, width: 64, height: 240, rx: 32, fill: WHITE, stroke: INK, 'stroke-width': 7 }, g);
+  el('rect', { x: -26, y: 0, width: 52, height: 114, rx: 26, fill: col }, g);
+  el('rect', { x: -40, y: -140, width: 80, height: 40, rx: 10, fill: BLUE, stroke: INK, 'stroke-width': 7 }, g);
+  return g;
+}
+// Thermomètre (v de 0 à 1 : niveau).
+function thermo(parent) {
+  const g = el('g', {}, parent);
+  el('rect', { x: -40 + 10, y: -300 + 10, width: 80, height: 520, rx: 40, fill: INK }, g);
+  el('rect', { x: -40, y: -300, width: 80, height: 520, rx: 40, fill: WHITE, stroke: INK, 'stroke-width': 8 }, g);
+  const bulb = el('circle', { cy: 240, r: 75, fill: BLUE, stroke: INK, 'stroke-width': 8 }, g);
+  const lvl = el('rect', { x: -20, width: 40, rx: 20, fill: BLUE }, g);
+  for (let i = 0; i < 8; i++) el('line', { x1: 40, x2: 62, y1: -250 + i * 60, y2: -250 + i * 60, stroke: INK, 'stroke-width': 6 }, g);
+  return { g, set(v, col) { const top = lerp(-270, 180, 1 - v); set(lvl, { y: fmt(top), height: fmt(240 - top), fill: col }); bulb.setAttribute('fill', col); } };
+}
+// Carton « PEAU » pour l'étagère.
+function box(parent, label = 'PEAU') {
+  const g = el('g', {}, parent);
+  card(g, -110, -80, 220, 160, ICE, 18, 10, 7);
+  el('rect', { x: -110, y: -80, width: 220, height: 40, rx: 16, fill: BLUE, stroke: INK, 'stroke-width': 7 }, g);
+  const t = txt(g, label, { size: 44 }); t.g.setAttribute('transform', 'translate(0,46)');
+  const s = el('g', {}, g); emoji(s, '❄️', 40); s.setAttribute('transform', 'translate(70,-60)');
+  return g;
+}
+// Petit drapeau français.
+function flag(parent, w = 120) {
+  const g = el('g', {}, parent), h = w * .66;
+  el('rect', { x: -w / 2 + 8, y: -h / 2 + 8, width: w, height: h, rx: 10, fill: INK }, g);
+  [BLUE, WHITE, RED].forEach((c, i) => el('rect', { x: -w / 2 + i * w / 3, y: -h / 2, width: w / 3, height: h, fill: c }, g));
+  el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 10, fill: 'none', stroke: INK, 'stroke-width': 6 }, g);
+  return g;
+}
+
+// --- débuts de scène, calés sur la voix ------------------------------------------
+const T = {
+  how: Wt('Mais') - .2, auto: Wt('Le') - .25, tout: Wt('quand') - .3, cult: Wt('Alors') - .2,
+  don: Wt('attendant') - .45, hier: Wt('Hier') - .2, idee: Wt('Leur') - .2, froid: Wt('détail') - .55,
+  stock: Wt('Imagine') - .2, cent: Wt('Ils', 1, Wt('Imagine')) - .2, att: Wt('attention') - .5,
+  q: Wt('vraie') - .45, cta: Wt('toi', 1, Wt('Réponse')) - .45,
+};
+const tDis = Wt('Dis-le');
+
+// ====== 1. ACCROCHE : si tu te brûles gravement… on peut te greffer… la peau d'un mort.
+//        Des Français viennent de fabriquer une peau… qui pourrait la remplacer. (sujet à l'écran dès la 1re image)
+S(0, T.how, (cam) => {
+  const tMort = Wt('mort'), tFr = Wt('Français'), tFab = Wt('fabriquer'), tRem = Wt('remplacer');
+  bg(cam);
+  const head = title(cam, ['GREFFÉ AVEC', ['LA PEAU', RED], ["D'UN MORT ?", RED]], { size: 112, shadow: 0, sw: 13 });
+  const sk = skin(cam, 380, 240);
+  const skull = el('g', {}, cam); emoji(skull, '💀', 130);
+  const fire = el('g', {}, cam); emoji(fire, '🔥', 130);
+  const fr = flag(cam, 130);
+  const h2 = title(cam, ['DES FRANÇAIS', ['ONT FABRIQUÉ', GREEN], ['UNE PEAU', GREEN]], { size: 100, shadow: 0, sw: 13 });
+  const lab = chip(cam, 'EN LABORATOIRE', INK, CREAM, 50);
+  const rem = chip(cam, 'QUI POURRAIT LA REMPLACER', GREEN, INK, 44);
+  const sp = sparkles(cam, 8, 5, 215);
+  return t => {
+    const kB = p(t, tFr - .45, tFr - .15);
+    at(head, CX, 360, lerp(1.08, 1, p(t, 0, .3, E.out)) * (1 - kB), -2);
+    at(fire, CX + 270, 700, pop(t, -.3, .35) * (1 - kB) * (1 + .08 * Math.sin(t * 9)), Math.sin(t * 7) * 6);
+    at(skull, CX - 260, 690, pop(t, tMort - .2, .4) * (1 - kB), -10);
+    at(sk, CX, lerp(870, 905, p(t, tFr - .4, tFr)), pop(t, -.2, .35), -3);
+    at(fr, CX, 215, pop(t, tFr - .2, .35), -6);
+    at(h2, CX, 425, pop(t, tFr - .15, .35), -2);
+    lab.update(CX, 690, pop(t, tFab - .1), 2);
+    rem.update(CX, 1105, pop(t, tRem - .25), -2);
+    sp.update(CX, 905, p(t, tFab, tFab + .3) , t);
+    shock(t, tMort + .1, .3, .45);
+  };
+});
+
+// ====== 2. MAIS D'ABORD… COMMENT ON SOIGNE UNE GROSSE BRÛLURE AUJOURD'HUI ? =======================
+S(T.how, T.auto, (cam, a) => {
+  const tCom = Wt('comment'), tBr = Wt('brûlure'), tAuj = Wt("aujourd'hui");
+  bg(cam);
+  const tag = chip(cam, "MAIS D'ABORD…", INK, CREAM, 50);
+  const head = title(cam, ['COMMENT', 'ON SOIGNE', ['UNE GROSSE', RED], ['BRÛLURE ?', RED]], { size: 108, shadow: 0, sw: 13 });
+  const fire = el('g', {}, cam); emoji(fire, '🔥', 170);
+  const auj = chip(cam, "AUJOURD'HUI", RED, CREAM, 52);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(head, CX, 560, pop(t, tCom - .25, .35), -2);
+    at(fire, CX, 900, pop(t, tBr - .2, .4) * (1 + .07 * Math.sin(t * 9)), Math.sin(t * 7) * 6);
+    auj.update(CX, 1070, pop(t, tAuj - .2), 3);
+  };
+}, { swipe: RED });
+
+// ====== 3. AUTOGREFFE : on prend de la peau saine ailleurs (cuisse, dos) → une deuxième plaie =========
+S(T.auto, T.tout, (cam, a) => {
+  const tSai = Wt('saine'), tCui = Wt('cuisse'), tPos = Wt('posent'), tRep = Wt('réparer'), tDeu = Wt('deuxième');
+  bg(cam);
+  const tag = chip(cam, "L'AUTOGREFFE", INK, CREAM, 50);
+  const bd = body(cam);
+  const burnArm = el('ellipse', { rx: 34, ry: 62, fill: BURN, stroke: INK, 'stroke-width': 6 }, cam);
+  const take = el('rect', { x: -40, y: -60, width: 80, height: 120, rx: 14, fill: 'none', stroke: INK, 'stroke-width': 7, 'stroke-dasharray': '16 10' }, cam);
+  const wound = el('rect', { x: -38, y: -58, width: 76, height: 116, rx: 14, fill: '#C0392B' }, cam);
+  const patch = skin(cam, 90, 120);
+  const arrow = el('path', { d: '', fill: 'none', stroke: INK, 'stroke-width': 12, 'stroke-linecap': 'round', 'stroke-dasharray': '22 14' }, cam);
+  const sai = chip(cam, 'PEAU SAINE', GREEN, INK, 44);
+  const cui = chip(cam, 'CUISSE, DOS…', INK, CREAM, 42);
+  const st = stamp(cam, '2 PLAIES', RED, 90);
+  const bx = CX + 40, by = 640;
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(bd.g, bx, by, .92 * pop(t, a + .1, .4)); bd.burn(0);
+    at(burnArm, bx + 150, by - 40, pop(t, a + .3, .35), 8);
+    // zone prélevée sur la cuisse gauche
+    const tx = bx - 52, ty = by + 250;
+    const kT = p(t, tPos - .2, tPos + .6, E.inOut);
+    at(take, tx, ty, pop(t, tCui - .3, .3), 0);
+    show(wound, t >= tPos - .2); at(wound, tx, ty, 1, 0);
+    at(patch, lerp(tx, bx + 150, kT), lerp(ty, by - 40, kT), pop(t, tSai - .2, .35) * lerp(1, .9, kT), lerp(0, 8, kT));
+    set(arrow, { d: `M${tx + 50},${ty - 40} Q${bx + 260},${by + 200} ${bx + 175},${by + 40}` }); show(arrow, t >= tSai && t < tPos + .6);
+    sai.update(240, ty - 120, pop(t, tSai - .2) * (1 - p(t, tRep - .3, tRep)), -4);
+    cui.update(230, ty + 110, pop(t, tCui - .2) * (1 - p(t, tRep - .3, tRep)), 3);
+    st.update(CX, 1080, t, tDeu - .2, -5);
+    shock(t, tDeu + .1, .3, .45);
+  };
+}, { swipe: GREEN });
+
+// ====== 4. ET QUAND PRESQUE TOUT LE CORPS EST BRÛLÉ ? Plus assez de peau à prendre ===============
+S(T.tout, T.cult, (cam, a) => {
+  const tBr = Wt('brûlé'), tAss = Wt('assez'), tPr = Wt('prendre');
+  bg(cam);
+  const head = title(cam, ['PRESQUE TOUT', ['LE CORPS BRÛLÉ ?', RED]], { size: 92, shadow: 0, sw: 12 });
+  const bd = body(cam);
+  const st = stamp(cam, 'PLUS ASSEZ DE PEAU', RED, 62);
+  return t => {
+    at(head, CX, 260, pop(t, a + .05, .35), -2);
+    at(bd.g, CX, 680, .85 * pop(t, a + .05, .35));
+    bd.burn(.9 * p(t, a + .2, tBr + .3, E.inOut));
+    st.update(CX, 1080, t, tAss - .2, -5);
+    shock(t, tAss, .3, .45);
+  };
+}, { swipe: RED });
+
+// ====== 5. CULTURE : faire pousser ta propre peau en labo (depuis les années 80)… mais des semaines =====
+S(T.cult, T.don, (cam, a) => {
+  const tPou = Wt('pousser'), tCel = Wt('cellules'), t80 = Wt('80.'), tSem = Wt('semaines'), tGr = Wt('grand'), tPas = Wt('pas', 1, tGr);
+  bg(cam);
+  const tag = chip(cam, 'SOLUTION 2', INK, CREAM, 50);
+  const head = title(cam, ['FAIRE POUSSER', ['TA PROPRE PEAU', GREEN]], { size: 88, shadow: 0, sw: 12 });
+  const pe = petri(cam, 210);
+  const y80 = chip(cam, 'DEPUIS LES ANNÉES 80', INK, CREAM, 44);
+  const cal = calendar(cam);
+  const st = stamp(cam, 'PAS LE TEMPS', RED, 84);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(head, CX, 400, pop(t, tPou - .3, .35), -1);
+    const kC = p(t, tSem - .4, tSem - .1);
+    pe.set(p(t, tCel - .3, t80 + .6));
+    at(pe.g, lerp(CX, CX - 210, kC), 740, pop(t, tPou - .1, .4) * lerp(1, .8, kC), t * 4);
+    y80.update(CX, 1010, pop(t, t80 - .3) * (1 - p(t, tGr - .3, tGr)), 2);
+    cal.set(1 + Math.floor(5 * p(t, tSem - .1, tGr)));
+    at(cal.g, CX + 220, 740, pop(t, tSem - .2, .35) * .85, 4);
+    st.update(CX, 1040, t, tPas - .1, -5);
+    shock(t, tPas + .1, .3, .45);
+  };
+}, { swipe: GREEN });
+
+// ====== 6. EN ATTENDANT : peau de donneurs décédés (ça protège)… rejetée au bout de quelques semaines =====
+S(T.don, T.hier, (cam, a) => {
+  const tDon = Wt('donneurs'), tPro = Wt('protège'), tRej = Wt('rejeter'), tQq = Wt('quelques', 1, tRej);
+  bg(cam);
+  const tag = chip(cam, 'EN ATTENDANT', INK, CREAM, 50);
+  const head = title(cam, ['LA PEAU DE', ['DONNEURS DÉCÉDÉS', RED]], { size: 82, shadow: 0, sw: 12 });
+  const bk = el('g', {}, cam);
+  card(bk, -230, -130, 460, 260, ICE, 30, 12, 8);
+  el('rect', { x: -230, y: -130, width: 460, height: 70, rx: 28, fill: BLUE, stroke: INK, 'stroke-width': 8 }, bk);
+  const bt = txt(bk, 'BANQUE DE TISSUS', { size: 36, fill: CREAM }); bt.g.setAttribute('transform', 'translate(0,-82)');
+  const s1 = skin(bk, 300, 140); s1.setAttribute('transform', 'translate(0,30)');
+  const shield = el('g', {}, cam); emoji(shield, '🛡️', 120);
+  const pro = chip(cam, 'ÇA PROTÈGE', GREEN, INK, 48);
+  const st = stamp(cam, 'REJETÉE', RED, 100);
+  const qq = chip(cam, 'AU BOUT DE QUELQUES SEMAINES', INK, CREAM, 36);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(head, CX, 400, pop(t, tDon - .3, .35), -1);
+    const kR = p(t, tRej - .1, tRej + .3);
+    at(bk, CX, 700, pop(t, tDon - .1, .4), -2 + 3 * Math.sin(kR * 30) * (1 - kR));
+    at(shield, CX + 300, 560, pop(t, tPro - .2, .35) * (1 - p(t, tRej - .3, tRej)), 8);
+    pro.update(CX, 900, pop(t, tPro - .2) * (1 - p(t, tRej - .3, tRej)), 2);
+    st.update(CX, 900, t, tRej, -7);
+    qq.update(CX, 1070, pop(t, tQq - .2), 2);
+    shock(t, tRej + .15, .3, .5);
+  };
+}, { swipe: RED });
+
+// ====== 7. HIER : un groupe français annonce une première. Parmi eux, Urgo… la marque de tes pansements =====
+S(T.hier, T.idee, (cam, a) => {
+  const tPre = Wt('première'), tUr = Wt('Urgo'), tMar = Wt('marque'), tPan = Wt('pansements');
+  bg(cam);
+  const tag = chip(cam, 'HIER, 20 NOVEMBRE', RED, CREAM, 50);
+  const fr = flag(cam, 150);
+  const head = title(cam, ['UNE', ['PREMIÈRE', GREEN], 'MONDIALE*'], { size: 120, shadow: 0, sw: 14 });
+  const note = chip(cam, '* SELON EUX', INK, CREAM, 34);
+  const logos = ['CNRS', 'LYON 1', 'EFS', 'DASSAULT SYSTÈMES'].map(s => chip(cam, s, CREAM, INK, 34));
+  const ur = chip(cam, 'URGO', GREEN, INK, 80);
+  const pl = plaster(cam);
+  const pan = chip(cam, 'LA MARQUE DE TES PANSEMENTS', INK, CREAM, 38);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    const kU = p(t, tUr - .4, tUr - .1);
+    at(fr, CX, 420, pop(t, a + .15, .35) * (1 - kU), -5);
+    at(head, CX, 640, pop(t, tPre - .2, .35) * (1 - kU), -2);
+    note.update(CX, 860, pop(t, tPre + .2) * (1 - kU), 2);
+    logos.forEach((l, i) => l.update(CX + (i % 2 ? 200 : -200), 380 + Math.floor(i / 2) * 110 + (i > 1 ? 0 : 0), pop(t, tUr + .1 + i * .12) , i % 2 ? 3 : -3));
+    ur.update(CX, 640, pop(t, tUr - .1), -3);
+    at(pl, CX, 850, pop(t, tMar - .2, .4), -8 + 4 * Math.sin(t * 3));
+    pan.update(CX, 1060, pop(t, tPan - .3), 2);
+    shock(t, tUr + .05, .3, .35);
+  };
+}, { swipe: GREEN });
+
+// ====== 8. LEUR IDÉE : une peau humaine vivante fabriquée à l'avance, à partir d'une banque de cellules =====
+S(T.idee, T.froid, (cam, a) => {
+  const tViv = Wt('vivante'), tAva = Wt("l'avance"), tBan = Wt('banque'), tPlus = Wt('Plus', 1, tBan), tPat = Wt('patient');
+  bg(cam);
+  const tag = chip(cam, 'LEUR IDÉE', INK, CREAM, 50);
+  const head = title(cam, ['UNE PEAU', ['VIVANTE', GREEN]], { size: 120, shadow: 0, sw: 14 });
+  const sk = skin(cam, 420, 260);
+  const heart = el('g', {}, cam); emoji(heart, '❤️', 90);
+  const av = chip(cam, "FABRIQUÉE À L'AVANCE", GREEN, INK, 46);
+  const vials = [0, 1, 2, 3].map(i => vial(cam, [DER, EPI, DER, HYPO][i]));
+  const ban = chip(cam, 'BANQUE DE CELLULES', BLUE, CREAM, 44);
+  const st = stamp(cam, 'RIEN À PRENDRE SUR LE PATIENT', GREEN, 46);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(head, CX, 400, pop(t, a + .1, .35) * (1 - p(t, tBan - .4, tBan - .1)), -2);
+    const kB = p(t, tBan - .3, tBan + .2, E.inOut);
+    at(sk, lerp(CX, CX + 170, kB), 680, pop(t, tViv - .3, .4) * lerp(1, .7, kB), -3);
+    at(heart, lerp(CX + 200, CX + 300, kB), 560, pop(t, tViv - .1, .35) * (1 + .12 * Math.abs(Math.sin(t * 6))), 0);
+    av.update(CX, 880, pop(t, tAva - .3) * (1 - kB), 2);
+    vials.forEach((v, i) => at(v, CX - 330 + i * 90, 700, pop(t, tBan - .1 + i * .08, .35), -4 + i * 3));
+    ban.update(CX - 190, 420, pop(t, tBan), -3);
+    st.update(CX, 1000, t, tPat - .4, -4);
+  };
+}, { swipe: RED });
+
+// ====== 9. LE DÉTAIL LE PLUS FOU : elle se congèle à -150 °C… et une fois décongelée, toujours vivante =====
+S(T.froid, T.stock, (cam, a) => {
+  const tCon = Wt('congèle'), t150 = Wt('150'), tDec = Wt('décongelée'), tTou = Wt('toujours');
+  bg(cam);
+  const tag = chip(cam, 'LE DÉTAIL LE PLUS FOU', RED, CREAM, 48);
+  const th = thermo(cam);
+  const n = el('g', {}, cam), nb = bigNum(n, 150, BLUE);
+  const deg = chip(cam, 'DEGRÉS', INK, CREAM, 46), dec = chip(cam, 'UNE FOIS DÉCONGELÉE…', INK, CREAM, 40);
+  const sk = skin(cam, 300, 190);
+  const frost = el('rect', { x: -150, y: -95, width: 300, height: 190, rx: 26, fill: ICE, opacity: 0 }, cam);
+  const flakes = [0, 1, 2].map(() => { const g = el('g', {}, cam); emoji(g, '❄️', 70); return g; });
+  const heart = el('g', {}, cam); emoji(heart, '❤️', 80);
+  const viv = stamp(cam, 'TOUJOURS VIVANTE', GREEN, 74);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    const kT = p(t, tCon - .2, t150 + .4, E.inOut), kD = p(t, tDec - .3, tDec + .5);
+    th.set(lerp(.85, .08, kT) + lerp(0, .5, kD), kD > .5 ? RED : BLUE);
+    at(th.g, CX - 250, 680, .85 * pop(t, a + .15, .4));
+    nb.set(Math.round(lerp(20, -150, kT)) + ' °C');
+    at(n, CX + 130, 480, pop(t, tCon - .2, .35) * (1 - p(t, tDec - .7, tDec - .4)), -3);
+    dec.update(CX + 130, 520, pop(t, tDec - .35), 2);
+    deg.update(CX + 130, 600, pop(t, t150 - .2) * (1 - p(t, tDec - .7, tDec - .4)), 2);
+    at(sk, CX + 130, 790, pop(t, a + .2, .35), -3);
+    at(frost, CX + 130, 790, 1, -3); frost.setAttribute('opacity', fmt(.75 * kT * (1 - kD)));
+    flakes.forEach((f, i) => at(f, CX + 30 + i * 100, 680 + (i % 2) * 220, pop(t, tCon + i * .15, .35) * (1 - kD), t * 40 + i * 30));
+    at(heart, CX + 300, 680, pop(t, tTou - .1, .35) * (1 + .12 * Math.abs(Math.sin(t * 6))), 0);
+    viv.update(CX, 1060, t, tTou - .1, -4);
+    shock(t, t150 + .1, .3, .5);
+  };
+}, { swipe: GREEN });
+
+// ====== 10. IMAGINE : des hôpitaux avec de la peau humaine en stock, prête le jour où un brûlé arrive =====
+S(T.stock, T.cent, (cam, a) => {
+  const tHop = Wt('hôpitaux'), tSto = Wt('stock'), tPre = Wt('Prête'), tArr = Wt('arrive');
+  bg(cam);
+  const tag = chip(cam, 'IMAGINE', INK, CREAM, 50);
+  const hp = el('g', {}, cam); emoji(hp, '🏥', 170);
+  const shelf = el('g', {}, cam);
+  card(shelf, -330, -230, 660, 460, '#E9DCC4', 20, 12, 8);
+  [-75, 155].forEach(y => el('rect', { x: -330, y, width: 660, height: 22, fill: INK }, shelf));
+  const boxes = [];
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) { const b = box(shelf); boxes.push({ b, x: -215 + c * 215, y: -160 + r * 230 }); }
+  const st = stamp(cam, 'EN STOCK', GREEN, 90);
+  const pr = chip(cam, 'PRÊTE LE JOUR OÙ UN BRÛLÉ ARRIVE', INK, CREAM, 34);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(hp, CX, 420, pop(t, tHop - .2, .4) * (1 - p(t, tSto - .5, tSto - .2)), 0);
+    at(shelf, CX, 720, pop(t, tHop, .4) * .95, 0);
+    boxes.forEach((o, i) => at(o.b, o.x, o.y, pop(t, tHop + .2 + i * .1, .3) * .85, 0));
+    st.update(CX, 420, t, tSto - .2, -5);
+    pr.update(CX, 1070, pop(t, tPre - .2), 2);
+    shock(t, tSto, .3, .4);
+  };
+}, { swipe: RED });
+
+// ====== 11. UNE CENTAINE DÉJÀ FABRIQUÉES, 5 ANS DE RECHERCHE, PLUS DE 22 M€ D'AIDE PUBLIQUE =============
+S(T.cent, T.att, (cam, a) => {
+  const tCen = Wt('centaine'), tAns = Wt('ans'), t22 = Wt('22'), tPub = Wt('publique');
+  bg(cam);
+  const tag = chip(cam, 'DÉJÀ', INK, CREAM, 50);
+  const n = el('g', {}, cam), nb = bigNum(n, 190, GREEN);
+  const ex = chip(cam, 'PEAUX FABRIQUÉES', INK, CREAM, 46);
+  const c1 = el('g', {}, cam); card(c1, -200, -90, 400, 180, WHITE, 26, 10, 8);
+  const c1t = txt(c1, '5 ANS', { size: 84, fill: INK }); c1t.g.setAttribute('transform', 'translate(0,10)');
+  const c1s = txt(c1, 'DE RECHERCHE', { size: 30, fill: INK }); c1s.g.setAttribute('transform', 'translate(0,62)');
+  const c2 = el('g', {}, cam); card(c2, -200, -90, 400, 180, YEL, 26, 10, 8);
+  const c2t = txt(c2, '+22 M€', { size: 84, fill: INK }); c2t.g.setAttribute('transform', 'translate(0,10)');
+  const c2s = txt(c2, "D'AIDE PUBLIQUE", { size: 30, fill: INK }); c2s.g.setAttribute('transform', 'translate(0,62)');
+  const eu = el('g', {}, cam); emoji(eu, '💶', 100);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    nb.set('≈ ' + Math.round(100 * p(t, tCen - .3, tCen + .5, E.out)));
+    at(n, CX, 470, pop(t, tCen - .3, .35), -3);
+    ex.update(CX, 640, pop(t, tCen), 2);
+    at(c1, CX - 215, 900, pop(t, tAns - .4, .35) * .95, -3);
+    at(c2, CX + 215, 900, pop(t, t22 - .2, .35) * .95, 3);
+    at(eu, CX + 370, 740, pop(t, tPub - .3, .35), 12);
+    shock(t, t22 + .1, .3, .35);
+  };
+}, { swipe: GREEN });
+
+// ====== 12. MAIS ATTENTION… personne n'a encore été greffé. Essai 2030, vente vers 2040 =================
+S(T.att, T.q, (cam, a) => {
+  const tPer = Wt('personne'), tGre = Wt('greffé', 1, tPer), tEss = Wt('essai'), t30 = Wt('2030.'), tVen = Wt('vente'), t40 = Wt('2040.');
+  bg(cam);
+  const tag = chip(cam, '⚠️ ATTENTION', RED, CREAM, 50);
+  const head = title(cam, ['PERSONNE', ["N'A ENCORE", RED], ['ÉTÉ GREFFÉ', RED]], { size: 100, shadow: 0, sw: 13 });
+  const line = el('path', { d: 'M-380,0 L380,0', stroke: INK, 'stroke-width': 14, 'stroke-linecap': 'round' }, cam);
+  const nodes = [['2026', 'ANNONCE', INK], ['2030', '1ER ESSAI', BLUE], ['2040', 'EN VENTE ?', GREEN]].map(([y, l, c]) => {
+    const g = el('g', {}, cam);
+    el('circle', { r: 34, fill: c, stroke: INK, 'stroke-width': 8 }, g);
+    const yt = txt(g, y, { size: 66, fill: INK }); yt.g.setAttribute('transform', 'translate(0,-62)');
+    const lt = chip(g, l, c, c === INK ? CREAM : (c === GREEN ? INK : CREAM), 30); lt.update(0, 92, 1, 0);
+    return g;
+  });
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(head, CX, 470, pop(t, tPer - .25, .35), -2);
+    const kL = p(t, tEss - .4, t40 + .3);
+    at(line, CX, 900, pop(t, tEss - .5, .35)); line.setAttribute('d', `M-380,0 L${fmt(lerp(-380, 380, kL))},0`);
+    [tEss - .4, t30 - .2, t40 - .2].forEach((t0, i) => at(nodes[i], CX - 330 + i * 330, 900, pop(t, t0, .35), 0));
+    shock(t, tGre, .3, .4);
+  };
+}, { swipe: RED });
+
+// ====== 13. LA VRAIE QUESTION : le corps va-t-il l'accepter, alors que ce ne sont pas ses cellules ? ======
+S(T.q, T.cta, (cam, a) => {
+  const tAcc = Wt("l'accepter"), tPro = Wt('propres'), tRep = Wt('Réponse');
+  bg(cam);
+  const tag = chip(cam, 'LA VRAIE QUESTION', INK, CREAM, 50);
+  const head = title(cam, ['LE CORPS', ["VA L'ACCEPTER ?", GREEN]], { size: 100, shadow: 0, sw: 13 });
+  const bd = body(cam);
+  const pt = skin(cam, 110, 90);
+  const think = el('g', {}, cam); emoji(think, '🤔', 120);
+  const pro = chip(cam, 'PAS SES PROPRES CELLULES', RED, CREAM, 40);
+  const rep = chip(cam, '⏳ RÉPONSE DANS QUELQUES ANNÉES', INK, CREAM, 34);
+  return t => {
+    tag.update(CX, 235, pop(t, a + .05), -2);
+    at(head, CX, 400, pop(t, a + .15, .35), -2);
+    at(bd.g, CX - 60, 760, .55 * pop(t, a + .2, .4)); bd.burn(0);
+    at(pt, CX - 60 + 82, 760 - 30, pop(t, tAcc - .2, .35) * (1 + .05 * Math.sin(t * 6)), 6);
+    at(think, CX + 260, 640, pop(t, tAcc, .35), 8 * Math.sin(t * 2));
+    pro.update(CX + 40, 1000, pop(t, tPro - .3) * (1 - p(t, tRep - .3, tRep)), -2);
+    rep.update(CX + 40, 1000, pop(t, tRep - .1), 2);
+  };
+}, { swipe: GREEN });
+
+// ====== 14. FIN : et toi… tu te ferais greffer une peau fabriquée en labo ? Dis-le en commentaire =========
+S(T.cta, M.DUR, (cam, a) => {
+  const tGr = Wt('greffer', 1, a), tEn = Wt('en', 1, tDis), tCm = Wt('commentaire');
+  bg(cam);
+  const q = title(cam, ['ET TOI, TU TE', ['FERAIS GREFFER', GREEN], 'UNE PEAU', ['FABRIQUÉE EN LABO ?', GREEN]], { size: 78, shadow: 0, sw: 11 });
+  const sk = skin(cam, 260, 160);
+  const yes = el('g', {}, cam); emoji(yes, '✅', 100);
+  const no = el('g', {}, cam); emoji(no, '❌', 100);
+  const bub = el('g', {}, cam); emoji(bub, '💬', 130);
+  const cta = el('g', {}, cam);
+  card(cta, -420, -110, 840, 230, CREAM, 40, 14, 8);
+  const w1 = txt(cta, 'DIS-LE', { size: 84 }), w2 = txt(cta, 'EN', { size: 84 }), w3 = txt(cta, 'COMMENTAIRE', { size: 84, fill: GREEN, sw: 10 });
+  const wx = -(w1.w + w2.w + 34) / 2;
+  w1.g.setAttribute('transform', `translate(${fmt(wx + w1.w / 2)},-12)`); w2.g.setAttribute('transform', `translate(${fmt(wx + w1.w + 34 + w2.w / 2)},-12)`);
+  w3.g.setAttribute('transform', 'translate(-40,84)');
+  const point = el('g', {}, cta); emoji(point, '👇', 90);
+  return t => {
+    at(q, CX, 380, pop(t, a + .05, .35), -2);
+    at(sk, CX, 745, pop(t, tGr - .2, .35), -3);
+    at(yes, CX - 250, 745, pop(t, tGr + .2, .35), -8 + 6 * Math.sin(t * 3));
+    at(no, CX + 250, 745, pop(t, tGr + .35, .35), 8 - 6 * Math.sin(t * 3));
+    at(cta, CX, 1060, pop(t, tDis - .1, .35), -2);
+    at(bub, CX + 330, 930, pop(t, tDis - .3, .4) * (1 + .06 * Math.sin(t * 5)), Math.sin(t * 2.5) * 5);
+    w1.g.setAttribute('opacity', t >= tDis ? 1 : 0); w2.g.setAttribute('opacity', t >= tEn ? 1 : 0); w3.g.setAttribute('opacity', t >= tCm ? 1 : 0);
+    tf(point, w3.w / 2 + 50, 70 + Math.abs(Math.sin(t * 5)) * 14, pop(t, tCm + .2), 0);
+  };
+}, { swipe: RED });
+
+captions({ until: T.cta + .2 });
+Motion.selene({ env: window.ENV, pos: t => ({ x: 165, y: 1660, k: E.out(clamp((t - .1) / .5)) }) });
+start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Voix-off de peau_labo.html (sujet du 21 novembre 2026, choisi par Benoit : peau humaine fabriquée en labo, projet GENESIS).
+# Ton : curieux, plein d'espoir (pas le mode triste). Syntaxe : voir docs/MODELE.md, section « Voix-off ».
+# Hook choisi par un juge impartial parmi 7 candidats (version G améliorée).
+# Sources :
+# - AFP via La Libre, 20/11/2026 : « Pour la première fois au monde, on a réussi, en laboratoire, à créer de la peau artificielle prête à greffer » (Guirec Le Lous, Urgo) ;
+#   conservée à -150 °C, fonctionnelle après décongélation ; une centaine d'exemplaires ; 5 ans de recherche ; essai clinique dès 2030 à l'EFS ; commercialisation envisagée en 2040.
+#   https://www.lalibre.be/dernieres-depeches/2026/11/20/des-chercheurs-francais-creent-une-peau-artificielle-prete-a-greffer-en-laboratoire-PB2LI3PEXNG6XCZH2YJM57D7RQ/
+# - Le Quotidien du Médecin, 20/11/2026 : consortium Urgo, CNRS, Lyon 1, CECS/I-Stem, EFS, Dassault Systèmes ; banque de cellules de grade pharmaceutique ; autogreffe = référence,
+#   peau saine parfois insuffisante. https://www.lequotidiendumedecin.fr/actu-medicale/une-peau-artificielle-prete-etre-greffee-pourrait-changer-le-traitement-des-plaies-severes
+# - UP' Magazine, 20/11/2026 : projet lancé en 2021, aide de 22,8 M€ (Programme d'investissements d'avenir, Bpifrance), labo dédié à Dijon (2022) ;
+#   efficacité et tolérance chez l'humain restent à démontrer. https://up-magazine.info/peau-artificielle-vivante-premiere-mondiale-france/
+# - Allodocteurs : peau de donneurs décédés (banques de tissus) en attendant, rejetée au bout de quelques semaines ; culture de la peau du patient.
+#   https://www.allodocteurs.fr/se-soigner/greffes-don-d-organes/greffe-de-peau/les-progres-de-la-greffe-de-peau_11568.html
+# - Académie nationale de médecine, ingénierie cutanée pour les brûlures graves : https://www.academie-medecine.fr/lingenierie-cutanee-pour-le-traitement-des-brulures-graves/
+Si tu te brûles gravement… on peut te greffer… la peau d'un mort. Des Français viennent de fabriquer une peau… qui pourrait la remplacer.
+Mais d'abord… comment on soigne une grosse brûlure aujourd'hui_?
+Le plus souvent, les chirurgiens prennent de la peau saine… sur une autre partie de ton corps. Une cuisse, le dos. Et ils la posent sur la brûlure. Pour réparer une plaie… on t'en fait une deuxième.
+Et quand presque tout le corps est brûlé_? Il ne reste plus assez de peau à prendre.
+Alors on peut faire pousser ta propre peau en laboratoire, à partir de quelques cellules. Ça existe depuis les années 80.[quatre-vingt] Mais ça prend des semaines. Et un grand brûlé… n'a pas des semaines.
+En attendant, on le recouvre avec de la peau de donneurs décédés. Ça le protège. Mais son corps finit par la rejeter… au bout de quelques semaines.
+Hier, un groupe d'entreprises et de labos français a annoncé une première. Parmi eux, Urgo… la marque de tes pansements.
+Leur idée : une peau humaine vivante… fabriquée à l'avance, à partir d'une banque de cellules. Plus besoin de rien prendre sur le patient.
+Et le détail le plus fou… elle se congèle. À moins 150[cent cinquante] degrés. Et une fois décongelée… elle est toujours vivante.
+Imagine : des hôpitaux avec de la peau humaine en stock. Prête le jour où un brûlé arrive.
+Ils en ont déjà fabriqué une centaine. Après cinq ans de recherche… et plus de 22[vingt-deux] millions d’euros d’aide publique.
+Mais attention… personne n'a encore été greffé. Le premier essai sur des patients est prévu en 2030.[deux mille trente] Et ils visent une vente… vers 2040.[deux mille quarante]
+La vraie question, c'est : est-ce que le corps va l'accepter… alors que ce ne sont pas ses propres cellules_? Réponse dans quelques années.
+Et toi… tu te ferais greffer une peau fabriquée en labo_? Dis-le en commentaire.
+Moi, c'est Séléné. Abonne-toi pour ne rien rater_!
